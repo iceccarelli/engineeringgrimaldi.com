@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grimaldi Engineering — Hardware &amp; Electrical Engineering</title>
+<meta name="description" content="The hardware and electrical engineering surface of the Grimaldi Network: high-voltage systems, embedded control, power electronics. Lab notes launching soon." />
+<link rel="canonical" href="https://engineeringgrimaldi.com/" />
+<style>
+  :root{
+    --ink:#161e2d;--ink-soft:#232f3e;--text:#16191f;--text-2:#414d5c;--muted:#5f6b7a;
+    --card:#f2f3f3;--card-alt:#f8f8f8;--border:#e9ebed;--link:#0972d3;--success:#037f0c;
+    --hero:linear-gradient(155deg,#f3d3b8 0%,#d9b6c9 45%,#7b6bc9 100%);
+    --sheet-r:40px;--r:16px;--max:1240px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Amazon Ember',Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:#fff;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .utility{background:var(--ink);color:#fff;height:40px;display:flex;align-items:center}
+  .utility-in{width:100%;max-width:var(--max);margin:0 auto;padding:0 1.5rem;display:flex;justify-content:flex-end;align-items:center;gap:1.2rem;font-size:.78rem}
+  .utility a{opacity:.92}.utility a:hover{opacity:1;text-decoration:underline}
+  .lang{display:inline-flex;gap:.15rem;padding:.15rem;border:1px solid rgba(255,255,255,.35);border-radius:999px}
+  .lang button{border:0;background:transparent;color:rgba(255,255,255,.85);font-size:.72rem;font-weight:600;padding:.22rem .55rem;border-radius:999px;cursor:pointer}
+  .lang button.on{background:#fff;color:var(--ink)}
+  .nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);min-height:64px;display:flex;align-items:center;z-index:9}
+  .nav-in{width:100%;max-width:var(--max);margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .brand{display:inline-flex;align-items:center;gap:.65rem}
+  .mono{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:var(--ink);color:#fff;font-weight:800}
+  .brand b{font-size:.98rem}.brand small{display:block;font-size:.72rem;color:var(--muted)}
+  .pill{padding:.5rem 1.2rem;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:.85rem;white-space:nowrap}
+  .pill:hover{background:var(--ink-soft)}
+  .hero{background:var(--hero);padding:4.5rem 1.5rem 7.5rem}
+  .hero-in{max-width:var(--max);margin:0 auto}
+  .hero-card{background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-radius:20px;padding:2.5rem;max-width:640px;box-shadow:0 8px 30px rgba(22,25,31,.16)}
+  .kicker{font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:clamp(1.9rem,3.4vw,2.6rem);line-height:1.18;margin:.65rem 0 1rem;font-weight:600;letter-spacing:-.015em}
+  .lead{color:var(--text-2);line-height:1.65;margin:0 0 1.5rem}
+  .cta-row{display:flex;flex-wrap:wrap;gap:.85rem}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.72rem 1.5rem;border-radius:999px;font-size:.92rem;font-weight:600;border:1px solid transparent}
+  .btn-dark{background:var(--ink);color:#fff}.btn-dark:hover{background:var(--ink-soft)}
+  .btn-light{background:#fff;color:var(--text);border-color:var(--ink)}.btn-light:hover{background:var(--card)}
+  .sheet{background:#fff;border-radius:var(--sheet-r) var(--sheet-r) 0 0;margin-top:-3.5rem;position:relative}
+  .section{max-width:var(--max);margin:0 auto;padding:4rem 1.5rem}
+  h2{font-size:clamp(1.45rem,2.4vw,2rem);font-weight:600;letter-spacing:-.01em;margin:0 0 .5rem}
+  .intro{color:var(--text-2);line-height:1.65;max-width:680px;margin:0 0 2rem}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.6rem 1.5rem;display:flex;flex-direction:column;gap:.6rem}
+  .card .tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6b46f2}
+  .card h3{margin:0;font-size:1.05rem}
+  .card p{margin:0;color:var(--text-2);font-size:.92rem;line-height:1.6;flex:1}
+  .status{display:inline-flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:600;color:var(--text-2)}
+  .dot{width:8px;height:8px;border-radius:999px;background:var(--success)}
+  .banner{background:linear-gradient(95deg,#f6cfae,#f3b98b);border-radius:var(--r);padding:2rem 2.25rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1.25rem}
+  .banner h2{font-size:1.15rem;margin:0 0 .25rem}.banner p{margin:0;color:var(--ink-soft);font-size:.9rem}
+  footer{background:var(--ink);color:#fff;border-radius:var(--sheet-r) var(--sheet-r) 0 0;margin-top:3rem}
+  .foot{max-width:var(--max);margin:0 auto;padding:3rem 1.5rem 2rem}
+  .foot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.5rem;margin-bottom:2.5rem}
+  .foot h4{margin:0 0 1rem;font-size:.95rem}
+  .foot a{display:block;color:rgba(255,255,255,.78);font-size:.88rem;margin-bottom:.7rem}
+  .foot a:hover{color:#fff;text-decoration:underline}
+  .foot p{color:rgba(255,255,255,.78);font-size:.9rem;line-height:1.6}
+  .legal{border-top:1px solid rgba(255,255,255,.16);padding-top:1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;color:rgba(255,255,255,.6);font-size:.82rem}
+  @media(max-width:900px){
+    .utility-in{justify-content:center}
+    .grid,.foot-grid{grid-template-columns:1fr}
+    .sheet,footer{border-radius:28px 28px 0 0}
+    .hero{padding:2.5rem 1.25rem 6rem}
+  }
+</style>
+</head>
+<body>
+<div class="utility">
+  <div class="utility-in">
+    <span class="lang" id="lang"></span>
+    <a href="https://igrimaldi.engineering">igrimaldi.engineering</a>
+    <a href="https://grimaldi.ca">grimaldi.ca</a>
+    <a href="https://github.com/iceccarelli" rel="noopener">GitHub</a>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-in">
+    <a class="brand" href="/">
+      <span class="mono">GE</span>
+      <span><b>Grimaldi Engineering</b><small data-i18n="tagline">Hardware • Electrical Engineering</small></span>
+    </a>
+    <a class="pill" href="mailto:vincenzo@igrimaldi.engineering" data-i18n="connect">Connect</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="hero-card">
+      <span class="kicker" data-i18n="kicker">The Grimaldi Network · Hardware Surface</span>
+      <h1 data-i18n="title">The physical layer: high-voltage systems, embedded boards, power electronics.</h1>
+      <p class="lead" data-i18n="lead">This is where the hardware work of the Grimaldi Network will live — lab notes, build logs, and continuously deployed engineering write-ups of physical systems. The first entries are being prepared now.</p>
+      <div class="cta-row">
+        <a class="btn btn-dark" href="https://igrimaldi.engineering" data-i18n="ctaSoftware">Visit the software surface</a>
+        <a class="btn btn-light" href="mailto:vincenzo@igrimaldi.engineering" data-i18n="ctaMail">Get in touch</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet">
+  <div class="section">
+    <span class="kicker" data-i18n="comingKicker">Launching</span>
+    <h2 data-i18n="comingTitle">What this site will cover</h2>
+    <p class="intro" data-i18n="comingIntro">Three tracks of physical engineering, documented with the same rigor as the software portfolio — every build with schematics, measurements, and honest failure notes.</p>
+    <div class="grid">
+      <div class="card"><span class="tag" data-i18n="c1tag">High Voltage</span><h3 data-i18n="c1title">High-voltage systems</h3><p data-i18n="c1body">Traction power, substation hardware, protection and measurement chains — the energy layer, up close.</p><span class="status"><span class="dot"></span><span data-i18n="soon">In preparation</span></span></div>
+      <div class="card"><span class="tag" data-i18n="c2tag">Embedded</span><h3 data-i18n="c2title">Embedded control boards</h3><p data-i18n="c2body">Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs.</p><span class="status"><span class="dot"></span><span data-i18n="soon">In preparation</span></span></div>
+      <div class="card"><span class="tag" data-i18n="c3tag">Power Electronics</span><h3 data-i18n="c3title">Power electronics</h3><p data-i18n="c3body">Inverters, converters, and the switching hardware that connects renewables to real grids.</p><span class="status"><span class="dot"></span><span data-i18n="soon">In preparation</span></span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="banner">
+      <div><h2 data-i18n="bannerTitle">Want to be notified when the lab opens?</h2><p data-i18n="bannerBody">One email when the first build log ships. No list, no noise.</p></div>
+      <a class="btn btn-dark" href="mailto:vincenzo@igrimaldi.engineering?subject=Notify%20me%20—%20engineeringgrimaldi.com" data-i18n="bannerCta">Notify me</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot">
+    <div class="foot-grid">
+      <div><h4>Grimaldi Engineering</h4><p data-i18n="footAbout">The hardware and electrical engineering surface of the Grimaldi Network.</p></div>
+      <div><h4 data-i18n="footNet">Network</h4>
+        <a href="https://igrimaldi.engineering">igrimaldi.engineering — <span data-i18n="netSoftware">Software &amp; AI</span></a>
+        <a href="https://grimaldi.ca">grimaldi.ca — <span data-i18n="netPersonal">Personal blog</span></a>
+        <a href="https://github.com/iceccarelli" rel="noopener">GitHub — iceccarelli</a>
+      </div>
+      <div><h4 data-i18n="footContact">Contact</h4><a href="mailto:vincenzo@igrimaldi.engineering">vincenzo@igrimaldi.engineering →</a></div>
+    </div>
+    <div class="legal"><span data-i18n="rights">© 2026 Vincenzo Grimaldi. All rights reserved.</span><a href="#" onclick="window.scrollTo({top:0});return false" data-i18n="top">Back to top ↑</a></div>
+  </div>
+</footer>
+
+<script>
+const I18N = {
+  en:{tagline:'Hardware • Electrical Engineering',connect:'Connect',kicker:'The Grimaldi Network · Hardware Surface',
+    title:'The physical layer: high-voltage systems, embedded boards, power electronics.',
+    lead:'This is where the hardware work of the Grimaldi Network will live — lab notes, build logs, and continuously deployed engineering write-ups of physical systems. The first entries are being prepared now.',
+    ctaSoftware:'Visit the software surface',ctaMail:'Get in touch',comingKicker:'Launching',comingTitle:'What this site will cover',
+    comingIntro:'Three tracks of physical engineering, documented with the same rigor as the software portfolio — every build with schematics, measurements, and honest failure notes.',
+    c1tag:'High Voltage',c1title:'High-voltage systems',c1body:'Traction power, substation hardware, protection and measurement chains — the energy layer, up close.',
+    c2tag:'Embedded',c2title:'Embedded control boards',c2body:'Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs.',
+    c3tag:'Power Electronics',c3title:'Power electronics',c3body:'Inverters, converters, and the switching hardware that connects renewables to real grids.',
+    soon:'In preparation',bannerTitle:'Want to be notified when the lab opens?',bannerBody:'One email when the first build log ships. No list, no noise.',bannerCta:'Notify me',
+    footAbout:'The hardware and electrical engineering surface of the Grimaldi Network.',footNet:'Network',netSoftware:'Software & AI',netPersonal:'Personal blog',footContact:'Contact',
+    rights:'© 2026 Vincenzo Grimaldi. All rights reserved.',top:'Back to top ↑'},
+  es:{tagline:'Hardware • Ingeniería Eléctrica',connect:'Contacto',kicker:'La Red Grimaldi · Superficie de Hardware',
+    title:'La capa física: sistemas de alta tensión, placas embebidas, electrónica de potencia.',
+    lead:'Aquí vivirá el trabajo de hardware de la Red Grimaldi — notas de laboratorio, bitácoras de construcción y publicaciones de ingeniería con despliegue continuo. Las primeras entradas están en preparación.',
+    ctaSoftware:'Visitar la superficie de software',ctaMail:'Ponerse en contacto',comingKicker:'Próximamente',comingTitle:'Qué cubrirá este sitio',
+    comingIntro:'Tres líneas de ingeniería física, documentadas con el mismo rigor que el portafolio de software — cada construcción con esquemas, mediciones y notas honestas de fallos.',
+    c1tag:'Alta Tensión',c1title:'Sistemas de alta tensión',c1body:'Energía de tracción, hardware de subestaciones, cadenas de protección y medición — la capa energética, de cerca.',
+    c2tag:'Embebido',c2title:'Placas de control embebido',c2body:'Controladores deterministas, firmware RTOS, integridad de señal y bancos de prueba hardware-in-the-loop.',
+    c3tag:'Electrónica de Potencia',c3title:'Electrónica de potencia',c3body:'Inversores, convertidores y el hardware de conmutación que conecta las renovables con redes reales.',
+    soon:'En preparación',bannerTitle:'¿Quieres saber cuándo abre el laboratorio?',bannerBody:'Un email cuando salga la primera bitácora. Sin listas, sin ruido.',bannerCta:'Avísame',
+    footAbout:'La superficie de hardware e ingeniería eléctrica de la Red Grimaldi.',footNet:'Red',netSoftware:'Software e IA',netPersonal:'Blog personal',footContact:'Contacto',
+    rights:'© 2026 Vincenzo Grimaldi. Todos los derechos reservados.',top:'Volver arriba ↑'},
+  de:{tagline:'Hardware • Elektrotechnik',connect:'Kontakt',kicker:'Das Grimaldi-Netzwerk · Hardware-Oberfläche',
+    title:'Die physische Schicht: Hochspannungssysteme, eingebettete Platinen, Leistungselektronik.',
+    lead:'Hier wird die Hardware-Arbeit des Grimaldi-Netzwerks leben — Laborberichte, Baujournale und kontinuierlich veröffentlichte Engineering-Berichte physischer Systeme. Die ersten Einträge sind in Vorbereitung.',
+    ctaSoftware:'Zur Software-Oberfläche',ctaMail:'Kontakt aufnehmen',comingKicker:'In Kürze',comingTitle:'Was diese Seite abdecken wird',
+    comingIntro:'Drei Stränge physischer Ingenieursarbeit, dokumentiert mit derselben Strenge wie das Software-Portfolio — jeder Aufbau mit Schaltplänen, Messungen und ehrlichen Fehlernotizen.',
+    c1tag:'Hochspannung',c1title:'Hochspannungssysteme',c1body:'Bahnstrom, Unterwerks-Hardware, Schutz- und Messketten — die Energieebene aus der Nähe.',
+    c2tag:'Embedded',c2title:'Eingebettete Steuerplatinen',c2body:'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände.',
+    c3tag:'Leistungselektronik',c3title:'Leistungselektronik',c3body:'Wechselrichter, Umrichter und die Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet.',
+    soon:'In Vorbereitung',bannerTitle:'Benachrichtigt werden, wenn das Labor öffnet?',bannerBody:'Eine E-Mail, wenn das erste Baujournal erscheint. Keine Liste, kein Lärm.',bannerCta:'Benachrichtigen',
+    footAbout:'Die Hardware- und Elektrotechnik-Oberfläche des Grimaldi-Netzwerks.',footNet:'Netzwerk',netSoftware:'Software & KI',netPersonal:'Persönlicher Blog',footContact:'Kontakt',
+    rights:'© 2026 Vincenzo Grimaldi. Alle Rechte vorbehalten.',top:'Nach oben ↑'},
+  zh:{tagline:'硬件 • 电气工程',connect:'联系',kicker:'Grimaldi 站点网络 · 硬件界面',
+    title:'物理层：高压系统、嵌入式电路板、电力电子。',
+    lead:'Grimaldi 网络的硬件工作将在这里呈现 — 实验记录、搭建日志，以及持续发布的实体系统工程记录。首批内容正在准备中。',
+    ctaSoftware:'访问软件界面',ctaMail:'取得联系',comingKicker:'即将上线',comingTitle:'本站将涵盖的内容',
+    comingIntro:'三条实体工程主线，以与软件作品集同样的严谨程度记录 — 每次搭建都附电路图、测量数据与诚实的失败笔记。',
+    c1tag:'高压',c1title:'高压系统',c1body:'牵引供电、变电站硬件、保护与测量链 — 近距离观察能源层。',
+    c2tag:'嵌入式',c2title:'嵌入式控制板',c2body:'确定性控制器、RTOS 固件、信号完整性与硬件在环测试台。',
+    c3tag:'电力电子',c3title:'电力电子',c3body:'逆变器、变换器，以及把可再生能源接入真实电网的开关硬件。',
+    soon:'准备中',bannerTitle:'想在实验室开放时收到通知吗？',bannerBody:'第一篇搭建日志发布时发一封邮件。没有邮件列表，没有噪音。',bannerCta:'通知我',
+    footAbout:'Grimaldi 网络的硬件与电气工程界面。',footNet:'站点网络',netSoftware:'软件与 AI',netPersonal:'个人博客',footContact:'联系',
+    rights:'© 2026 Vincenzo Grimaldi 版权所有。',top:'返回顶部 ↑'}
+};
+const LOCALES=[['en','English'],['es','Español'],['de','Deutsch'],['zh','中文']];
+function apply(loc){
+  const d=I18N[loc]||I18N.en;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(d[k])el.textContent=d[k];});
+  document.documentElement.lang=loc==='zh'?'zh-Hans':loc;
+  document.querySelectorAll('#lang button').forEach(b=>b.classList.toggle('on',b.dataset.loc===loc));
+  try{localStorage.setItem('vg-locale',loc);}catch(e){}
+}
+(function(){
+  const holder=document.getElementById('lang');
+  LOCALES.forEach(([code,label])=>{const b=document.createElement('button');b.textContent=label;b.dataset.loc=code;b.onclick=()=>apply(code);holder.appendChild(b);});
+  let loc='en';
+  try{const s=localStorage.getItem('vg-locale');if(s&&I18N[s])loc=s;else{const n=(navigator.language||'en').slice(0,2);if(I18N[n])loc=n;}}catch(e){}
+  apply(loc);
+})();
+</script>
+</body>
+</html>
