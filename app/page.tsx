@@ -1,11 +1,13 @@
 'use client';
 
 import Oscilloscope from '@/components/Oscilloscope';
+import Rail from '@/components/Rail';
 import { forgeLine } from '@/lib/forge';
+import { liveDeployments, railUi } from '@/lib/dynamic';
 import { useI18n } from '@/lib/i18n';
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <main>
@@ -30,9 +32,9 @@ export default function Home() {
           <span className="kicker">{t('fl_kicker')}</span>
           <h2>{t('fl_title')}</h2>
           <p className="intro">{t('fl_intro')}</p>
-          <div className="grid grid-4">
+          <Rail ariaLabel={t('fl_title')} prevLabel={railUi.prev[locale]} nextLabel={railUi.next[locale]}>
             {forgeLine.map((product) => (
-              <div className="card" key={product.key}>
+              <div className="card rail-card" key={product.key}>
                 <span className="tag">{t(product.tradeKey)}</span>
                 <h3>{product.name}</h3>
                 <p>{t(product.taglineKey)}</p>
@@ -50,8 +52,32 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
+          </Rail>
           <p className="forge-os">{t('fl_os')}</p>
+        </div>
+
+        {/* PROOF, LIVE — every production deployment on the bench */}
+        <div className="section" id="live">
+          <span className="kicker">{railUi.liveKicker[locale]}</span>
+          <h2>{railUi.liveTitle[locale]}</h2>
+          <p className="intro">{railUi.liveIntro[locale]}</p>
+          <Rail ariaLabel={railUi.liveKicker[locale]} prevLabel={railUi.prev[locale]} nextLabel={railUi.next[locale]}>
+            {liveDeployments.map((deployment) => (
+              <a
+                className="card rail-card deploy-card"
+                key={deployment.id}
+                href={deployment.href}
+                {...(deployment.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}
+              >
+                <span className="deploy-live">
+                  <span className="dot" /> {railUi.liveBadge[locale]}
+                </span>
+                <h3>{deployment.title[locale]}</h3>
+                <p>{deployment.desc[locale]}</p>
+                <span className="deploy-host">{deployment.host}</span>
+              </a>
+            ))}
+          </Rail>
         </div>
 
         {/* SIGNATURE INSTRUMENT */}

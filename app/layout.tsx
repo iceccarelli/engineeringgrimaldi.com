@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { LanguageProvider } from '@/lib/i18n';
 import Chrome from '@/components/Chrome';
+import Ask from '@/components/Ask';
 import './globals.css';
 
 const SITE_URL = 'https://engineeringgrimaldi.com';
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <LanguageProvider>
           <Chrome>{children}</Chrome>
+          <Ask />
         </LanguageProvider>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonld) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(forgeList) }} />
