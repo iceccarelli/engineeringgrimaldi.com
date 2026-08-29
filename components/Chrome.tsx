@@ -36,6 +36,7 @@ export default function Chrome({ children }: { children: ReactNode }) {
             </span>
           </a>
           <div className="nav-links">
+            <a href="#forge">{t('navF')}</a>
             <a href="#scope">{t('vKicker')}</a>
             <a href="#disciplines">{t('navD')}</a>
             <a href="#method">{t('navM')}</a>

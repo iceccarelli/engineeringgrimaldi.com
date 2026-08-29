@@ -1,6 +1,7 @@
 'use client';
 
 import Oscilloscope from '@/components/Oscilloscope';
+import { forgeLine } from '@/lib/forge';
 import { useI18n } from '@/lib/i18n';
 
 export default function Home() {
@@ -24,6 +25,35 @@ export default function Home() {
       </section>
 
       <div className="sheet">
+        {/* TRADES 2.0 — THE FORGE LINE */}
+        <div className="section" id="forge">
+          <span className="kicker">{t('fl_kicker')}</span>
+          <h2>{t('fl_title')}</h2>
+          <p className="intro">{t('fl_intro')}</p>
+          <div className="grid grid-4">
+            {forgeLine.map((product) => (
+              <div className="card" key={product.key}>
+                <span className="tag">{t(product.tradeKey)}</span>
+                <h3>{product.name}</h3>
+                <p>{t(product.taglineKey)}</p>
+                <span className="status">
+                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
+                  {t(product.status === 'shipped' ? 'fl_shipped' : 'fl_dev')}
+                </span>
+                <div className="card-links">
+                  {product.live && (
+                    <a className="cta" href={product.live} rel="noopener noreferrer">{t('fl_openLive')} →</a>
+                  )}
+                  {product.repo && (
+                    <a className="cta" href={product.repo} rel="noopener noreferrer">{t('fl_source')} →</a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="forge-os">{t('fl_os')}</p>
+        </div>
+
         {/* SIGNATURE INSTRUMENT */}
         <div className="section" id="scope">
           <span className="kicker">{t('vKicker')}</span>

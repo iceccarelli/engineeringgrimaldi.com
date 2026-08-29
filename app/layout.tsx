@@ -10,15 +10,28 @@ export const metadata: Metadata = {
   metadataBase: new globalThis.URL(SITE_URL),
   title: 'Grimaldi Engineering — Hardware & Electrical Engineering',
   description:
-    'The hardware surface of the Grimaldi Network: high-voltage systems, embedded control boards and power electronics — build logs with schematics, measurements and honest failure notes, plus a live grid-frequency instrument.',
+    'Trades 2.0 by Grimaldi Engineering: the Forge Line migrates palletizing, flooring, painting and drying from manual craft to automated systems — plus high-voltage, embedded and power-electronics engineering documented with instruments.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Grimaldi Engineering — Hardware & Electrical Engineering',
     description:
-      'High-voltage systems, embedded control and power electronics — documented with schematics, measurements and honest failure notes.',
+      'The Forge Line: one automation product per trade — palletizing, flooring, painting, drying. Trades 2.0, with the engineering documented underneath.',
     url: `${SITE_URL}/`,
     type: 'website',
   },
+};
+
+const forgeList = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  '@id': `${'https://engineeringgrimaldi.com'}/#forge-line`,
+  name: 'The Forge Line — Trades 2.0',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Palletizer OS', url: 'https://github.com/iceccarelli/palletizer' },
+    { '@type': 'ListItem', position: 2, name: 'FloorForge AI', url: 'https://github.com/iceccarelli/floorforge-ai' },
+    { '@type': 'ListItem', position: 3, name: 'PaintForge AI', url: 'https://github.com/iceccarelli/paintforge-ai' },
+    { '@type': 'ListItem', position: 4, name: 'DryForge AI', url: 'https://github.com/iceccarelli/dryforge-ai' },
+  ],
 };
 
 const jsonld = {
@@ -55,6 +68,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Chrome>{children}</Chrome>
         </LanguageProvider>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonld) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(forgeList) }} />
       </body>
     </html>
   );

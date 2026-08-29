@@ -136,3 +136,11 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* ── Forge Line ─────────────────────────────────────────────────────── */
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dot-dev { background: var(--trace-3); box-shadow: 0 0 8px var(--trace-3); }
+.card-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+.forge-os { margin: 1.6rem 0 0; color: var(--muted); font-size: .88rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 1180px) { .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .grid-4 { grid-template-columns: 1fr; } }
