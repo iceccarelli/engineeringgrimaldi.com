@@ -1,0 +1,4001 @@
+From c1922a7f5b1466ca7711ec073b1845c02d158156 Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Sun, 30 Aug 2026 16:53:16 +0000
+Subject: [PATCH] =?UTF-8?q?feat(v6):=20domination=20overhaul=20=E2=80=94?=
+ =?UTF-8?q?=20real=20routes,=20en+de=20i18n,=20SEO/schema,=20legal=20pages?=
+ =?UTF-8?q?,=20waitlist,=20security=20headers?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Kill static export; standard Vercel output (waitlist POST + middleware locale routing)
+- app/[lang] tree (en at apex, /de prefixed), hreflang + per-route canonicals
+- robots.ts, sitemap.ts, edge-generated 1200x630 OG image, twitter:card
+- Product pages /forge/[slug] with honest status, FAQ, SoftwareApplication schema
+- Disciplines pages with rail-IP boundary note; /lab/grid-droop SSR + client scope
+- /book (Cal.com, no mailto anywhere), waitlist API (Loops, double opt-in)
+- Impressum + Datenschutzerklärung skeletons (operator TODOs marked)
+- vercel.json security headers (CSP, XFO, nosniff, referrer, permissions) + www redirect
+- Custom 404 via [lang] catch-all; Vercel Analytics + Speed Insights
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TyfRUMoVXepxUnmXyYyR7r
+---
+ app/[lang]/[...missing]/page.tsx       |  10 +
+ app/[lang]/book/page.tsx               |  57 ++++
+ app/[lang]/datenschutz/page.tsx        | 153 +++++++++++
+ app/[lang]/disciplines/[slug]/page.tsx |  62 +++++
+ app/[lang]/forge/[slug]/page.tsx       | 123 +++++++++
+ app/[lang]/forge/page.tsx              |  56 ++++
+ app/[lang]/impressum/page.tsx          |  91 +++++++
+ app/[lang]/lab/grid-droop/page.tsx     |  94 +++++++
+ app/[lang]/lab/page.tsx                |  47 ++++
+ app/[lang]/layout.tsx                  |  73 ++++++
+ app/[lang]/not-found.tsx               |  24 ++
+ app/[lang]/page.tsx                    | 129 +++++++++
+ app/api/waitlist/route.ts              |  73 ++++++
+ app/globals.css                        |  30 +++
+ app/layout.tsx                         |  77 ------
+ app/opengraph-image.tsx                |  61 +++++
+ app/page.tsx                           | 164 ------------
+ app/robots.ts                          |  16 ++
+ app/sitemap.ts                         |  38 +++
+ components/Ask.tsx                     | 157 -----------
+ components/BookCTA.tsx                 |  26 ++
+ components/Chrome.tsx                  |  67 +++--
+ components/JsonLd.tsx                  |  10 +
+ components/LangSwitcher.tsx            |  33 +++
+ components/Oscilloscope.tsx            |  24 +-
+ components/Rail.tsx                    |  74 ------
+ components/WaitlistForm.tsx            | 108 ++++++++
+ lib/dict.ts                            | 282 ++++++++++++++++++++
+ lib/disciplines.ts                     |  92 +++++++
+ lib/dynamic.ts                         | 249 ------------------
+ lib/forge.ts                           | 247 ++++++++++++++---
+ lib/i18n.ts                            |  46 ++++
+ lib/i18n.tsx                           |  63 -----
+ lib/schema.ts                          | 120 +++++++++
+ lib/site.ts                            |  28 ++
+ lib/strings.json                       | 350 -------------------------
+ middleware.ts                          |  37 +++
+ next.config.js                         |  16 +-
+ package-lock.json                      |  78 +++++-
+ package.json                           |   4 +-
+ vercel.json                            |  25 +-
+ 41 files changed, 2296 insertions(+), 1218 deletions(-)
+ create mode 100644 app/[lang]/[...missing]/page.tsx
+ create mode 100644 app/[lang]/book/page.tsx
+ create mode 100644 app/[lang]/datenschutz/page.tsx
+ create mode 100644 app/[lang]/disciplines/[slug]/page.tsx
+ create mode 100644 app/[lang]/forge/[slug]/page.tsx
+ create mode 100644 app/[lang]/forge/page.tsx
+ create mode 100644 app/[lang]/impressum/page.tsx
+ create mode 100644 app/[lang]/lab/grid-droop/page.tsx
+ create mode 100644 app/[lang]/lab/page.tsx
+ create mode 100644 app/[lang]/layout.tsx
+ create mode 100644 app/[lang]/not-found.tsx
+ create mode 100644 app/[lang]/page.tsx
+ create mode 100644 app/api/waitlist/route.ts
+ delete mode 100644 app/layout.tsx
+ create mode 100644 app/opengraph-image.tsx
+ delete mode 100644 app/page.tsx
+ create mode 100644 app/robots.ts
+ create mode 100644 app/sitemap.ts
+ delete mode 100644 components/Ask.tsx
+ create mode 100644 components/BookCTA.tsx
+ create mode 100644 components/JsonLd.tsx
+ create mode 100644 components/LangSwitcher.tsx
+ delete mode 100644 components/Rail.tsx
+ create mode 100644 components/WaitlistForm.tsx
+ create mode 100644 lib/dict.ts
+ create mode 100644 lib/disciplines.ts
+ delete mode 100644 lib/dynamic.ts
+ create mode 100644 lib/i18n.ts
+ delete mode 100644 lib/i18n.tsx
+ create mode 100644 lib/schema.ts
+ create mode 100644 lib/site.ts
+ delete mode 100644 lib/strings.json
+ create mode 100644 middleware.ts
+
+diff --git a/app/[lang]/[...missing]/page.tsx b/app/[lang]/[...missing]/page.tsx
+new file mode 100644
+index 0000000..0512e9e
+--- /dev/null
++++ b/app/[lang]/[...missing]/page.tsx
+@@ -0,0 +1,10 @@
++import { notFound } from 'next/navigation';
++
++/**
++ * Catch-all inside the [lang] tree: any path not matched by a real route
++ * triggers the not-found boundary and returns a genuine 404 status —
++ * middleware rewrites unprefixed unknown paths here too.
++ */
++export default function MissingPage(): never {
++  notFound();
++}
+diff --git a/app/[lang]/book/page.tsx b/app/[lang]/book/page.tsx
+new file mode 100644
+index 0000000..fcf169a
+--- /dev/null
++++ b/app/[lang]/book/page.tsx
+@@ -0,0 +1,57 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import { getDict } from '@/lib/dict';
++import { isLang, pageAlternates, type Lang } from '@/lib/i18n';
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: lang === 'de' ? 'Bench-Review buchen — 20 Minuten, 0 €' : 'Book a Bench Review — 20 Minutes, €0',
++    description:
++      lang === 'de'
++        ? 'Buchen Sie ein 20-minütiges Bench-Review mit Vincenzo Ceccarelli Grimaldi: Palettierzellen, HV-/OT-Fragen, Architektur. Danach: Session 280 €, Retainer 3.200 €/Monat, Forge-Integration nach Angebot.'
++        : 'Book a 20-minute bench review with Vincenzo Ceccarelli Grimaldi: palletizing cells, HV/OT questions, architecture. Then: session €280, retainer €3,200/mo, Forge integration by quote.',
++    alternates: pageAlternates(lang, '/book'),
++  };
++}
++
++export default function BookPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++
++  const offers = [
++    { title: t.offerSession, body: t.offerSessionBody },
++    { title: t.offerRetainer, body: t.offerRetainerBody },
++    { title: t.offerIntegration, body: t.offerIntegrationBody },
++  ];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">Grimaldi Engineering</span>
++          <h1>{t.bookTitle}</h1>
++          <p className="intro">{t.bookLead}</p>
++          <div className="cta-row">
++            <BookCTA label={t.bookCta} />
++          </div>
++          <p className="book-bring">{t.bookBring}</p>
++
++          <h2>{t.offersTitle}</h2>
++          <div className="grid">
++            {offers.map((offer) => (
++              <div className="card" key={offer.title}>
++                <h3>{offer.title}</h3>
++                <p>{offer.body}</p>
++              </div>
++            ))}
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/app/[lang]/datenschutz/page.tsx b/app/[lang]/datenschutz/page.tsx
+new file mode 100644
+index 0000000..63e9a1d
+--- /dev/null
++++ b/app/[lang]/datenschutz/page.tsx
+@@ -0,0 +1,153 @@
++import type { Metadata } from 'next';
++import { isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { CONTACT_EMAIL, PERSON_NAME } from '@/lib/site';
++
++/**
++ * Datenschutzerklärung (DSGVO). Bilingual skeleton with accurate
++ * descriptions of what THIS site actually does: Vercel hosting +
++ * server logs, cookieless Vercel Analytics / Speed Insights, the
++ * double-opt-in waitlist via Loops, and outbound booking via Cal.com.
++ * TODO fields only where operator data (address) must be filled.
++ * If GA4 is ever enabled (NEXT_PUBLIC_GA_ID), a consent banner MUST be
++ * added first and this page extended — do not enable GA silently.
++ */
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: lang === 'de' ? 'Datenschutzerklärung' : 'Privacy Policy',
++    description:
++      lang === 'de'
++        ? 'Datenschutzerklärung von engineeringgrimaldi.com: Hosting, Server-Logs, cookielose Analytik, Warteliste mit Double-Opt-in, Terminbuchung.'
++        : 'Privacy policy for engineeringgrimaldi.com: hosting, server logs, cookieless analytics, double-opt-in waitlist, booking.',
++    alternates: pageAlternates(lang, '/datenschutz'),
++    robots: { index: false, follow: true },
++  };
++}
++
++export default function DatenschutzPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++
++  if (lang === 'de') {
++    return (
++      <main>
++        <div className="sheet sheet-top">
++          <div className="section prose">
++            <h1>Datenschutzerklärung</h1>
++
++            <h2>1. Verantwortlicher</h2>
++            <p>
++              {PERSON_NAME}
++              <br />
++              [TODO: Anschrift wie im Impressum]
++              <br />
++              E-Mail: {CONTACT_EMAIL}
++            </p>
++
++            <h2>2. Hosting und Server-Logs</h2>
++            <p>
++              Diese Website wird bei Vercel Inc. (440 N Barranca Ave #4133, Covina, CA 91723, USA)
++              gehostet. Beim Aufruf der Seiten verarbeitet Vercel technisch notwendige Daten
++              (IP-Adresse, Zeitpunkt, angeforderte URL, User-Agent) in Server-Logs. Rechtsgrundlage
++              ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb). Mit
++              Vercel besteht ein Auftragsverarbeitungsvertrag; Übermittlungen in die USA stützen
++              sich auf die EU-Standardvertragsklauseln.
++            </p>
++
++            <h2>3. Reichweitenmessung ohne Cookies</h2>
++            <p>
++              Diese Website nutzt Vercel Analytics und Vercel Speed Insights. Beide arbeiten ohne
++              Cookies und ohne geräteübergreifendes Tracking; IP-Adressen werden nicht dauerhaft
++              gespeichert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Ein Widerspruch ist
++              jederzeit per E-Mail möglich.
++            </p>
++
++            <h2>4. Warteliste (Newsletter)</h2>
++            <p>
++              Für die Warteliste wird die eingegebene E-Mail-Adresse und das gewählte Interesse an
++              den Dienst Loops (Loops, Inc., USA) übermittelt und dort gespeichert. Die Anmeldung
++              erfolgt im Double-Opt-in-Verfahren; ohne Bestätigung wird nicht versendet.
++              Rechtsgrundlage ist die Einwilligung (Art. 6 Abs. 1 lit. a DSGVO); sie ist jederzeit
++              über den Abmeldelink oder per E-Mail widerrufbar.
++            </p>
++
++            <h2>5. Terminbuchung</h2>
++            <p>
++              Die Terminbuchung führt zu einem externen Buchungsdienst (Cal.com). Dort eingegebene
++              Daten verarbeitet der Anbieter nach eigener Datenschutzerklärung; diese Website
++              überträgt beim Klick lediglich die Herkunftskennung.
++            </p>
++
++            <h2>6. Ihre Rechte</h2>
++            <p>
++              Sie haben nach der DSGVO Rechte auf Auskunft (Art. 15), Berichtigung (Art. 16),
++              Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit (Art. 20) und
++              Widerspruch (Art. 21) sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde —
++              zuständig ist der Hessische Beauftragte für Datenschutz und Informationsfreiheit.
++            </p>
++          </div>
++        </div>
++      </main>
++    );
++  }
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section prose">
++          <h1>Privacy Policy</h1>
++
++          <h2>1. Controller</h2>
++          <p>
++            {PERSON_NAME}
++            <br />
++            [TODO: address as in the Impressum]
++            <br />
++            Email: {CONTACT_EMAIL}
++          </p>
++
++          <h2>2. Hosting and server logs</h2>
++          <p>
++            This site is hosted by Vercel Inc. (440 N Barranca Ave #4133, Covina, CA 91723, USA).
++            Serving the site processes technically necessary data (IP address, timestamp, requested
++            URL, user agent) in server logs. Legal basis: Art. 6(1)(f) GDPR (legitimate interest in
++            secure operation). A data-processing agreement is in place with Vercel; US transfers
++            rely on the EU Standard Contractual Clauses.
++          </p>
++
++          <h2>3. Cookieless analytics</h2>
++          <p>
++            This site uses Vercel Analytics and Vercel Speed Insights. Both operate without cookies
++            and without cross-site tracking; IP addresses are not stored permanently. Legal basis:
++            Art. 6(1)(f) GDPR. You may object at any time by email.
++          </p>
++
++          <h2>4. Waitlist</h2>
++          <p>
++            Joining the waitlist transmits your email address and chosen interest to Loops (Loops,
++            Inc., USA), where they are stored. Sign-up is double opt-in; nothing is sent without
++            confirmation. Legal basis: consent (Art. 6(1)(a) GDPR), revocable at any time via the
++            unsubscribe link or by email.
++          </p>
++
++          <h2>5. Booking</h2>
++          <p>
++            Booking a call leads to an external scheduling service (Cal.com). Data entered there is
++            processed by that provider under its own privacy policy; this site only passes a source
++            identifier along with the click.
++          </p>
++
++          <h2>6. Your rights</h2>
++          <p>
++            Under the GDPR you have the rights of access (Art. 15), rectification (Art. 16),
++            erasure (Art. 17), restriction (Art. 18), data portability (Art. 20) and objection
++            (Art. 21), plus the right to lodge a complaint with a supervisory authority — for this
++            controller, the Hessian Commissioner for Data Protection and Freedom of Information.
++          </p>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/app/[lang]/disciplines/[slug]/page.tsx b/app/[lang]/disciplines/[slug]/page.tsx
+new file mode 100644
+index 0000000..0ba03b7
+--- /dev/null
++++ b/app/[lang]/disciplines/[slug]/page.tsx
+@@ -0,0 +1,62 @@
++import type { Metadata } from 'next';
++import { notFound } from 'next/navigation';
++import BookCTA from '@/components/BookCTA';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { disciplines, getDiscipline } from '@/lib/disciplines';
++import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++
++type PageProps = { params: { lang: string; slug: string } };
++
++export function generateStaticParams(): { lang: Lang; slug: string }[] {
++  return LANGS.flatMap((lang) => disciplines.map((d) => ({ lang, slug: d.slug })));
++}
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const discipline = getDiscipline(params.slug);
++  if (!discipline) return {};
++  return {
++    title: discipline.metaTitle[lang],
++    description: discipline.metaDescription[lang],
++    alternates: pageAlternates(lang, `/disciplines/${discipline.slug}`),
++  };
++}
++
++export default function DisciplinePage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const discipline = getDiscipline(params.slug);
++  if (!discipline) notFound();
++  const t = getDict(lang);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{discipline.tag[lang]}</span>
++          <h1>{discipline.title[lang]}</h1>
++          <p className="status status-badge">
++            <span className="dot dot-dev" /> {t.statusLogPrep}
++          </p>
++          <div className="prose">
++            {discipline.body.map((paragraph) => (
++              <p key={paragraph.en}>{paragraph[lang]}</p>
++            ))}
++            {discipline.boundary ? <p className="boundary-note">{discipline.boundary[lang]}</p> : null}
++          </div>
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} variant="line" />
++          </div>
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: discipline.title[lang], path: `/disciplines/${discipline.slug}` },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/forge/[slug]/page.tsx b/app/[lang]/forge/[slug]/page.tsx
+new file mode 100644
+index 0000000..5e166cc
+--- /dev/null
++++ b/app/[lang]/forge/[slug]/page.tsx
+@@ -0,0 +1,123 @@
++import type { Metadata } from 'next';
++import { notFound } from 'next/navigation';
++import BookCTA from '@/components/BookCTA';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { forgeLine, getProduct } from '@/lib/forge';
++import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from '@/lib/schema';
++
++/**
++ * Product page template. Every product page carries: problem,
++ * architecture, integration truth, repo, demo (if real), status,
++ * license, commercial terms, FAQ — plus SoftwareApplication +
++ * FAQPage + BreadcrumbList JSON-LD and an author block.
++ */
++
++type PageProps = { params: { lang: string; slug: string } };
++
++export function generateStaticParams(): { lang: Lang; slug: string }[] {
++  return LANGS.flatMap((lang) => forgeLine.map((p) => ({ lang, slug: p.slug })));
++}
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const product = getProduct(params.slug);
++  if (!product) return {};
++  return {
++    title: product.metaTitle[lang],
++    description: product.metaDescription[lang],
++    alternates: pageAlternates(lang, `/forge/${product.slug}`),
++    openGraph: {
++      title: `${product.metaTitle[lang]} | Grimaldi Engineering`,
++      description: product.metaDescription[lang],
++      type: 'website',
++    },
++  };
++}
++
++export default function ProductPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const product = getProduct(params.slug);
++  if (!product) notFound();
++  const t = getDict(lang);
++
++  const sections: { heading: string; text: string }[] = [
++    { heading: lang === 'de' ? 'Problem' : 'Problem', text: product.problem[lang] },
++    { heading: lang === 'de' ? 'Architektur' : 'Architecture', text: product.architecture[lang] },
++    { heading: lang === 'de' ? 'Integrationen' : 'Integrations', text: product.integrations[lang] },
++    { heading: lang === 'de' ? 'Lizenz' : 'License', text: product.license[lang] },
++    { heading: lang === 'de' ? 'Kommerzielles' : 'Commercial', text: product.commercial[lang] },
++  ];
++
++  const faq = faqSchema(lang, product);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{product.trade[lang]} · Forge Line</span>
++          <h1>{product.name}</h1>
++          <p className="intro">{product.tagline[lang]}</p>
++
++          <p className="status status-badge">
++            <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
++            {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
++          </p>
++
++          <div className="cta-row">
++            {product.demo ? (
++              <a className="btn btn-glow" href={product.demo} rel="noopener noreferrer">
++                {lang === 'de' ? 'Live-Demo öffnen' : 'Open the live demo'}
++              </a>
++            ) : (
++              <BookCTA label={t.ctaBook} />
++            )}
++            <a className="btn btn-line" href={product.repo} rel="noopener noreferrer">
++              {lang === 'de' ? 'Quellcode auf GitHub' : 'Source on GitHub'}
++            </a>
++          </div>
++
++          <div className="prose">
++            {sections.map((s) => (
++              <section key={s.heading}>
++                <h2>{s.heading}</h2>
++                <p>{s.text}</p>
++              </section>
++            ))}
++
++            {product.faqs.length > 0 && (
++              <section>
++                <h2>FAQ</h2>
++                {product.faqs.map((f) => (
++                  <div key={f.q.en}>
++                    <h3>{f.q[lang]}</h3>
++                    <p>{f.a[lang]}</p>
++                  </div>
++                ))}
++              </section>
++            )}
++          </div>
++
++          {product.demo == null && (
++            <div className="cta-row">
++              <BookCTA label={t.ctaBook} variant="line" />
++            </div>
++          )}
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd data={softwareApplicationSchema(lang, product)} />
++      {faq ? <JsonLd data={faq} /> : null}
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: 'Forge Line', path: '/forge' },
++          { name: product.name, path: `/forge/${product.slug}` },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/forge/page.tsx b/app/[lang]/forge/page.tsx
+new file mode 100644
+index 0000000..af074d7
+--- /dev/null
++++ b/app/[lang]/forge/page.tsx
+@@ -0,0 +1,56 @@
++import type { Metadata } from 'next';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { forgeLine } from '@/lib/forge';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: lang === 'de' ? 'Die Forge-Linie — Automatisierung pro Gewerk' : 'The Forge Line — One Automation Product per Trade',
++    description:
++      lang === 'de'
++        ? 'Die Forge-Linie: Palletizer OS, FloorForge AI, PaintForge AI, DryForge AI. Ein Automatisierungsprodukt pro Gewerk — Code öffentlich, Status ehrlich.'
++        : 'The Forge Line: Palletizer OS, FloorForge AI, PaintForge AI, DryForge AI. One automation product per trade — code public, status honest.',
++    alternates: pageAlternates(lang, '/forge'),
++  };
++}
++
++export default function ForgeIndex({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{t.forgeKicker}</span>
++          <h1>{t.forgeTitle}</h1>
++          <p className="intro">{t.forgeIntro}</p>
++          <div className="grid grid-4">
++            {forgeLine.map((product) => (
++              <a className="card card-link" key={product.slug} href={langHref(lang, `/forge/${product.slug}`)}>
++                <span className="tag">{product.trade[lang]}</span>
++                <h3>{product.name}</h3>
++                <p>{product.tagline[lang]}</p>
++                <span className="status">
++                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
++                  {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
++                </span>
++              </a>
++            ))}
++          </div>
++        </div>
++      </div>
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: 'Forge Line', path: '/forge' },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/impressum/page.tsx b/app/[lang]/impressum/page.tsx
+new file mode 100644
+index 0000000..905cb97
+--- /dev/null
++++ b/app/[lang]/impressum/page.tsx
+@@ -0,0 +1,91 @@
++import type { Metadata } from 'next';
++import { getDict } from '@/lib/dict';
++import { isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { CONTACT_EMAIL, PERSON_NAME } from '@/lib/site';
++
++/**
++ * Impressum (§ 5 DDG, § 18 Abs. 2 MStV). The German block is
++ * authoritative and renders on both language routes; the English route
++ * adds a short framing note. Operator MUST fill the TODO fields
++ * (ladungsfähige Anschrift, ggf. USt-IdNr.) before go-live — a German
++ * site without them is an abmahn risk.
++ */
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: 'Impressum',
++    description:
++      lang === 'de'
++        ? 'Impressum von engineeringgrimaldi.com — Anbieterkennzeichnung nach § 5 DDG.'
++        : 'Impressum (legal notice) for engineeringgrimaldi.com — provider identification under German law (§ 5 DDG).',
++    alternates: pageAlternates(lang, '/impressum'),
++    robots: { index: false, follow: true },
++  };
++}
++
++export default function ImpressumPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section prose">
++          <h1>Impressum</h1>
++
++          {lang === 'en' && (
++            <p>
++              This site is operated from Germany. The following provider identification is required
++              by German law (§ 5 DDG) and is authoritative in German.
++            </p>
++          )}
++
++          <h2>Angaben gemäß § 5 DDG</h2>
++          <p>
++            {PERSON_NAME}
++            <br />
++            {/* TODO(operator): ladungsfähige Anschrift eintragen — Straße, Hausnummer, PLZ, Stadt. */}
++            [TODO: Straße und Hausnummer]
++            <br />
++            [TODO: PLZ] Frankfurt am Main
++            <br />
++            Deutschland
++          </p>
++
++          <h2>Kontakt</h2>
++          <p>
++            E-Mail: {CONTACT_EMAIL}
++            {/* TODO(operator): optional Telefonnummer ergänzen. */}
++          </p>
++
++          <h2>Umsatzsteuer-ID</h2>
++          <p>
++            {/* TODO(operator): USt-IdNr. gemäß § 27a UStG eintragen, oder diesen Abschnitt
++                entfernen, falls keine vorhanden ist. */}
++            [TODO: USt-IdNr. gemäß § 27a UStG, sofern vorhanden]
++          </p>
++
++          <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
++          <p>
++            {PERSON_NAME}
++            <br />
++            [TODO: Anschrift wie oben]
++          </p>
++
++          <h2>Namensklarstellung / Name disambiguation</h2>
++          <p>{t.footDisambiguation}</p>
++
++          <h2>Haftung für Links</h2>
++          <p>
++            Diese Website enthält Links zu externen Websites Dritter, auf deren Inhalte kein
++            Einfluss besteht. Für diese fremden Inhalte wird keine Gewähr übernommen; verantwortlich
++            ist stets der jeweilige Anbieter oder Betreiber der Seiten.
++          </p>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/app/[lang]/lab/grid-droop/page.tsx b/app/[lang]/lab/grid-droop/page.tsx
+new file mode 100644
+index 0000000..4c897af
+--- /dev/null
++++ b/app/[lang]/lab/grid-droop/page.tsx
+@@ -0,0 +1,94 @@
++import type { Metadata } from 'next';
++import JsonLd from '@/components/JsonLd';
++import Oscilloscope from '@/components/Oscilloscope';
++import { getDict } from '@/lib/dict';
++import { isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++
++/**
++ * The droop instrument at a dedicated URL. The page is a server
++ * component: the physics — formulas and explanation — is server-rendered
++ * text a crawler reads with zero JavaScript. The drag UI (Oscilloscope)
++ * is the only client island and hydrates on top.
++ */
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title:
++      lang === 'de'
++        ? 'Netzfrequenz-Statik-Simulator — physikbasiert, interaktiv'
++        : 'Grid Frequency Droop Simulator — Physics-Informed, Interactive',
++    description:
++      lang === 'de'
++        ? 'Interaktiver Netzfrequenz-Simulator mit echtem Statik-Modell: Δf = −f·0,04·ΔP, RoCoF durch Trägheit H begrenzt. Drei Phasen bei 50 Hz, Anzeigen aus dem Integrator.'
++        : 'Interactive grid-frequency simulator driven by a real droop model: Δf = −f·0.04·ΔP with RoCoF bounded by inertia H. Three phases at 50 Hz, readouts from the integrator.',
++    alternates: pageAlternates(lang, '/lab/grid-droop'),
++  };
++}
++
++export default function GridDroopPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{t.labKicker}</span>
++          <h1>{t.labTitle}</h1>
++
++          {/* SSR fallback: the physics as crawlable text — rendered whether
++              or not JavaScript ever loads. */}
++          <div className="prose">
++            <p>
++              {lang === 'de'
++                ? 'Ein synchrones Netz hält seine Frequenz über das Gleichgewicht von Erzeugung und Last. Steigt die Last über die Erzeugung, sinkt die Frequenz entlang der Statik-Kennlinie:'
++                : 'A synchronous grid holds its frequency through the balance of generation and load. When load exceeds generation, frequency falls along the droop characteristic:'}
++            </p>
++            <p className="formula">Δf = −f<sub>n</sub> · 0.04 · ΔP</p>
++            <p>
++              {lang === 'de'
++                ? 'Wie schnell sie fällt, begrenzt die Systemträgheit H (RoCoF — Rate of Change of Frequency):'
++                : 'How fast it falls is bounded by system inertia H (RoCoF — rate of change of frequency):'}
++            </p>
++            <p className="formula">|df/dt| ≤ f<sub>n</sub> · ΔP / (2H)</p>
++            <p>
++              {lang === 'de'
++                ? 'Das Instrument unten integriert genau diese beiden Gleichungen. Ziehen Sie die Last über die Erzeugung und die Frequenz sackt mit einer Rate, die H setzt — die Anzeigen kommen aus dem Integrator, nicht aus einer Animation. Niedrige Trägheit (viele Umrichter, wenige rotierende Massen) ist der Grund, warum moderne Netze schnelle Leistungselektronik brauchen.'
++                : 'The instrument below integrates exactly these two equations. Drag the load above generation and the frequency sags at a rate set by H — the readouts come out of the integrator, not a canned animation. Low inertia (many inverters, few rotating masses) is why modern grids need fast power electronics.'}
++            </p>
++          </div>
++
++          <Oscilloscope
++            labels={{
++              phases: lang === 'de' ? 'L1 · L2 · L3 — 230-V-Phasenspannungen' : 'L1 · L2 · L3 — 230 V phase voltages',
++              freq: lang === 'de' ? 'Frequenz' : 'Frequency',
++              rocof: 'RoCoF',
++              load: lang === 'de' ? 'Systemlast' : 'System load',
++              inertia: lang === 'de' ? 'Trägheit H' : 'Inertia H',
++            }}
++          />
++          <noscript>
++            <p className="prose">
++              {lang === 'de'
++                ? 'Das interaktive Instrument benötigt JavaScript; die Physik oben gilt ohne.'
++                : 'The interactive instrument needs JavaScript; the physics above stands without it.'}
++            </p>
++          </noscript>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: 'Lab', path: '/lab' },
++          { name: lang === 'de' ? 'Netzfrequenz-Statik' : 'Grid droop', path: '/lab/grid-droop' },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/lab/page.tsx b/app/[lang]/lab/page.tsx
+new file mode 100644
+index 0000000..ad2d93b
+--- /dev/null
++++ b/app/[lang]/lab/page.tsx
+@@ -0,0 +1,47 @@
++import type { Metadata } from 'next';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: lang === 'de' ? 'Labor — Instrumente & Baujournale' : 'Lab — Instruments & Build Logs',
++    description:
++      lang === 'de'
++        ? 'Das Labor von Grimaldi Engineering: interaktive Instrumente und Baujournale. Aktuell: das Netzfrequenz-Statik-Modell. Erste Hardware-Journale in Vorbereitung.'
++        : 'The Grimaldi Engineering lab: interactive instruments and build logs. Currently: the grid-frequency droop model. First hardware logs in preparation.',
++    alternates: pageAlternates(lang, '/lab'),
++  };
++}
++
++export default function LabIndex({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{t.labKicker}</span>
++          <h1>{t.labTitle}</h1>
++          <p className="intro">
++            {lang === 'de'
++              ? 'Ein Eintrag pro Instrument oder Aufbau — nichts wird behauptet, was ein Modell oder ein Messgerät nicht zeigt. Die ersten Hardware-Baujournale sind in Vorbereitung; bis dahin steht hier genau ein ehrlicher Eintrag.'
++              : 'One entry per instrument or build — nothing is claimed that a model or an instrument does not show. The first hardware build logs are in preparation; until then, exactly one honest entry lives here.'}
++          </p>
++          <div className="grid">
++            <a className="card card-link" href={langHref(lang, '/lab/grid-droop')}>
++              <span className="tag">{lang === 'de' ? 'Live-Instrument' : 'Live instrument'}</span>
++              <h3>{t.labTitle}</h3>
++              <p>{t.labIntro}</p>
++              <span className="cta">{t.labCta} →</span>
++            </a>
++          </div>
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/app/[lang]/layout.tsx b/app/[lang]/layout.tsx
+new file mode 100644
+index 0000000..798f2cd
+--- /dev/null
++++ b/app/[lang]/layout.tsx
+@@ -0,0 +1,73 @@
++import type { Metadata } from 'next';
++import type { ReactNode } from 'react';
++import { notFound } from 'next/navigation';
++import { Analytics } from '@vercel/analytics/react';
++import { SpeedInsights } from '@vercel/speed-insights/next';
++import Chrome from '@/components/Chrome';
++import JsonLd from '@/components/JsonLd';
++import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { personSchema, websiteSchema } from '@/lib/schema';
++import { SITE_URL } from '@/lib/site';
++import '../globals.css';
++
++/**
++ * Root layout — lives inside [lang] so <html lang> is correct per locale.
++ * middleware.ts guarantees every page request carries lang = en | de.
++ */
++
++export function generateStaticParams(): { lang: Lang }[] {
++  return LANGS.map((lang) => ({ lang }));
++}
++
++type LayoutProps = { children: ReactNode; params: { lang: string } };
++
++export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const title =
++    lang === 'de'
++      ? 'Forge Line von Grimaldi Engineering | Palletizer OS, FloorForge, HV-Baujournale'
++      : 'Forge Line by Grimaldi Engineering | Palletizer OS, FloorForge, HV Build Logs';
++  const description =
++    lang === 'de'
++      ? 'Grimaldi Engineering (Frankfurt): die Forge-Linie — Palletizer OS, FloorForge, PaintForge, DryForge — plus Hochspannungs-, Embedded- und Leistungselektronik-Arbeit von Vincenzo Ceccarelli Grimaldi. Code öffentlich, Status ehrlich.'
++      : 'Grimaldi Engineering (Frankfurt): the Forge Line — Palletizer OS, FloorForge, PaintForge, DryForge — plus high-voltage, embedded and power-electronics work by Vincenzo Ceccarelli Grimaldi. Code public, status honest.';
++  return {
++    metadataBase: new URL(SITE_URL),
++    title: {
++      default: title,
++      template: '%s | Grimaldi Engineering',
++    },
++    description,
++    alternates: pageAlternates(lang, '/'),
++    openGraph: {
++      title,
++      description,
++      url: `${SITE_URL}${lang === 'de' ? '/de' : '/'}`,
++      siteName: 'Grimaldi Engineering',
++      type: 'website',
++      locale: lang === 'de' ? 'de_DE' : 'en_US',
++    },
++    twitter: {
++      card: 'summary_large_image',
++      title,
++      description,
++    },
++  };
++}
++
++export default function RootLayout({ children, params }: LayoutProps) {
++  if (!isLang(params.lang)) notFound();
++  const lang: Lang = params.lang;
++
++  return (
++    <html lang={lang} id="top">
++      <body>
++        <Chrome lang={lang}>{children}</Chrome>
++        <JsonLd data={websiteSchema()} />
++        <JsonLd data={personSchema()} />
++        <Analytics />
++        <SpeedInsights />
++      </body>
++    </html>
++  );
++}
+diff --git a/app/[lang]/not-found.tsx b/app/[lang]/not-found.tsx
+new file mode 100644
+index 0000000..4122a5c
+--- /dev/null
++++ b/app/[lang]/not-found.tsx
+@@ -0,0 +1,24 @@
++/**
++ * Custom 404. Next.js does not pass params into not-found, so this page
++ * is deliberately bilingual — both messages, real links, status 404.
++ */
++export default function NotFound() {
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">404</span>
++          <h1>No signal on this channel.</h1>
++          <p className="intro">
++            The page you asked for does not exist. / Die angeforderte Seite existiert nicht.
++          </p>
++          <div className="cta-row">
++            <a className="btn btn-glow" href="/">Home (English)</a>
++            <a className="btn btn-line" href="/de">Startseite (Deutsch)</a>
++            <a className="btn btn-line" href="/forge">Forge Line</a>
++          </div>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/app/[lang]/page.tsx b/app/[lang]/page.tsx
+new file mode 100644
+index 0000000..3c75167
+--- /dev/null
++++ b/app/[lang]/page.tsx
+@@ -0,0 +1,129 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import JsonLd from '@/components/JsonLd';
++import WaitlistForm from '@/components/WaitlistForm';
++import { getDict } from '@/lib/dict';
++import { disciplines } from '@/lib/disciplines';
++import { forgeLine } from '@/lib/forge';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { professionalServiceSchema } from '@/lib/schema';
++
++/**
++ * The homepage is a SWITCHBOARD, not a manifesto: three ICP doors,
++ * the Forge Line, the lab, the disciplines, one waitlist. Primary CTA
++ * is the bench-review booking — never a mailto, never the toy first.
++ */
++
++type PageProps = { params: { lang: string } };
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return { alternates: pageAlternates(lang, '/') };
++}
++
++export default function Home({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const href = (path: string) => langHref(lang, path);
++
++  const icps = [
++    { tag: t.icpA_tag, title: t.icpA_title, body: t.icpA_body, cta: t.icpA_cta, href: href('/forge/palletizer') },
++    { tag: t.icpB_tag, title: t.icpB_title, body: t.icpB_body, cta: t.icpB_cta, href: href('/forge/floorforge') },
++    { tag: t.icpC_tag, title: t.icpC_title, body: t.icpC_body, cta: t.icpC_cta, href: href('/book') },
++  ];
++
++  return (
++    <main>
++      <section className="hero">
++        <div className="hero-in">
++          <div className="hero-card">
++            <span className="kicker">{t.homeKicker}</span>
++            <h1>{t.homeH1}</h1>
++            <p className="lead">{t.homeLead}</p>
++            <div className="cta-row">
++              <BookCTA label={t.ctaBook} />
++              <a className="btn btn-line" href={href('/forge')}>{t.ctaForge}</a>
++            </div>
++          </div>
++        </div>
++      </section>
++
++      <div className="sheet">
++        {/* SWITCHBOARD — three ICP doors */}
++        <div className="section" id="start">
++          <span className="kicker">{t.icpKicker}</span>
++          <h2>{t.icpTitle}</h2>
++          <p className="intro">{t.icpIntro}</p>
++          <div className="grid">
++            {icps.map((icp) => (
++              <a className="card card-link" key={icp.href + icp.tag} href={icp.href}>
++                <span className="tag">{icp.tag}</span>
++                <h3>{icp.title}</h3>
++                <p>{icp.body}</p>
++                <span className="cta">{icp.cta} →</span>
++              </a>
++            ))}
++          </div>
++        </div>
++
++        {/* FORGE LINE */}
++        <div className="section" id="forge">
++          <span className="kicker">{t.forgeKicker}</span>
++          <h2>{t.forgeTitle}</h2>
++          <p className="intro">{t.forgeIntro}</p>
++          <div className="grid grid-4">
++            {forgeLine.map((product) => (
++              <a className="card card-link" key={product.slug} href={href(`/forge/${product.slug}`)}>
++                <span className="tag">{product.trade[lang]}</span>
++                <h3>{product.name}</h3>
++                <p>{product.tagline[lang]}</p>
++                <span className="status">
++                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
++                  {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
++                </span>
++              </a>
++            ))}
++          </div>
++        </div>
++
++        {/* LAB */}
++        <div className="section" id="lab">
++          <span className="kicker">{t.labKicker}</span>
++          <h2>{t.labTitle}</h2>
++          <p className="intro">{t.labIntro}</p>
++          <a className="btn btn-line" href={href('/lab/grid-droop')}>{t.labCta}</a>
++        </div>
++
++        {/* DISCIPLINES */}
++        <div className="section" id="disciplines">
++          <span className="kicker">{t.discKicker}</span>
++          <h2>{t.discTitle}</h2>
++          <p className="intro">{t.discIntro}</p>
++          <div className="grid">
++            {disciplines.map((d) => (
++              <a className="card card-link" key={d.slug} href={href(`/disciplines/${d.slug}`)}>
++                <span className="tag">{d.tag[lang]}</span>
++                <h3>{d.title[lang]}</h3>
++                <p>{d.body[0][lang]}</p>
++                <span className="status"><span className="dot dot-dev" /> {t.statusLogPrep}</span>
++              </a>
++            ))}
++          </div>
++        </div>
++
++        {/* WAITLIST */}
++        <div className="section" id="waitlist">
++          <div className="banner banner-stack">
++            <div>
++              <h2>{t.wlTitle}</h2>
++              <p>{t.wlBody}</p>
++            </div>
++            <WaitlistForm t={t} />
++          </div>
++        </div>
++      </div>
++
++      <JsonLd data={professionalServiceSchema()} />
++    </main>
++  );
++}
+diff --git a/app/api/waitlist/route.ts b/app/api/waitlist/route.ts
+new file mode 100644
+index 0000000..ed510a1
+--- /dev/null
++++ b/app/api/waitlist/route.ts
+@@ -0,0 +1,73 @@
++import { NextResponse } from 'next/server';
++
++/**
++ * Waitlist endpoint. JSON in, JSON out — replaces every mailto.
++ *
++ * Provider: Loops (https://loops.so). Set LOOPS_API_KEY in Vercel env and
++ * enable double opt-in for the audience in the Loops dashboard.
++ * Without the key this endpoint answers 503 waitlist_unconfigured —
++ * it NEVER fakes a success.
++ */
++
++export const runtime = 'nodejs';
++
++const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
++const INTERESTS = ['palletizer', 'floorforge', 'hv-lab'] as const;
++type Interest = (typeof INTERESTS)[number];
++
++type Payload = { email?: unknown; interest?: unknown; company?: unknown };
++
++export async function POST(request: Request): Promise<NextResponse> {
++  let body: Payload;
++  try {
++    body = (await request.json()) as Payload;
++  } catch {
++    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
++  }
++
++  // Honeypot: bots fill "company"; humans never see it. Answer 200 with no
++  // side effect so the bot learns nothing.
++  if (typeof body.company === 'string' && body.company.trim() !== '') {
++    return NextResponse.json({ ok: true });
++  }
++
++  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
++  if (!EMAIL_RE.test(email) || email.length > 254) {
++    return NextResponse.json({ error: 'invalid_email' }, { status: 400 });
++  }
++
++  const interest: Interest = INTERESTS.includes(body.interest as Interest)
++    ? (body.interest as Interest)
++    : 'hv-lab';
++
++  const apiKey = process.env.LOOPS_API_KEY;
++  if (!apiKey) {
++    return NextResponse.json({ error: 'waitlist_unconfigured' }, { status: 503 });
++  }
++
++  const res = await fetch('https://app.loops.so/api/v1/contacts/create', {
++    method: 'POST',
++    headers: {
++      Authorization: `Bearer ${apiKey}`,
++      'Content-Type': 'application/json',
++    },
++    body: JSON.stringify({
++      email,
++      source: 'engineeringgrimaldi.com',
++      userGroup: interest,
++      subscribed: true,
++    }),
++  });
++
++  if (res.ok) {
++    return NextResponse.json({ ok: true });
++  }
++
++  // Loops answers 409 for an existing contact — that is a success for the
++  // visitor (they are on the list), not an error to expose.
++  if (res.status === 409) {
++    return NextResponse.json({ ok: true });
++  }
++
++  return NextResponse.json({ error: 'provider_error' }, { status: 502 });
++}
+diff --git a/app/globals.css b/app/globals.css
+index edc698a..106ade4 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -227,3 +227,33 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
+   .ask-panel { right: .75rem; bottom: 5.2rem; }
+   .ask-launcher { right: .75rem; bottom: .9rem; }
+ }
++
++/* ── v6: real routes — lang links, prose pages, waitlist, badges ────── */
++.lang a { display: inline-block; color: var(--text-2); font-size: .72rem; font-weight: 600; padding: .22rem .55rem; border-radius: 999px; }
++.lang a:hover { color: var(--text); }
++.lang a.on { background: var(--phosphor); color: #04140b; }
++
++.sheet-top { margin-top: 0; border-radius: 0; }
++
++.prose { max-width: 760px; }
++.prose h2 { margin-top: 2.2rem; }
++.prose h3 { margin: 1.4rem 0 .3rem; font-size: 1rem; }
++.prose p { color: var(--text-2); line-height: 1.75; }
++.prose .formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--phosphor); font-size: 1.05rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: .8rem 1.1rem; display: inline-block; }
++.boundary-note { border-left: 3px solid var(--trace-3); padding-left: 1rem; color: var(--text-2); font-size: .9rem; }
++.author-block { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .84rem; }
++.status-badge { margin: .4rem 0 1.4rem; }
++.book-bring { color: var(--muted); font-size: .88rem; margin: 1rem 0 3rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
++.foot-disambiguation { font-size: .78rem; color: var(--muted); }
++
++.banner-stack { flex-direction: column; align-items: stretch; }
++.wl-form { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
++.wl-field { display: flex; flex-direction: column; gap: .35rem; font-size: .8rem; color: var(--text-2); }
++.wl-field input, .wl-field select { border: 1px solid var(--border-strong); border-radius: 12px; padding: .6rem .85rem; font-size: .92rem; font-family: inherit; color: var(--text); background: var(--bg); min-width: 220px; }
++.wl-field input:focus, .wl-field select:focus { outline: 2px solid rgba(62, 245, 143, 0.5); outline-offset: 1px; }
++.wl-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
++.wl-form .btn { border: 0; cursor: pointer; font-family: inherit; }
++.wl-form .btn:disabled { opacity: .5; cursor: default; }
++.wl-ok { color: var(--phosphor); font-weight: 600; }
++.wl-error { flex-basis: 100%; color: #f75f5f; font-size: .88rem; margin: 0; }
++.wl-privacy { flex-basis: 100%; color: var(--muted); font-size: .76rem; margin: 0; }
+diff --git a/app/layout.tsx b/app/layout.tsx
+deleted file mode 100644
+index c4454a4..0000000
+--- a/app/layout.tsx
++++ /dev/null
+@@ -1,77 +0,0 @@
+-import type { Metadata } from 'next';
+-import type { ReactNode } from 'react';
+-import { LanguageProvider } from '@/lib/i18n';
+-import Chrome from '@/components/Chrome';
+-import Ask from '@/components/Ask';
+-import './globals.css';
+-
+-const SITE_URL = 'https://engineeringgrimaldi.com';
+-
+-export const metadata: Metadata = {
+-  metadataBase: new globalThis.URL(SITE_URL),
+-  title: 'Grimaldi Engineering — Hardware & Electrical Engineering',
+-  description:
+-    'Trades 2.0 by Grimaldi Engineering: the Forge Line migrates palletizing, flooring, painting and drying from manual craft to automated systems — plus high-voltage, embedded and power-electronics engineering documented with instruments.',
+-  alternates: { canonical: '/' },
+-  openGraph: {
+-    title: 'Grimaldi Engineering — Hardware & Electrical Engineering',
+-    description:
+-      'The Forge Line: one automation product per trade — palletizing, flooring, painting, drying. Trades 2.0, with the engineering documented underneath.',
+-    url: `${SITE_URL}/`,
+-    type: 'website',
+-  },
+-};
+-
+-const forgeList = {
+-  '@context': 'https://schema.org',
+-  '@type': 'ItemList',
+-  '@id': `${'https://engineeringgrimaldi.com'}/#forge-line`,
+-  name: 'The Forge Line — Trades 2.0',
+-  itemListElement: [
+-    { '@type': 'ListItem', position: 1, name: 'Palletizer OS', url: 'https://github.com/iceccarelli/palletizer' },
+-    { '@type': 'ListItem', position: 2, name: 'FloorForge AI', url: 'https://github.com/iceccarelli/floorforge-ai' },
+-    { '@type': 'ListItem', position: 3, name: 'PaintForge AI', url: 'https://github.com/iceccarelli/paintforge-ai' },
+-    { '@type': 'ListItem', position: 4, name: 'DryForge AI', url: 'https://github.com/iceccarelli/dryforge-ai' },
+-  ],
+-};
+-
+-const jsonld = {
+-  '@context': 'https://schema.org',
+-  '@type': 'WebSite',
+-  '@id': `${SITE_URL}/#website`,
+-  url: `${SITE_URL}/`,
+-  name: 'Grimaldi Engineering',
+-  description:
+-    'Hardware and electrical engineering build logs: high-voltage systems, embedded control, power electronics.',
+-  inLanguage: 'en',
+-  publisher: {
+-    '@type': 'Person',
+-    '@id': 'https://igrimaldi.engineering/#person',
+-    name: 'Vincenzo Grimaldi',
+-    url: 'https://igrimaldi.engineering/',
+-    jobTitle: 'Physics-Informed Cyber-Physical Systems Engineer',
+-    sameAs: [
+-      'https://github.com/iceccarelli',
+-      'https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0',
+-      'https://x.com/Vince87Grimaldi',
+-      'https://www.instagram.com/grimaldiengineering/',
+-      'https://igrimaldi.engineering/',
+-      'https://grimaldi.ca/',
+-    ],
+-  },
+-};
+-
+-export default function RootLayout({ children }: { children: ReactNode }) {
+-  return (
+-    <html lang="en" id="top">
+-      <body>
+-        <LanguageProvider>
+-          <Chrome>{children}</Chrome>
+-          <Ask />
+-        </LanguageProvider>
+-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonld) }} />
+-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(forgeList) }} />
+-      </body>
+-    </html>
+-  );
+-}
+diff --git a/app/opengraph-image.tsx b/app/opengraph-image.tsx
+new file mode 100644
+index 0000000..6238c16
+--- /dev/null
++++ b/app/opengraph-image.tsx
+@@ -0,0 +1,61 @@
++import { ImageResponse } from 'next/og';
++
++/** 1200×630 OG image, generated at the edge — no binary asset to maintain. */
++
++export const runtime = 'edge';
++export const alt = 'Grimaldi Engineering — Forge Line, high-voltage build logs';
++export const size = { width: 1200, height: 630 };
++export const contentType = 'image/png';
++
++export default function OpenGraphImage() {
++  return new ImageResponse(
++    (
++      <div
++        style={{
++          width: '100%',
++          height: '100%',
++          display: 'flex',
++          flexDirection: 'column',
++          justifyContent: 'space-between',
++          padding: 72,
++          background: 'linear-gradient(160deg, #0a1018 0%, #070b10 70%)',
++          color: '#e8f0f6',
++          fontFamily: 'sans-serif',
++        }}
++      >
++        <div
++          style={{
++            display: 'flex',
++            fontSize: 28,
++            letterSpacing: 4,
++            textTransform: 'uppercase',
++            color: '#3ef58f',
++          }}
++        >
++          Grimaldi Engineering · Frankfurt
++        </div>
++        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
++          <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, lineHeight: 1.1 }}>
++            The Forge Line
++          </div>
++          <div style={{ display: 'flex', fontSize: 34, color: '#9fb1c1', lineHeight: 1.3 }}>
++            Palletizer OS · FloorForge · High-voltage build logs
++          </div>
++        </div>
++        <div
++          style={{
++            display: 'flex',
++            justifyContent: 'space-between',
++            alignItems: 'center',
++            fontSize: 26,
++            color: '#6e8093',
++          }}
++        >
++          <div style={{ display: 'flex' }}>engineeringgrimaldi.com</div>
++          <div style={{ display: 'flex', color: '#3ef58f' }}>Vincenzo Ceccarelli Grimaldi</div>
++        </div>
++      </div>
++    ),
++    size,
++  );
++}
+diff --git a/app/page.tsx b/app/page.tsx
+deleted file mode 100644
+index 9c9b3f9..0000000
+--- a/app/page.tsx
++++ /dev/null
+@@ -1,164 +0,0 @@
+-'use client';
+-
+-import Oscilloscope from '@/components/Oscilloscope';
+-import Rail from '@/components/Rail';
+-import { forgeLine } from '@/lib/forge';
+-import { liveDeployments, railUi } from '@/lib/dynamic';
+-import { useI18n } from '@/lib/i18n';
+-
+-export default function Home() {
+-  const { t, locale } = useI18n();
+-
+-  return (
+-    <main>
+-      {/* HERO */}
+-      <section className="hero">
+-        <div className="hero-in">
+-          <div className="hero-card">
+-            <span className="kicker">{t('kicker')}</span>
+-            <h1>{t('title')}</h1>
+-            <p className="lead">{t('lead')}</p>
+-            <div className="cta-row">
+-              <a className="btn btn-glow" href="#scope">{t('vKicker')} →</a>
+-              <a className="btn btn-line" href="https://igrimaldi.engineering">{t('ctaSoftware')}</a>
+-            </div>
+-          </div>
+-        </div>
+-      </section>
+-
+-      <div className="sheet">
+-        {/* TRADES 2.0 — THE FORGE LINE */}
+-        <div className="section" id="forge">
+-          <span className="kicker">{t('fl_kicker')}</span>
+-          <h2>{t('fl_title')}</h2>
+-          <p className="intro">{t('fl_intro')}</p>
+-          <Rail ariaLabel={t('fl_title')} prevLabel={railUi.prev[locale]} nextLabel={railUi.next[locale]}>
+-            {forgeLine.map((product) => (
+-              <div className="card rail-card" key={product.key}>
+-                <span className="tag">{t(product.tradeKey)}</span>
+-                <h3>{product.name}</h3>
+-                <p>{t(product.taglineKey)}</p>
+-                <span className="status">
+-                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
+-                  {t(product.status === 'shipped' ? 'fl_shipped' : 'fl_dev')}
+-                </span>
+-                <div className="card-links">
+-                  {product.live && (
+-                    <a className="cta" href={product.live} rel="noopener noreferrer">{t('fl_openLive')} →</a>
+-                  )}
+-                  {product.repo && (
+-                    <a className="cta" href={product.repo} rel="noopener noreferrer">{t('fl_source')} →</a>
+-                  )}
+-                </div>
+-              </div>
+-            ))}
+-          </Rail>
+-          <p className="forge-os">{t('fl_os')}</p>
+-        </div>
+-
+-        {/* PROOF, LIVE — every production deployment on the bench */}
+-        <div className="section" id="live">
+-          <span className="kicker">{railUi.liveKicker[locale]}</span>
+-          <h2>{railUi.liveTitle[locale]}</h2>
+-          <p className="intro">{railUi.liveIntro[locale]}</p>
+-          <Rail ariaLabel={railUi.liveKicker[locale]} prevLabel={railUi.prev[locale]} nextLabel={railUi.next[locale]}>
+-            {liveDeployments.map((deployment) => (
+-              <a
+-                className="card rail-card deploy-card"
+-                key={deployment.id}
+-                href={deployment.href}
+-                {...(deployment.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}
+-              >
+-                <span className="deploy-live">
+-                  <span className="dot" /> {railUi.liveBadge[locale]}
+-                </span>
+-                <h3>{deployment.title[locale]}</h3>
+-                <p>{deployment.desc[locale]}</p>
+-                <span className="deploy-host">{deployment.host}</span>
+-              </a>
+-            ))}
+-          </Rail>
+-        </div>
+-
+-        {/* SIGNATURE INSTRUMENT */}
+-        <div className="section" id="scope">
+-          <span className="kicker">{t('vKicker')}</span>
+-          <h2>{t('vTitle')}</h2>
+-          <p className="intro">{t('vIntro')}</p>
+-          <Oscilloscope />
+-        </div>
+-
+-        {/* DISCIPLINES */}
+-        <div className="section" id="disciplines">
+-          <span className="kicker">{t('d_kicker')}</span>
+-          <h2>{t('d_title')}</h2>
+-          <p className="intro">{t('d_intro')}</p>
+-          <div className="grid">
+-            {(['c1', 'c2', 'c3'] as const).map((c, i) => (
+-              <div className="card" key={c}>
+-                <span className="tag">{t(`${c}tag`)}</span>
+-                <h3>{t(`${c}title`)}</h3>
+-                <p>{t(`${c}body`)}</p>
+-                <span className="status"><span className="dot" /> {t(i === 0 ? 'soon' : i === 1 ? 'soon2' : 'soon3')}</span>
+-              </div>
+-            ))}
+-          </div>
+-        </div>
+-
+-        {/* METHOD */}
+-        <div className="section" id="method">
+-          <span className="kicker">{t('m_kicker')}</span>
+-          <h2>{t('m_title')}</h2>
+-          <p className="intro">{t('m_intro')}</p>
+-          <div className="steps">
+-            {(['s1', 's2', 's3'] as const).map((s) => (
+-              <div className="step" key={s}>
+-                <h3>{t(`${s}title`)}</h3>
+-                <p>{t(`${s}body`)}</p>
+-              </div>
+-            ))}
+-          </div>
+-        </div>
+-
+-        {/* NETWORK */}
+-        <div className="section" id="network">
+-          <span className="kicker">{t('n_kicker')}</span>
+-          <h2>{t('n_title')}</h2>
+-          <div className="grid">
+-            <a className="card card-link" href="https://igrimaldi.engineering">
+-              <span className="tag">igrimaldi.engineering</span>
+-              <h3>{t('n1title')}</h3>
+-              <p>{t('n1body')}</p>
+-              <span className="cta">{t('open')}</span>
+-            </a>
+-            <a className="card card-link" href="https://physics-informed.vercel.app/" rel="noopener noreferrer">
+-              <span className="tag">{t('n2tag')}</span>
+-              <h3>{t('n2title')}</h3>
+-              <p>{t('n2body')}</p>
+-              <span className="cta">{t('open2')}</span>
+-            </a>
+-            <a className="card card-link" href="https://igrimaldi.engineering/card">
+-              <span className="tag">{t('n3tag')}</span>
+-              <h3>{t('n3title')}</h3>
+-              <p>{t('n3body')}</p>
+-              <span className="cta">{t('open3')}</span>
+-            </a>
+-          </div>
+-        </div>
+-
+-        {/* NOTIFY */}
+-        <div className="section">
+-          <div className="banner">
+-            <div>
+-              <h2>{t('bannerTitle')}</h2>
+-              <p>{t('bannerBody')}</p>
+-            </div>
+-            <a className="btn btn-glow" href="mailto:vincenzo@igrimaldi.engineering?subject=Notify%20me%20—%20engineeringgrimaldi.com">
+-              {t('bannerCta')}
+-            </a>
+-          </div>
+-        </div>
+-      </div>
+-    </main>
+-  );
+-}
+diff --git a/app/robots.ts b/app/robots.ts
+new file mode 100644
+index 0000000..a9356ce
+--- /dev/null
++++ b/app/robots.ts
+@@ -0,0 +1,16 @@
++import type { MetadataRoute } from 'next';
++import { SITE_URL } from '@/lib/site';
++
++export default function robots(): MetadataRoute.Robots {
++  return {
++    rules: [
++      {
++        userAgent: '*',
++        allow: '/',
++        disallow: ['/api/'],
++      },
++    ],
++    sitemap: `${SITE_URL}/sitemap.xml`,
++    host: SITE_URL,
++  };
++}
+diff --git a/app/sitemap.ts b/app/sitemap.ts
+new file mode 100644
+index 0000000..ce619e8
+--- /dev/null
++++ b/app/sitemap.ts
+@@ -0,0 +1,38 @@
++import type { MetadataRoute } from 'next';
++import { disciplines } from '@/lib/disciplines';
++import { forgeLine } from '@/lib/forge';
++import { langHref } from '@/lib/i18n';
++import { SITE_URL } from '@/lib/site';
++
++/** Logical paths (unprefixed). Each emits an en + de entry with hreflang. */
++function logicalPaths(): { path: string; priority: number }[] {
++  return [
++    { path: '/', priority: 1 },
++    { path: '/forge', priority: 0.9 },
++    ...forgeLine.map((p) => ({ path: `/forge/${p.slug}`, priority: 0.9 })),
++    ...disciplines.map((d) => ({ path: `/disciplines/${d.slug}`, priority: 0.7 })),
++    { path: '/lab', priority: 0.7 },
++    { path: '/lab/grid-droop', priority: 0.8 },
++    { path: '/book', priority: 0.9 },
++    { path: '/impressum', priority: 0.2 },
++    { path: '/datenschutz', priority: 0.2 },
++  ];
++}
++
++export default function sitemap(): MetadataRoute.Sitemap {
++  const now = new Date();
++  return logicalPaths().flatMap(({ path, priority }) => {
++    const languages = {
++      en: `${SITE_URL}${langHref('en', path)}`,
++      de: `${SITE_URL}${langHref('de', path)}`,
++      'x-default': `${SITE_URL}${langHref('en', path)}`,
++    };
++    return (['en', 'de'] as const).map((lang) => ({
++      url: `${SITE_URL}${langHref(lang, path)}`,
++      lastModified: now,
++      changeFrequency: 'weekly' as const,
++      priority,
++      alternates: { languages },
++    }));
++  });
++}
+diff --git a/components/Ask.tsx b/components/Ask.tsx
+deleted file mode 100644
+index 32b20a8..0000000
+--- a/components/Ask.tsx
++++ /dev/null
+@@ -1,157 +0,0 @@
+-'use client';
+-
+-/**
+- * Ask.tsx — the bench concierge (AWS "Ask" pattern, instrument-lab skin).
+- * Answers come from the client-side index in lib/dynamic.ts: instant,
+- * four locales, honestly labelled, zero network calls.
+- */
+-
+-import { useEffect, useRef, useState } from 'react';
+-import { useI18n } from '@/lib/i18n';
+-import { askEntries, askSuggestions, askUi, matchAsk, type AskEntry } from '@/lib/dynamic';
+-
+-type Message =
+-  | { from: 'visitor'; text: string }
+-  | { from: 'guide'; text: string; links: { label: string; href: string }[] };
+-
+-export default function Ask() {
+-  const { locale } = useI18n();
+-  const [open, setOpen] = useState(false);
+-  const [input, setInput] = useState('');
+-  const [messages, setMessages] = useState<Message[]>([]);
+-  const threadRef = useRef<HTMLDivElement>(null);
+-
+-  useEffect(() => {
+-    const thread = threadRef.current;
+-    if (thread) thread.scrollTop = thread.scrollHeight;
+-  }, [messages, open]);
+-
+-  const answerWith = (entry: AskEntry | null, visitorText: string) => {
+-    const guide: Message = entry
+-      ? {
+-          from: 'guide',
+-          text: entry.answer[locale],
+-          links: entry.links.map((link) => ({ label: link.label[locale], href: link.href })),
+-        }
+-      : {
+-          from: 'guide',
+-          text: askUi.fallback[locale],
+-          links: [{ label: 'vincenzo@igrimaldi.engineering', href: 'mailto:vincenzo@igrimaldi.engineering' }],
+-        };
+-    setMessages((prev) => [...prev, { from: 'visitor', text: visitorText }, guide]);
+-  };
+-
+-  const ask = (text: string) => {
+-    const trimmed = text.trim();
+-    if (!trimmed) return;
+-    answerWith(matchAsk(trimmed), trimmed);
+-    setInput('');
+-  };
+-
+-  const askEntry = (id: string) => {
+-    const entry = askEntries.find((candidate) => candidate.id === id);
+-    if (entry) answerWith(entry, entry.question[locale]);
+-  };
+-
+-  const chips = (
+-    <>
+-      {askSuggestions.map((id) => {
+-        const entry = askEntries.find((candidate) => candidate.id === id);
+-        if (!entry) return null;
+-        return (
+-          <button key={id} type="button" className="ask-chip" onClick={() => askEntry(id)}>
+-            {entry.question[locale]}
+-          </button>
+-        );
+-      })}
+-    </>
+-  );
+-
+-  return (
+-    <>
+-      {open && (
+-        <aside className="ask-panel" role="dialog" aria-label={askUi.title[locale]}>
+-          <header className="ask-head">
+-            <div className="ask-head-row">
+-              <strong>{askUi.title[locale]}</strong>
+-              <span className="ask-badge">{askUi.badge[locale]}</span>
+-              <button type="button" className="ask-close" onClick={() => setOpen(false)} aria-label={askUi.close[locale]}>
+-                ×
+-              </button>
+-            </div>
+-            <p>{askUi.sub[locale]}</p>
+-          </header>
+-
+-          <div className="ask-thread" ref={threadRef}>
+-            {messages.length === 0 && (
+-              <div className="ask-starter">
+-                <span className="ask-starter-label">{askUi.suggestionsLabel[locale]}</span>
+-                {chips}
+-              </div>
+-            )}
+-
+-            {messages.map((message, i) =>
+-              message.from === 'visitor' ? (
+-                <div key={i} className="ask-msg ask-msg-visitor">
+-                  {message.text}
+-                </div>
+-              ) : (
+-                <div key={i} className="ask-msg ask-msg-guide">
+-                  <p>{message.text}</p>
+-                  {message.links.length > 0 && (
+-                    <div className="ask-links">
+-                      {message.links.map((link) => (
+-                        <a
+-                          key={link.href}
+-                          href={link.href}
+-                          {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}
+-                          onClick={link.href.startsWith('#') ? () => setOpen(false) : undefined}
+-                        >
+-                          {link.label}
+-                        </a>
+-                      ))}
+-                    </div>
+-                  )}
+-                </div>
+-              ),
+-            )}
+-
+-            {messages.length > 0 && <div className="ask-starter ask-starter-inline">{chips}</div>}
+-          </div>
+-
+-          <form
+-            className="ask-input-row"
+-            onSubmit={(event) => {
+-              event.preventDefault();
+-              ask(input);
+-            }}
+-          >
+-            <input
+-              value={input}
+-              onChange={(event) => setInput(event.target.value)}
+-              placeholder={askUi.placeholder[locale]}
+-              aria-label={askUi.placeholder[locale]}
+-            />
+-            <button type="submit" aria-label={askUi.send[locale]}>
+-              →
+-            </button>
+-          </form>
+-
+-          <footer className="ask-foot">{askUi.disclaimer[locale]}</footer>
+-        </aside>
+-      )}
+-
+-      <button
+-        type="button"
+-        className="ask-launcher"
+-        onClick={() => setOpen((value) => !value)}
+-        aria-expanded={open}
+-        aria-label={askUi.launcher[locale]}
+-      >
+-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+-        </svg>
+-      </button>
+-    </>
+-  );
+-}
+diff --git a/components/BookCTA.tsx b/components/BookCTA.tsx
+new file mode 100644
+index 0000000..189a1c7
+--- /dev/null
++++ b/components/BookCTA.tsx
+@@ -0,0 +1,26 @@
++import { CAL_QUERY, CAL_URL } from '@/lib/site';
++
++/**
++ * The primary conversion action: a Cal.com booking link with source
++ * attribution. Never a mailto. Server component.
++ * If NEXT_PUBLIC_CAL_URL is unset, the fallback URL contains REPLACE-ME
++ * so the misconfiguration is visible in review, not silent.
++ */
++export default function BookCTA({
++  label,
++  variant = 'glow',
++}: {
++  label: string;
++  variant?: 'glow' | 'line';
++}) {
++  return (
++    <a
++      className={variant === 'glow' ? 'btn btn-glow' : 'btn btn-line'}
++      href={`${CAL_URL}${CAL_QUERY}`}
++      rel="noopener noreferrer"
++      data-cta="book"
++    >
++      {label}
++    </a>
++  );
++}
+diff --git a/components/Chrome.tsx b/components/Chrome.tsx
+index 9231892..92da28f 100644
+--- a/components/Chrome.tsx
++++ b/components/Chrome.tsx
+@@ -1,49 +1,43 @@
+-'use client';
+-
+-import { type ReactNode } from 'react';
++import type { ReactNode } from 'react';
+ import BrandMark from './BrandMark';
+-import { locales, useI18n } from '@/lib/i18n';
++import LangSwitcher from './LangSwitcher';
++import { getDict } from '@/lib/dict';
++import { langHref, type Lang } from '@/lib/i18n';
+ 
+-/** Shared chrome: utility bar (locale + network), nav, footer. */
+-export default function Chrome({ children }: { children: ReactNode }) {
+-  const { locale, setLocale, t } = useI18n();
++/**
++ * Shared chrome: utility bar (language links + network), nav, footer.
++ * Server component — no mailto anywhere; the conversion path is /book.
++ */
++export default function Chrome({ lang, children }: { lang: Lang; children: ReactNode }) {
++  const t = getDict(lang);
++  const href = (path: string) => langHref(lang, path);
+ 
+   return (
+     <>
+       <div className="utility">
+         <div className="utility-in">
+-          <span className="lang" role="group" aria-label="Language">
+-            {locales.map(({ code, native }) => (
+-              <button key={code} type="button" className={locale === code ? 'on' : ''} onClick={() => setLocale(code)}>
+-                {native}
+-              </button>
+-            ))}
+-          </span>
++          <LangSwitcher current={lang} label={t.langLabel} />
+           <a href="https://igrimaldi.engineering">igrimaldi.engineering</a>
+           <a href="https://grimaldi.ca">grimaldi.ca</a>
+-          <a href="https://igrimaldi.engineering/card">{t('netCard')}</a>
+           <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
+         </div>
+       </div>
+ 
+       <div className="nav">
+         <div className="nav-in">
+-          <a className="brand" href="/">
++          <a className="brand" href={href('/')}>
+             <BrandMark size={38} />
+             <span>
+               <b>Grimaldi Engineering</b>
+-              <small>{t('brandTag')}</small>
++              <small>{t.brandTag}</small>
+             </span>
+           </a>
+           <div className="nav-links">
+-            <a href="#forge">{t('navF')}</a>
+-            <a href="#scope">{t('vKicker')}</a>
+-            <a href="#live">{t('navLive')}</a>
+-            <a href="#disciplines">{t('navD')}</a>
+-            <a href="#method">{t('navM')}</a>
+-            <a href="#network">{t('navN')}</a>
++            <a href={href('/forge')}>{t.navForge}</a>
++            <a href={href('/lab')}>{t.navLab}</a>
++            <a href={href('/disciplines/high-voltage')}>{t.navDisciplines}</a>
+           </div>
+-          <a className="pill" href="mailto:vincenzo@igrimaldi.engineering">{t('connect')}</a>
++          <a className="pill" href={href('/book')}>{t.navBook}</a>
+         </div>
+       </div>
+ 
+@@ -54,27 +48,26 @@ export default function Chrome({ children }: { children: ReactNode }) {
+           <div className="foot-grid">
+             <div>
+               <div className="foot-brand"><BrandMark size={42} /><b>Grimaldi Engineering</b></div>
+-              <p>{t('footAbout')}</p>
++              <p>{t.footAbout}</p>
++              <p className="foot-disambiguation">{t.footDisambiguation}</p>
+             </div>
+             <div>
+-              <h4>{t('footNet')}</h4>
+-              <a href="https://igrimaldi.engineering">igrimaldi.engineering — {t('netSoftware')}</a>
+-              <a href="https://engineeringgrimaldi.com">engineeringgrimaldi.com — {t('netHardware')}</a>
+-              <a href="https://grimaldi.ca">grimaldi.ca — {t('netPersonal')}</a>
+-              <a href="https://igrimaldi.engineering/card">{t('netCard')}</a>
++              <h4>{t.footNet}</h4>
++              <a href="https://igrimaldi.engineering">igrimaldi.engineering — {t.netSoftware}</a>
++              <a href="https://grimaldi.ca">grimaldi.ca — {t.netPersonal}</a>
+               <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub — iceccarelli</a>
++              <a href="https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0" rel="noopener noreferrer">LinkedIn</a>
+             </div>
+             <div>
+-              <h4>{t('footContact')}</h4>
+-              <a href="mailto:vincenzo@igrimaldi.engineering">vincenzo@igrimaldi.engineering →</a>
+-              <a href="https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0" rel="noopener noreferrer">LinkedIn</a>
+-              <a href="https://x.com/Vince87Grimaldi" rel="noopener noreferrer">X</a>
+-              <a href="https://www.instagram.com/grimaldiengineering/" rel="noopener noreferrer">Instagram</a>
++              <h4>{t.footLegal}</h4>
++              <a href={href('/book')}>{t.navBook}</a>
++              <a href={href('/impressum')}>{t.impressum}</a>
++              <a href={href('/datenschutz')}>{t.datenschutz}</a>
+             </div>
+           </div>
+           <div className="legal">
+-            <span>{t('rights')}</span>
+-            <a href="#top">{t('top')}</a>
++            <span>{t.rights}</span>
++            <span>{t.authorLine}</span>
+           </div>
+         </div>
+       </footer>
+diff --git a/components/JsonLd.tsx b/components/JsonLd.tsx
+new file mode 100644
+index 0000000..7124083
+--- /dev/null
++++ b/components/JsonLd.tsx
+@@ -0,0 +1,10 @@
++/** Serializes a schema.org object into a script tag. Server component. */
++export default function JsonLd({ data }: { data: Record<string, unknown> }) {
++  return (
++    <script
++      type="application/ld+json"
++      // JSON.stringify with < escaping to prevent </script> breakout.
++      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
++    />
++  );
++}
+diff --git a/components/LangSwitcher.tsx b/components/LangSwitcher.tsx
+new file mode 100644
+index 0000000..2b9a27f
+--- /dev/null
++++ b/components/LangSwitcher.tsx
+@@ -0,0 +1,33 @@
++'use client';
++
++/**
++ * Language switcher as real links — crawlable, no 404s, no localStorage
++ * theater. Computes the alternate URL from the current pathname.
++ */
++
++import { usePathname } from 'next/navigation';
++import type { Lang } from '@/lib/i18n';
++
++function logicalPath(pathname: string): string {
++  if (pathname === '/de') return '/';
++  if (pathname.startsWith('/de/')) return pathname.slice(3);
++  return pathname;
++}
++
++export default function LangSwitcher({ current, label }: { current: Lang; label: string }) {
++  const pathname = usePathname() ?? '/';
++  const path = logicalPath(pathname);
++  const enHref = path || '/';
++  const deHref = path === '/' ? '/de' : `/de${path}`;
++
++  return (
++    <span className="lang" role="group" aria-label={label}>
++      <a className={current === 'en' ? 'on' : ''} href={enHref} hrefLang="en" lang="en">
++        English
++      </a>
++      <a className={current === 'de' ? 'on' : ''} href={deHref} hrefLang="de" lang="de">
++        Deutsch
++      </a>
++    </span>
++  );
++}
+diff --git a/components/Oscilloscope.tsx b/components/Oscilloscope.tsx
+index d6adf23..bbfcc9d 100644
+--- a/components/Oscilloscope.tsx
++++ b/components/Oscilloscope.tsx
+@@ -1,7 +1,14 @@
+ 'use client';
+ 
+ import { useEffect, useRef, useState } from 'react';
+-import { useI18n } from '@/lib/i18n';
++
++export type ScopeLabels = {
++  phases: string;
++  freq: string;
++  rocof: string;
++  load: string;
++  inertia: string;
++};
+ 
+ /**
+  * The signature instrument of the hardware surface: a three-phase
+@@ -20,8 +27,7 @@ const F_NOM = 50;
+ const DROOP = 0.04;
+ const PHASE_COLORS = ['#3ef58f', '#38bdf8', '#f5b83e'];
+ 
+-export default function Oscilloscope() {
+-  const { t } = useI18n();
++export default function Oscilloscope({ labels }: { labels: ScopeLabels }) {
+   const canvasRef = useRef<HTMLCanvasElement>(null);
+   const [load, setLoad] = useState(1.0); // per-unit, generation = 1.0
+   const [inertia, setInertia] = useState(4); // seconds
+@@ -118,14 +124,14 @@ export default function Oscilloscope() {
+   return (
+     <div className="scope">
+       <div className="scope-screen">
+-        <canvas ref={canvasRef} aria-label={t('vPhases')} />
++        <canvas ref={canvasRef} aria-label={labels.phases} />
+         <div className="scope-readouts" aria-live="polite">
+           <div className={`scope-readout scope-${freqTone}`}>
+-            <span>{t('vFreq')}</span>
++            <span>{labels.freq}</span>
+             <strong>{freq.toFixed(3)} Hz</strong>
+           </div>
+           <div className="scope-readout">
+-            <span>{t('vRocof')}</span>
++            <span>{labels.rocof}</span>
+             <strong>{(rocof * 1000).toFixed(0)} mHz/s</strong>
+           </div>
+         </div>
+@@ -133,21 +139,21 @@ export default function Oscilloscope() {
+ 
+       <div className="scope-controls">
+         <label>
+-          <span>{t('vLoad')} — {(load * 100).toFixed(0)} %</span>
++          <span>{labels.load} — {(load * 100).toFixed(0)} %</span>
+           <input
+             type="range" min={0.6} max={1.4} step={0.01} value={load}
+             onChange={(e) => setLoad(Number(e.target.value))}
+           />
+         </label>
+         <label>
+-          <span>{t('vInertia')} — {inertia.toFixed(1)} s</span>
++          <span>{labels.inertia} — {inertia.toFixed(1)} s</span>
+           <input
+             type="range" min={1.5} max={8} step={0.1} value={inertia}
+             onChange={(e) => setInertia(Number(e.target.value))}
+           />
+         </label>
+       </div>
+-      <p className="scope-caption">{t('vPhases')} · Δf = −f·0.04·ΔP · |df/dt| ≤ f·ΔP/2H</p>
++      <p className="scope-caption">{labels.phases} · Δf = −f·0.04·ΔP · |df/dt| ≤ f·ΔP/2H</p>
+     </div>
+   );
+ }
+diff --git a/components/Rail.tsx b/components/Rail.tsx
+deleted file mode 100644
+index 45ef716..0000000
+--- a/components/Rail.tsx
++++ /dev/null
+@@ -1,74 +0,0 @@
+-'use client';
+-
+-/**
+- * Rail.tsx — cascading scrollable row (Netflix pattern, instrument-lab skin).
+- * CSS scroll-snap underneath; the paddles and counter are enhancement only,
+- * so touch and keyboard scrolling stay native.
+- */
+-
+-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+-
+-type RailProps = {
+-  children: ReactNode[];
+-  ariaLabel: string;
+-  prevLabel: string;
+-  nextLabel: string;
+-};
+-
+-export default function Rail({ children, ariaLabel, prevLabel, nextLabel }: RailProps) {
+-  const railRef = useRef<HTMLDivElement>(null);
+-  const [index, setIndex] = useState(0);
+-  const [canPrev, setCanPrev] = useState(false);
+-  const [canNext, setCanNext] = useState(true);
+-  const count = children.length;
+-
+-  const readPosition = useCallback(() => {
+-    const rail = railRef.current;
+-    if (!rail) return;
+-    const max = rail.scrollWidth - rail.clientWidth;
+-    setCanPrev(rail.scrollLeft > 8);
+-    setCanNext(rail.scrollLeft < max - 8);
+-    if (max <= 0) {
+-      setIndex(0);
+-      return;
+-    }
+-    setIndex(Math.min(count - 1, Math.round((rail.scrollLeft / max) * (count - 1))));
+-  }, [count]);
+-
+-  useEffect(() => {
+-    const rail = railRef.current;
+-    if (!rail) return;
+-    readPosition();
+-    rail.addEventListener('scroll', readPosition, { passive: true });
+-    window.addEventListener('resize', readPosition);
+-    return () => {
+-      rail.removeEventListener('scroll', readPosition);
+-      window.removeEventListener('resize', readPosition);
+-    };
+-  }, [readPosition]);
+-
+-  const nudge = (direction: 1 | -1) => {
+-    const rail = railRef.current;
+-    if (!rail) return;
+-    rail.scrollBy({ left: direction * rail.clientWidth * 0.85, behavior: 'smooth' });
+-  };
+-
+-  return (
+-    <div className="rail" role="group" aria-label={ariaLabel}>
+-      <div className="rail-track" ref={railRef} tabIndex={0}>
+-        {children}
+-      </div>
+-      <div className="rail-controls">
+-        <button type="button" className="rail-paddle" onClick={() => nudge(-1)} disabled={!canPrev} aria-label={prevLabel}>
+-          &#8249;
+-        </button>
+-        <span className="rail-counter">
+-          {index + 1} / {count}
+-        </span>
+-        <button type="button" className="rail-paddle" onClick={() => nudge(1)} disabled={!canNext} aria-label={nextLabel}>
+-          &#8250;
+-        </button>
+-      </div>
+-    </div>
+-  );
+-}
+diff --git a/components/WaitlistForm.tsx b/components/WaitlistForm.tsx
+new file mode 100644
+index 0000000..803d74d
+--- /dev/null
++++ b/components/WaitlistForm.tsx
+@@ -0,0 +1,108 @@
++'use client';
++
++/**
++ * Waitlist form — posts to /api/waitlist, JSON in/out, no mailto.
++ * States: idle → submitting → ok | error. Honeypot field for bots.
++ */
++
++import { useState, type FormEvent } from 'react';
++import type { Dict } from '@/lib/dict';
++
++const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
++
++type Phase = 'idle' | 'submitting' | 'ok' | 'error';
++
++export default function WaitlistForm({ t }: { t: Pick<
++  Dict,
++  | 'wlEmailLabel'
++  | 'wlInterestLabel'
++  | 'wlInterestPalletizer'
++  | 'wlInterestFloorforge'
++  | 'wlInterestHvLab'
++  | 'wlSubmit'
++  | 'wlOk'
++  | 'wlErrEmail'
++  | 'wlErrServer'
++  | 'wlErrUnconfigured'
++  | 'wlPrivacy'
++> }) {
++  const [email, setEmail] = useState('');
++  const [interest, setInterest] = useState<'palletizer' | 'floorforge' | 'hv-lab'>('palletizer');
++  const [phase, setPhase] = useState<Phase>('idle');
++  const [error, setError] = useState<string>('');
++
++  async function onSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    const trap = (new FormData(event.currentTarget).get('company') as string | null) ?? '';
++    setError('');
++    if (!EMAIL_RE.test(email)) {
++      setError(t.wlErrEmail);
++      setPhase('error');
++      return;
++    }
++    setPhase('submitting');
++    try {
++      const res = await fetch('/api/waitlist', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ email, interest, company: trap }),
++      });
++      if (res.ok) {
++        setPhase('ok');
++        return;
++      }
++      const body = (await res.json().catch(() => null)) as { error?: string } | null;
++      setError(body?.error === 'waitlist_unconfigured' ? t.wlErrUnconfigured : t.wlErrServer);
++      setPhase('error');
++    } catch {
++      setError(t.wlErrServer);
++      setPhase('error');
++    }
++  }
++
++  if (phase === 'ok') {
++    return <p className="wl-ok" role="status">{t.wlOk}</p>;
++  }
++
++  return (
++    <form className="wl-form" onSubmit={onSubmit} noValidate>
++      <label className="wl-field">
++        <span>{t.wlEmailLabel}</span>
++        <input
++          type="email"
++          name="email"
++          autoComplete="email"
++          required
++          value={email}
++          onChange={(e) => setEmail(e.target.value)}
++        />
++      </label>
++      <label className="wl-field">
++        <span>{t.wlInterestLabel}</span>
++        <select
++          name="interest"
++          value={interest}
++          onChange={(e) => setInterest(e.target.value as typeof interest)}
++        >
++          <option value="palletizer">{t.wlInterestPalletizer}</option>
++          <option value="floorforge">{t.wlInterestFloorforge}</option>
++          <option value="hv-lab">{t.wlInterestHvLab}</option>
++        </select>
++      </label>
++      {/* Honeypot — hidden from humans, filled by naive bots. */}
++      <input
++        type="text"
++        name="company"
++        tabIndex={-1}
++        autoComplete="off"
++        aria-hidden="true"
++        className="wl-honeypot"
++      />
++      <button className="btn btn-glow" type="submit" disabled={phase === 'submitting'}>
++        {t.wlSubmit}
++      </button>
++      {phase === 'error' && error ? <p className="wl-error" role="alert">{error}</p> : null}
++      <p className="wl-privacy">{t.wlPrivacy}</p>
++    </form>
++  );
++}
+diff --git a/lib/dict.ts b/lib/dict.ts
+new file mode 100644
+index 0000000..eba18dc
+--- /dev/null
++++ b/lib/dict.ts
+@@ -0,0 +1,282 @@
++/**
++ * UI dictionary — en + de only, typed so a missing key is a compile error,
++ * not a silent English fallback. Long-form page content lives with its
++ * registry (lib/forge.ts, lib/disciplines.ts); this file is chrome + shared UI.
++ */
++
++import type { Lang } from './i18n';
++
++export interface Dict {
++  brandTag: string;
++  navForge: string;
++  navLab: string;
++  navDisciplines: string;
++  navBook: string;
++  langLabel: string;
++
++  // Home
++  homeKicker: string;
++  homeH1: string;
++  homeLead: string;
++  ctaBook: string;
++  ctaForge: string;
++  icpKicker: string;
++  icpTitle: string;
++  icpIntro: string;
++  icpA_tag: string;
++  icpA_title: string;
++  icpA_body: string;
++  icpA_cta: string;
++  icpB_tag: string;
++  icpB_title: string;
++  icpB_body: string;
++  icpB_cta: string;
++  icpC_tag: string;
++  icpC_title: string;
++  icpC_body: string;
++  icpC_cta: string;
++  forgeKicker: string;
++  forgeTitle: string;
++  forgeIntro: string;
++  labKicker: string;
++  labTitle: string;
++  labIntro: string;
++  labCta: string;
++  discKicker: string;
++  discTitle: string;
++  discIntro: string;
++  open: string;
++
++  // Status badges
++  statusShipped: string;
++  statusRepoOnly: string;
++  statusLogPrep: string;
++
++  // Waitlist
++  wlTitle: string;
++  wlBody: string;
++  wlEmailLabel: string;
++  wlInterestLabel: string;
++  wlInterestPalletizer: string;
++  wlInterestFloorforge: string;
++  wlInterestHvLab: string;
++  wlSubmit: string;
++  wlOk: string;
++  wlErrEmail: string;
++  wlErrServer: string;
++  wlErrUnconfigured: string;
++  wlPrivacy: string;
++
++  // Book
++  bookTitle: string;
++  bookLead: string;
++  bookCta: string;
++  bookBring: string;
++  offersTitle: string;
++  offerSession: string;
++  offerSessionBody: string;
++  offerRetainer: string;
++  offerRetainerBody: string;
++  offerIntegration: string;
++  offerIntegrationBody: string;
++
++  // Footer
++  footAbout: string;
++  footNet: string;
++  footLegal: string;
++  footDisambiguation: string;
++  netSoftware: string;
++  netPersonal: string;
++  impressum: string;
++  datenschutz: string;
++  rights: string;
++  authorLine: string;
++}
++
++const en: Dict = {
++  brandTag: 'Hardware • Electrical Engineering',
++  navForge: 'Forge Line',
++  navLab: 'Lab',
++  navDisciplines: 'Disciplines',
++  navBook: 'Book a bench review',
++  langLabel: 'Language',
++
++  homeKicker: 'Grimaldi Engineering · Frankfurt',
++  homeH1: 'Automation software for the trades. Engineering you can verify.',
++  homeLead:
++    'The Forge Line ships automation products for palletizing, flooring, painting and drying — code public, status stated plainly. Underneath: high-voltage, embedded and power-electronics work. Build logs ship with instrument captures; the first are in preparation.',
++  ctaBook: 'Book a 20-minute bench review — €0',
++  ctaForge: 'See the Forge Line',
++  icpKicker: 'Start here',
++  icpTitle: 'Three doors, one bench',
++  icpIntro: 'Pick the door that matches your problem. Each leads to its own page — no mixed pitch.',
++  icpA_tag: 'Packaging / end-of-line',
++  icpA_title: 'You palletize mixed SKUs',
++  icpA_body:
++    'Palletizer OS is a software foundation for end-of-line palletizing cells, with a public mixed-SKU optimizer you can open right now.',
++  icpA_cta: 'Palletizer OS',
++  icpB_tag: 'Flooring contractors',
++  icpB_title: 'You run flooring crews',
++  icpB_body:
++    'FloorForge AI is automation tooling for the flooring trade — public repository, in active development, no production deployment yet.',
++  icpB_cta: 'FloorForge AI',
++  icpC_tag: 'Grid / OT advisory',
++  icpC_title: 'You need an HV / OT engineer',
++  icpC_body:
++    'Advisory sessions and retainers on high-voltage systems, grid physics and OT digitalisation. Public content stays generic — no operator internals.',
++  icpC_cta: 'See advisory terms',
++  forgeKicker: 'Trades 2.0 · The Forge Line',
++  forgeTitle: 'One trade, one product at a time',
++  forgeIntro:
++    'An automation product per trade, code in the open, status stated plainly. Every product page lists problem, architecture, real integration status, license and commercial terms.',
++  labKicker: 'Lab',
++  labTitle: 'Grid frequency under load — a real droop model',
++  labIntro:
++    'A three-phase scope driving an actual frequency-droop integrator: Δf = −f·0.04·ΔP, RoCoF bounded by inertia. The readouts come out of the model, not a canned animation.',
++  labCta: 'Open the droop instrument',
++  discKicker: 'Disciplines',
++  discTitle: 'Three tracks of physical engineering',
++  discIntro:
++    'High voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that.',
++  open: 'Open →',
++
++  statusShipped: 'Shipped',
++  statusRepoOnly: 'Public repo — not a production deployment',
++  statusLogPrep: 'First build log in preparation',
++
++  wlTitle: 'Get one email when something real ships',
++  wlBody: 'First lab log, Palletizer OS milestones, FloorForge pilots. Double opt-in, no noise, unsubscribe anytime.',
++  wlEmailLabel: 'Email address',
++  wlInterestLabel: 'I care about',
++  wlInterestPalletizer: 'Palletizer OS',
++  wlInterestFloorforge: 'FloorForge AI',
++  wlInterestHvLab: 'HV lab logs',
++  wlSubmit: 'Join the waitlist',
++  wlOk: 'Check your inbox to confirm your subscription.',
++  wlErrEmail: 'That does not look like a valid email address.',
++  wlErrServer: 'Something failed on our side. Please try again later.',
++  wlErrUnconfigured: 'The waitlist backend is not configured yet. Please try again later.',
++  wlPrivacy: 'Consent is revocable anytime; details in the privacy policy.',
++
++  bookTitle: 'Book a 20-minute bench review — €0',
++  bookLead:
++    'Bring a cell layout, a scope trace, or the problem statement. Twenty minutes, no slides, engineering only.',
++  bookCta: 'Pick a slot',
++  bookBring: 'What to bring: a cell layout, a scope trace, a SKU mix, or a one-paragraph problem statement.',
++  offersTitle: 'Working terms',
++  offerSession: 'Deep-dive session — €280',
++  offerSessionBody: '90 minutes on your specific problem: palletizing cell design, HV/OT questions, architecture review. Written summary included.',
++  offerRetainer: 'Advisory retainer — €3,200/mo',
++  offerRetainerBody: 'Ongoing engineering advisory: weekly call, async review, priority access. Grid/OT scope stays on public, generic ground.',
++  offerIntegration: 'Forge integration — custom quote',
++  offerIntegrationBody: 'Palletizer OS or Forge tooling adapted to your line. Scoped after a bench review; no integration is sold before the fit is proven.',
++
++  footAbout: 'The hardware and product surface of the Grimaldi network. Operated from Frankfurt am Main.',
++  footNet: 'The Grimaldi network',
++  footLegal: 'Legal',
++  footDisambiguation:
++    'Not affiliated with Grimaldi Engineering Ltd (UK automotive workshop) or the Grimaldi Group (shipping, Naples).',
++  netSoftware: 'Software & AI portfolio',
++  netPersonal: 'Personal site',
++  impressum: 'Impressum',
++  datenschutz: 'Privacy policy',
++  rights: '© 2026 Vincenzo Ceccarelli Grimaldi. All rights reserved.',
++  authorLine: 'Written and maintained by Vincenzo Ceccarelli Grimaldi, Frankfurt am Main.',
++};
++
++const de: Dict = {
++  brandTag: 'Hardware • Elektrotechnik',
++  navForge: 'Forge-Linie',
++  navLab: 'Labor',
++  navDisciplines: 'Disziplinen',
++  navBook: 'Bench-Review buchen',
++  langLabel: 'Sprache',
++
++  homeKicker: 'Grimaldi Engineering · Frankfurt',
++  homeH1: 'Automatisierungssoftware für die Gewerke. Ingenieursarbeit zum Nachprüfen.',
++  homeLead:
++    'Die Forge-Linie liefert Automatisierungsprodukte für Palettieren, Bodenlegen, Malen und Trocknen — Code öffentlich, Status klar benannt. Darunter: Hochspannungs-, Embedded- und Leistungselektronik-Arbeit. Baujournale erscheinen mit Instrumenten-Messungen; die ersten sind in Vorbereitung.',
++  ctaBook: '20-Minuten-Bench-Review buchen — 0 €',
++  ctaForge: 'Zur Forge-Linie',
++  icpKicker: 'Hier starten',
++  icpTitle: 'Drei Türen, eine Werkbank',
++  icpIntro: 'Wählen Sie die Tür, die zu Ihrem Problem passt. Jede führt auf eine eigene Seite — kein vermischter Pitch.',
++  icpA_tag: 'Verpackung / End-of-Line',
++  icpA_title: 'Sie palettieren Misch-SKUs',
++  icpA_body:
++    'Palletizer OS ist eine Software-Basis für End-of-Line-Palettierzellen — mit einem öffentlichen Misch-SKU-Optimierer, den Sie sofort öffnen können.',
++  icpA_cta: 'Palletizer OS',
++  icpB_tag: 'Bodenleger-Betriebe',
++  icpB_title: 'Sie führen Bodenleger-Kolonnen',
++  icpB_body:
++    'FloorForge AI ist Automatisierungs-Tooling für das Bodenleger-Gewerk — öffentliches Repository, in aktiver Entwicklung, noch kein Produktiveinsatz.',
++  icpB_cta: 'FloorForge AI',
++  icpC_tag: 'Netz- / OT-Beratung',
++  icpC_title: 'Sie brauchen einen HV-/OT-Ingenieur',
++  icpC_body:
++    'Beratungssessions und Retainer zu Hochspannungssystemen, Netzphysik und OT-Digitalisierung. Öffentliche Inhalte bleiben generisch — keine Betreiber-Interna.',
++  icpC_cta: 'Konditionen ansehen',
++  forgeKicker: 'Gewerke 2.0 · Die Forge-Linie',
++  forgeTitle: 'Ein Gewerk, ein Produkt nach dem anderen',
++  forgeIntro:
++    'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status klar benannt. Jede Produktseite nennt Problem, Architektur, echten Integrationsstand, Lizenz und kommerzielle Konditionen.',
++  labKicker: 'Labor',
++  labTitle: 'Netzfrequenz unter Last — ein echtes Statik-Modell',
++  labIntro:
++    'Ein Drei-Phasen-Oszilloskop mit echtem Frequenz-Statik-Integrator: Δf = −f·0,04·ΔP, RoCoF durch Trägheit begrenzt. Die Anzeigen kommen aus dem Modell, nicht aus einer Animation.',
++  labCta: 'Statik-Instrument öffnen',
++  discKicker: 'Disziplinen',
++  discTitle: 'Drei Stränge physischer Ingenieursarbeit',
++  discIntro:
++    'Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das.',
++  open: 'Öffnen →',
++
++  statusShipped: 'Veröffentlicht',
++  statusRepoOnly: 'Öffentliches Repo — kein Produktiveinsatz',
++  statusLogPrep: 'Erstes Baujournal in Vorbereitung',
++
++  wlTitle: 'Eine E-Mail, wenn etwas Echtes erscheint',
++  wlBody: 'Erstes Laborjournal, Palletizer-OS-Meilensteine, FloorForge-Piloten. Double-Opt-in, kein Lärm, jederzeit abbestellbar.',
++  wlEmailLabel: 'E-Mail-Adresse',
++  wlInterestLabel: 'Mich interessiert',
++  wlInterestPalletizer: 'Palletizer OS',
++  wlInterestFloorforge: 'FloorForge AI',
++  wlInterestHvLab: 'HV-Laborjournale',
++  wlSubmit: 'In die Warteliste',
++  wlOk: 'Bitte bestätigen Sie die Anmeldung über die E-Mail in Ihrem Posteingang.',
++  wlErrEmail: 'Das sieht nicht nach einer gültigen E-Mail-Adresse aus.',
++  wlErrServer: 'Auf unserer Seite ist etwas fehlgeschlagen. Bitte später erneut versuchen.',
++  wlErrUnconfigured: 'Das Wartelisten-Backend ist noch nicht konfiguriert. Bitte später erneut versuchen.',
++  wlPrivacy: 'Die Einwilligung ist jederzeit widerrufbar; Details in der Datenschutzerklärung.',
++
++  bookTitle: '20-Minuten-Bench-Review buchen — 0 €',
++  bookLead:
++    'Bringen Sie ein Zellen-Layout, eine Oszilloskop-Aufnahme oder die Problemstellung mit. Zwanzig Minuten, keine Folien, nur Engineering.',
++  bookCta: 'Termin wählen',
++  bookBring: 'Mitbringen: ein Zellen-Layout, eine Scope-Aufnahme, ein SKU-Mix oder eine Problemstellung in einem Absatz.',
++  offersTitle: 'Konditionen',
++  offerSession: 'Deep-Dive-Session — 280 €',
++  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Palettierzellen-Design, HV-/OT-Fragen, Architektur-Review. Schriftliche Zusammenfassung inklusive.',
++  offerRetainer: 'Advisory-Retainer — 3.200 €/Monat',
++  offerRetainerBody: 'Laufende Ingenieursberatung: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Netz-/OT-Themen bleiben auf öffentlichem, generischem Terrain.',
++  offerIntegration: 'Forge-Integration — individuelles Angebot',
++  offerIntegrationBody: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie. Scoping nach einem Bench-Review; keine Integration wird verkauft, bevor der Fit belegt ist.',
++
++  footAbout: 'Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks. Betrieben aus Frankfurt am Main.',
++  footNet: 'Das Grimaldi-Netzwerk',
++  footLegal: 'Rechtliches',
++  footDisambiguation:
++    'Nicht verbunden mit Grimaldi Engineering Ltd (Kfz-Werkstatt, UK) oder der Grimaldi Group (Schifffahrt, Neapel).',
++  netSoftware: 'Software- & KI-Portfolio',
++  netPersonal: 'Persönliche Seite',
++  impressum: 'Impressum',
++  datenschutz: 'Datenschutzerklärung',
++  rights: '© 2026 Vincenzo Ceccarelli Grimaldi. Alle Rechte vorbehalten.',
++  authorLine: 'Verfasst und gepflegt von Vincenzo Ceccarelli Grimaldi, Frankfurt am Main.',
++};
++
++const dictionaries: Record<Lang, Dict> = { en, de };
++
++export function getDict(lang: Lang): Dict {
++  return dictionaries[lang];
++}
+diff --git a/lib/disciplines.ts b/lib/disciplines.ts
+new file mode 100644
+index 0000000..1fd2955
+--- /dev/null
++++ b/lib/disciplines.ts
+@@ -0,0 +1,92 @@
++/**
++ * Discipline registry — the three hardware tracks.
++ *
++ * Legal boundary (do not weaken): the operator works on German rail
++ * infrastructure. NOTHING on this site describes DB InfraGO, KRITIS or
++ * rail-asset internals. Public HV content is generic engineering,
++ * owned material, or explicitly cleared. Each page states this boundary.
++ */
++
++import type { Localized } from './i18n';
++
++export type Discipline = {
++  slug: string;
++  tag: Localized;
++  title: Localized;
++  metaTitle: Localized;
++  metaDescription: Localized;
++  body: Localized[];
++  boundary?: Localized;
++};
++
++export const disciplines: Discipline[] = [
++  {
++    slug: 'high-voltage',
++    tag: { en: 'High Voltage', de: 'Hochspannung' },
++    title: { en: 'High-voltage systems', de: 'Hochspannungssysteme' },
++    metaTitle: {
++      en: 'High-Voltage Systems & Traction Digitalisation',
++      de: 'Hochspannungssysteme & Bahnstrom-Digitalisierung',
++    },
++    metaDescription: {
++      en: 'Generic high-voltage engineering: traction power principles, protection and measurement chains, digitalisation of HV assets. Build logs with instrument captures — first log in preparation. No operator internals.',
++      de: 'Generische Hochspannungstechnik: Bahnstrom-Grundlagen, Schutz- und Messketten, Digitalisierung von HV-Anlagen. Baujournale mit Instrumenten-Messungen — erstes Journal in Vorbereitung. Keine Betreiber-Interna.',
++    },
++    body: [
++      {
++        en: 'Traction power, substation-class hardware, protection and measurement chains: this track documents the energy layer with generic, owned material — schematics drawn for this site, measurements taken on this bench.',
++        de: 'Bahnstrom, Hardware der Unterwerks-Klasse, Schutz- und Messketten: Dieser Strang dokumentiert die Energieebene mit generischem, eigenem Material — Schaltpläne für diese Seite gezeichnet, Messungen an dieser Werkbank genommen.',
++      },
++      {
++        en: 'Every future log opens with design intent and simulation, continues with real instrument captures, and keeps the failure notes in the record.',
++        de: 'Jedes künftige Journal beginnt mit Designabsicht und Simulation, fährt mit echten Instrumenten-Messungen fort und behält die Fehlernotizen im Protokoll.',
++      },
++    ],
++    boundary: {
++      en: 'Boundary: nothing published here describes rail-operator systems, critical-infrastructure configurations or employer internals. Public HV content on this site is generic engineering or explicitly cleared material.',
++      de: 'Grenze: Nichts, was hier erscheint, beschreibt Systeme von Bahnbetreibern, KRITIS-Konfigurationen oder Arbeitgeber-Interna. Öffentliche HV-Inhalte auf dieser Seite sind generische Ingenieursarbeit oder ausdrücklich freigegebenes Material.',
++    },
++  },
++  {
++    slug: 'embedded',
++    tag: { en: 'Embedded', de: 'Embedded' },
++    title: { en: 'Embedded control boards', de: 'Eingebettete Steuerplatinen' },
++    metaTitle: {
++      en: 'Embedded Control & Hardware-in-the-Loop',
++      de: 'Embedded-Regelung & Hardware-in-the-Loop',
++    },
++    metaDescription: {
++      en: 'Deterministic controllers, RTOS firmware, signal integrity and hardware-in-the-loop rigs. Build logs with instrument captures — first log in preparation.',
++      de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände. Baujournale mit Instrumenten-Messungen — erstes Journal in Vorbereitung.',
++    },
++    body: [
++      {
++        en: 'Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs that prove the timing before anything touches a real plant.',
++        de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände, die das Timing beweisen, bevor etwas eine echte Anlage berührt.',
++      },
++    ],
++  },
++  {
++    slug: 'power-electronics',
++    tag: { en: 'Power Electronics', de: 'Leistungselektronik' },
++    title: { en: 'Power electronics', de: 'Leistungselektronik' },
++    metaTitle: {
++      en: 'Power Electronics — Inverters & Converters',
++      de: 'Leistungselektronik — Wechselrichter & Umrichter',
++    },
++    metaDescription: {
++      en: 'Inverters, converters and switching hardware connecting renewables to real grids — measured, thermally characterised, documented. First build log in preparation.',
++      de: 'Wechselrichter, Umrichter und Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet — gemessen, thermisch charakterisiert, dokumentiert. Erstes Baujournal in Vorbereitung.',
++    },
++    body: [
++      {
++        en: 'Inverters, converters, and the switching hardware that connects renewables to real grids — measured, thermally characterised, documented.',
++        de: 'Wechselrichter, Umrichter und die Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet — gemessen, thermisch charakterisiert, dokumentiert.',
++      },
++    ],
++  },
++];
++
++export function getDiscipline(slug: string): Discipline | undefined {
++  return disciplines.find((d) => d.slug === slug);
++}
+diff --git a/lib/dynamic.ts b/lib/dynamic.ts
+deleted file mode 100644
+index aa183e1..0000000
+--- a/lib/dynamic.ts
++++ /dev/null
+@@ -1,249 +0,0 @@
+-/**
+- * dynamic.ts — the dynamic layer's data + typed strings (v5).
+- *
+- * Carries its own four-locale records (instead of strings.json) so the rail
+- * cards, live-proof row and the Ask concierge stay one self-contained,
+- * type-checked unit. Invariant unchanged: nothing here links to a surface a
+- * visitor cannot open, and the concierge says honestly what it is — an
+- * instant client-side guide over this index, not a server-side LLM.
+- */
+-
+-import type { Locale } from './i18n';
+-
+-export type L = Record<Locale, string>;
+-
+-export const railUi: { prev: L; next: L; liveKicker: L; liveTitle: L; liveIntro: L; liveBadge: L } = {
+-  prev: { en: 'Previous', es: 'Anterior', de: 'Zurück', zh: '上一个' },
+-  next: { en: 'Next', es: 'Siguiente', de: 'Weiter', zh: '下一个' },
+-  liveKicker: { en: 'Proof, live', es: 'Prueba, en vivo', de: 'Beweis, live', zh: '实时验证' },
+-  liveTitle: {
+-    en: 'Every deployment on the bench, powered on',
+-    es: 'Cada despliegue en el banco, encendido',
+-    de: 'Jedes Deployment auf der Werkbank, eingeschaltet',
+-    zh: '工作台上的每个部署，均已通电',
+-  },
+-  liveIntro: {
+-    en: 'The network does not describe work — it powers it on. Each card opens a production surface.',
+-    es: 'La red no describe el trabajo — lo enciende. Cada tarjeta abre una superficie en producción.',
+-    de: 'Das Netzwerk beschreibt Arbeit nicht — es schaltet sie ein. Jede Karte öffnet eine produktive Oberfläche.',
+-    zh: '网络不是描述工作，而是让工作运转。每张卡片都打开一个生产环境。',
+-  },
+-  liveBadge: { en: 'Live', es: 'En vivo', de: 'Live', zh: '在线' },
+-};
+-
+-export type Deployment = { id: string; href: string; host: string; title: L; desc: L };
+-
+-export const liveDeployments: Deployment[] = [
+-  {
+-    id: 'palletizer-app',
+-    href: 'https://palletizer-app.vercel.app',
+-    host: 'palletizer-app.vercel.app',
+-    title: { en: 'Palletizer optimizer', es: 'Optimizador de paletizado', de: 'Palettier-Optimierer', zh: '码垛优化器' },
+-    desc: {
+-      en: 'Mixed-SKU pallet planning from the shipped Forge Line product.',
+-      es: 'Planificación de palets multi-SKU del producto entregado de la Línea Forge.',
+-      de: 'Mixed-SKU-Palettenplanung aus dem ausgelieferten Forge-Line-Produkt.',
+-      zh: '来自已交付 Forge 产品的混合 SKU 托盘规划。',
+-    },
+-  },
+-  {
+-    id: 'scope',
+-    href: '#scope',
+-    host: 'engineeringgrimaldi.com/#scope',
+-    title: { en: 'Grid-frequency scope', es: 'Osciloscopio de frecuencia', de: 'Netzfrequenz-Scope', zh: '电网频率示波器' },
+-    desc: {
+-      en: 'The droop-model instrument on this page — real physics, running now.',
+-      es: 'El instrumento de modelo droop en esta página — física real, corriendo ahora.',
+-      de: 'Das Droop-Modell-Instrument auf dieser Seite — echte Physik, läuft jetzt.',
+-      zh: '本页的下垂模型仪器 — 真实物理，正在运行。',
+-    },
+-  },
+-  {
+-    id: 'thesis',
+-    href: 'https://physics-informed.vercel.app/',
+-    host: 'physics-informed.vercel.app',
+-    title: { en: 'Thesis simulator', es: 'Simulador de la tesis', de: 'Thesis-Simulator', zh: '论文仿真器' },
+-    desc: {
+-      en: 'The RWTH Aachen master thesis as an interactive deployment.',
+-      es: 'La tesis de RWTH Aachen como despliegue interactivo.',
+-      de: 'Die RWTH-Masterarbeit als interaktives Deployment.',
+-      zh: 'RWTH 亚琛硕士论文的交互式部署。',
+-    },
+-  },
+-  {
+-    id: 'portfolio',
+-    href: 'https://igrimaldi.engineering',
+-    host: 'igrimaldi.engineering',
+-    title: { en: 'The credibility engine', es: 'El motor de credibilidad', de: 'Die Glaubwürdigkeits-Engine', zh: '可信度引擎' },
+-    desc: {
+-      en: 'Capability register and the full work registry behind the Forge Line.',
+-      es: 'Registro de capacidades y el registro completo de trabajo detrás de la Línea Forge.',
+-      de: 'Kompetenzregister und das vollständige Arbeitsregister hinter der Forge Line.',
+-      zh: 'Forge 产品线背后的能力登记与完整工作档案。',
+-    },
+-  },
+-  {
+-    id: 'ca',
+-    href: 'https://grimaldi.ca',
+-    host: 'grimaldi.ca',
+-    title: { en: 'The person behind it', es: 'La persona detrás', de: 'Die Person dahinter', zh: '背后的人' },
+-    desc: {
+-      en: 'The journey, two manuscripts with public proof engines, the ventures.',
+-      es: 'El camino, dos manuscritos con motores de prueba públicos, las empresas.',
+-      de: 'Der Weg, zwei Manuskripte mit öffentlichen Beweis-Engines, die Ventures.',
+-      zh: '历程、两部配有公开验证引擎的书稿、创业项目。',
+-    },
+-  },
+-  {
+-    id: 'card',
+-    href: 'https://igrimaldi.engineering/card',
+-    host: 'igrimaldi.engineering/card',
+-    title: { en: 'Digital business card', es: 'Tarjeta de visita digital', de: 'Digitale Visitenkarte', zh: '数字名片' },
+-    desc: {
+-      en: 'vCard, QR code and the network entity graph.',
+-      es: 'vCard, código QR y el grafo de entidad de la red.',
+-      de: 'vCard, QR-Code und der Entity-Graph des Netzwerks.',
+-      zh: 'vCard、二维码与网络实体图谱。',
+-    },
+-  },
+-];
+-
+-/* ------------------------------------------------------------------ */
+-/* Ask — the bench concierge                                           */
+-/* ------------------------------------------------------------------ */
+-
+-export const askUi: {
+-  launcher: L;
+-  title: L;
+-  badge: L;
+-  sub: L;
+-  placeholder: L;
+-  send: L;
+-  suggestionsLabel: L;
+-  disclaimer: L;
+-  fallback: L;
+-  close: L;
+-} = {
+-  launcher: { en: 'Ask Grimaldi Engineering', es: 'Pregunta a Grimaldi Engineering', de: 'Grimaldi Engineering fragen', zh: '询问 Grimaldi Engineering' },
+-  title: { en: 'Ask the bench', es: 'Pregunta al banco', de: 'Die Werkbank fragen', zh: '问工作台' },
+-  badge: { en: 'Built-in', es: 'Integrado', de: 'Integriert', zh: '内置' },
+-  sub: {
+-    en: 'Instant answers on the Forge Line, the instruments and the network.',
+-    es: 'Respuestas instantáneas sobre la Línea Forge, los instrumentos y la red.',
+-    de: 'Sofortige Antworten zur Forge Line, den Instrumenten und dem Netzwerk.',
+-    zh: '即刻解答 Forge 产品线、仪器与网络相关问题。',
+-  },
+-  placeholder: { en: 'Ask a question…', es: 'Haz una pregunta…', de: 'Stellen Sie eine Frage…', zh: '输入问题…' },
+-  send: { en: 'Send', es: 'Enviar', de: 'Senden', zh: '发送' },
+-  suggestionsLabel: { en: 'Start with one of these:', es: 'Empieza con una de estas:', de: 'Beginnen Sie mit einer davon:', zh: '从这些问题开始：' },
+-  disclaimer: {
+-    en: 'Instant guide over this site’s own content — runs in your browser, no data leaves it.',
+-    es: 'Guía instantánea sobre el contenido de este sitio — corre en tu navegador, ningún dato sale de él.',
+-    de: 'Sofort-Guide über die Inhalte dieser Seite — läuft im Browser, keine Daten verlassen ihn.',
+-    zh: '基于本站内容的即时向导 — 在您的浏览器中运行，数据不外传。',
+-  },
+-  fallback: {
+-    en: 'Not on the bench yet. Email is the fastest route — or pick a topic below.',
+-    es: 'Aún no está en el banco. El correo es la vía más rápida — o elige un tema abajo.',
+-    de: 'Noch nicht auf der Werkbank. E-Mail ist am schnellsten — oder wählen Sie unten ein Thema.',
+-    zh: '暂未收录。发邮件最快 — 或从下方选择话题。',
+-  },
+-  close: { en: 'Close', es: 'Cerrar', de: 'Schließen', zh: '关闭' },
+-};
+-
+-export type AskLink = { label: L; href: string };
+-export type AskEntry = { id: string; keywords: string[]; question: L; answer: L; links: AskLink[] };
+-
+-export const askEntries: AskEntry[] = [
+-  {
+-    id: 'forge',
+-    keywords: ['forge', 'trades', 'product', 'line', 'automation', 'oficio', 'producto', 'automatización', 'automatizacion', 'handwerk', 'produkt', 'automatisierung', '行业', '产品', '自动化'],
+-    question: { en: 'What is the Forge Line?', es: '¿Qué es la Línea Forge?', de: 'Was ist die Forge Line?', zh: '什么是 Forge 产品线？' },
+-    answer: {
+-      en: 'Trades 2.0: one automation product per trade. Palletizer OS is shipped with a live optimizer; FloorForge, PaintForge and DryForge AI are in development with public code; ForgeOS is the robotic OS being built behind the whole line.',
+-      es: 'Oficios 2.0: un producto de automatización por oficio. Palletizer OS está entregado con optimizador en vivo; FloorForge, PaintForge y DryForge AI en desarrollo con código público; ForgeOS es el SO robótico detrás de toda la línea.',
+-      de: 'Handwerk 2.0: ein Automatisierungsprodukt pro Gewerk. Palletizer OS ist ausgeliefert (Live-Optimierer); FloorForge, PaintForge und DryForge AI in Entwicklung mit öffentlichem Code; ForgeOS ist das robotische OS hinter der Linie.',
+-      zh: '行业 2.0：每个行业一款自动化产品。Palletizer OS 已交付并有在线优化器；FloorForge、PaintForge、DryForge AI 开发中且代码公开；ForgeOS 是整条产品线背后在建的机器人操作系统。',
+-    },
+-    links: [
+-      { label: { en: 'The Forge Line', es: 'La Línea Forge', de: 'Die Forge Line', zh: 'Forge 产品线' }, href: '#forge' },
+-      { label: { en: 'Live optimizer', es: 'Optimizador en vivo', de: 'Live-Optimierer', zh: '在线优化器' }, href: 'https://palletizer-app.vercel.app' },
+-    ],
+-  },
+-  {
+-    id: 'palletizer',
+-    keywords: ['palletizer', 'pallet', 'optimizer', 'sku', 'paletiz', 'palettier', '码垛', '托盘', 'shipped', 'entregado'],
+-    question: { en: 'What does Palletizer OS do?', es: '¿Qué hace Palletizer OS?', de: 'Was macht Palletizer OS?', zh: 'Palletizer OS 是做什么的？' },
+-    answer: {
+-      en: 'A hardware-agnostic, deterministic software foundation for end-of-line palletizing: control loops, safety logic, mixed-SKU planning and fleet telemetry. The optimizer is deployed and open to use; the source is public on GitHub.',
+-      es: 'Una base de software determinista y agnóstica al hardware para paletizado de fin de línea: bucles de control, lógica de seguridad, planificación multi-SKU y telemetría de flota. El optimizador está desplegado y abierto; el código es público en GitHub.',
+-      de: 'Eine hardware-agnostische, deterministische Software-Basis für End-of-Line-Palettieren: Regelkreise, Sicherheitslogik, Mixed-SKU-Planung und Flotten-Telemetrie. Der Optimierer ist deployt und offen nutzbar; der Quellcode ist öffentlich.',
+-      zh: '面向末端产线码垛的硬件无关确定性软件基座：控制回路、安全逻辑、混合 SKU 规划与机队遥测。优化器已上线开放使用，源码在 GitHub 公开。',
+-    },
+-    links: [
+-      { label: { en: 'Open the optimizer', es: 'Abrir el optimizador', de: 'Optimierer öffnen', zh: '打开优化器' }, href: 'https://palletizer-app.vercel.app' },
+-      { label: { en: 'Source', es: 'Código', de: 'Quellcode', zh: '源码' }, href: 'https://github.com/iceccarelli/palletizer' },
+-    ],
+-  },
+-  {
+-    id: 'scope',
+-    keywords: ['scope', 'oscilloscope', 'frequency', 'droop', 'physics', 'grid', 'hertz', 'hz', 'osciloscopio', 'frecuencia', 'física', 'fisica', 'frequenz', 'physik', 'netz', '示波器', '频率', '物理', '电网'],
+-    question: { en: 'What is the instrument on this page?', es: '¿Qué es el instrumento de esta página?', de: 'Was ist das Instrument auf dieser Seite?', zh: '本页的仪器是什么？' },
+-    answer: {
+-      en: 'A live three-phase grid-frequency scope running a real droop model: Δf = −f·droop·ΔP, with the rate of change of frequency bounded by system inertia. Move the load and inertia sliders and the trace answers with correct physics.',
+-      es: 'Un osciloscopio trifásico de frecuencia de red con un modelo droop real: Δf = −f·droop·ΔP, con la derivada de frecuencia acotada por la inercia del sistema. Mueve los controles de carga e inercia y la traza responde con física correcta.',
+-      de: 'Ein Live-Dreiphasen-Netzfrequenz-Scope mit echtem Droop-Modell: Δf = −f·Droop·ΔP, die Frequenzänderungsrate durch die Systemträgheit begrenzt. Bewegen Sie Last- und Trägheitsregler — die Kurve antwortet mit korrekter Physik.',
+-      zh: '一台实时三相电网频率示波器，运行真实的下垂模型：Δf = −f·droop·ΔP，频率变化率受系统惯量约束。拖动负载与惯量滑块，波形以正确的物理规律响应。',
+-    },
+-    links: [{ label: { en: 'To the scope', es: 'Al osciloscopio', de: 'Zum Scope', zh: '前往示波器' }, href: '#scope' }],
+-  },
+-  {
+-    id: 'who',
+-    keywords: ['who', 'vincenzo', 'grimaldi', 'behind', 'network', 'quién', 'quien', 'red', 'wer', 'netzwerk', '谁', '网络', 'about', 'domain'],
+-    question: { en: 'Who builds this?', es: '¿Quién construye esto?', de: 'Wer baut das?', zh: '这是谁构建的？' },
+-    answer: {
+-      en: 'Vincenzo Grimaldi — electrical engineer and software developer, grid networks engineering at DB InfraGO. This is the product site of a three-domain network: igrimaldi.engineering carries the full work registry, grimaldi.ca carries the person and the books.',
+-      es: 'Vincenzo Grimaldi — ingeniero electricista y desarrollador de software, ingeniería de redes en DB InfraGO. Este es el sitio de producto de una red de tres dominios: igrimaldi.engineering lleva el registro completo de trabajo, grimaldi.ca lleva la persona y los libros.',
+-      de: 'Vincenzo Grimaldi — Elektroingenieur und Softwareentwickler, Netzingenieur bei DB InfraGO. Dies ist die Produktseite eines Drei-Domain-Netzwerks: igrimaldi.engineering trägt das vollständige Arbeitsregister, grimaldi.ca die Person und die Bücher.',
+-      zh: 'Vincenzo Grimaldi — 电气工程师兼软件开发者，任职于 DB InfraGO 电网工程。本站是三域名网络中的产品站：igrimaldi.engineering 承载完整工作档案，grimaldi.ca 承载个人与著作。',
+-    },
+-    links: [
+-      { label: { en: 'Work registry', es: 'Registro de trabajo', de: 'Arbeitsregister', zh: '工作档案' }, href: 'https://igrimaldi.engineering' },
+-      { label: { en: 'Business card', es: 'Tarjeta de visita', de: 'Visitenkarte', zh: '数字名片' }, href: 'https://igrimaldi.engineering/card' },
+-    ],
+-  },
+-  {
+-    id: 'contact',
+-    keywords: ['contact', 'email', 'hire', 'integrator', 'partner', 'invest', 'contacto', 'correo', 'contratar', 'kontakt', 'e-mail', 'anfrage', '联系', '合作', '投资'],
+-    question: { en: 'How do I get in touch?', es: '¿Cómo contacto?', de: 'Wie nehme ich Kontakt auf?', zh: '如何联系？' },
+-    answer: {
+-      en: 'Email vincenzo@igrimaldi.engineering — integrators, factory operators, trades businesses and investors welcome. The digital business card carries every other channel.',
+-      es: 'Escribe a vincenzo@igrimaldi.engineering — integradores, operadores de planta, negocios de oficios e inversores bienvenidos. La tarjeta digital lleva todos los demás canales.',
+-      de: 'E-Mail an vincenzo@igrimaldi.engineering — Integratoren, Betreiber, Handwerksbetriebe und Investoren willkommen. Die digitale Visitenkarte enthält alle weiteren Kanäle.',
+-      zh: '发邮件至 vincenzo@igrimaldi.engineering — 欢迎集成商、工厂运营方、行业企业与投资人。数字名片包含其他全部渠道。',
+-    },
+-    links: [
+-      { label: { en: 'Email', es: 'Correo', de: 'E-Mail', zh: '邮件' }, href: 'mailto:vincenzo@igrimaldi.engineering' },
+-      { label: { en: 'Business card', es: 'Tarjeta', de: 'Visitenkarte', zh: '名片' }, href: 'https://igrimaldi.engineering/card' },
+-    ],
+-  },
+-];
+-
+-export const askSuggestions = ['forge', 'palletizer', 'scope', 'contact'];
+-
+-export function matchAsk(query: string): AskEntry | null {
+-  const q = query.toLowerCase();
+-  let best: AskEntry | null = null;
+-  let bestScore = 0;
+-  for (const entry of askEntries) {
+-    let score = 0;
+-    for (const kw of entry.keywords) {
+-      if (q.includes(kw)) score += kw.length > 3 ? 2 : 1;
+-    }
+-    if (score > bestScore) {
+-      best = entry;
+-      bestScore = score;
+-    }
+-  }
+-  return bestScore > 0 ? best : null;
+-}
+diff --git a/lib/forge.ts b/lib/forge.ts
+index e9ed9aa..7178454 100644
+--- a/lib/forge.ts
++++ b/lib/forge.ts
+@@ -1,57 +1,244 @@
+ /**
+- * The Forge Line — the product registry of Trades 2.0.
++ * The Forge Line — product registry and page content.
+  *
+- * One entry per trade being migrated from manual craft to automated systems.
+- * Same discipline as every registry in the network: this file is the single
+- * source of truth; cards, links and structured data derive from it. Honesty
+- * rule: taglines say what a product is FOR and its real status — no invented
+- * capabilities, and `live`/`repo` only when a visitor can actually open it.
++ * Honesty contract (do not weaken):
++ * - `status: 'shipped'` is allowed ONLY while it is true. Palletizer OS
++ *   qualifies because its repository and live optimizer are public.
++ * - Everything else is `repo-only` and MUST render as
++ *   "Public repo — not a production deployment" until a real deployment exists.
++ * - No invented customers, robots, metrics or case studies. Integration
++ *   fields say "none yet" when that is the truth.
+  */
+ 
++import type { Localized } from './i18n';
++
++export type ForgeStatus = 'shipped' | 'repo-only';
++
++export type ForgeFaq = { q: Localized; a: Localized };
++
+ export type ForgeProduct = {
+-  key: string;
++  slug: string;
+   name: string;
+-  /** i18n key for the trade label. */
+-  tradeKey: string;
+-  /** i18n key for the tagline. */
+-  taglineKey: string;
+-  repo?: string;
+-  live?: string;
+-  status: 'shipped' | 'in-development';
++  trade: Localized;
++  tagline: Localized;
++  metaTitle: Localized;
++  metaDescription: Localized;
++  problem: Localized;
++  architecture: Localized;
++  integrations: Localized;
++  license: Localized;
++  commercial: Localized;
++  repo: string;
++  demo?: string;
++  status: ForgeStatus;
++  faqs: ForgeFaq[];
+ };
+ 
+ export const forgeLine: ForgeProduct[] = [
+   {
+-    key: 'palletizer',
++    slug: 'palletizer',
+     name: 'Palletizer OS',
+-    tradeKey: 'pz_trade',
+-    taglineKey: 'pz_tag',
++    trade: { en: 'Palletizing', de: 'Palettieren' },
++    tagline: {
++      en: 'A software foundation for high-throughput end-of-line palletizing cells, with a public mixed-SKU optimizer.',
++      de: 'Eine Software-Basis für End-of-Line-Palettierzellen mit hohem Durchsatz — mit öffentlichem Misch-SKU-Optimierer.',
++    },
++    metaTitle: {
++      en: 'Palletizer OS — Mixed-SKU Palletizing Software',
++      de: 'Palletizer OS — Misch-SKU-Palettier-Software',
++    },
++    metaDescription: {
++      en: 'Palletizer OS: open palletizing software for mixed-SKU end-of-line cells. Public repository, live pattern optimizer, vendor-neutral architecture. By Grimaldi Engineering, Frankfurt.',
++      de: 'Palletizer OS: offene Palettier-Software für Misch-SKU-End-of-Line-Zellen. Öffentliches Repository, Live-Pattern-Optimierer, herstellerneutrale Architektur. Von Grimaldi Engineering, Frankfurt.',
++    },
++    problem: {
++      en: 'Mixed-SKU palletizing is still solved cell by cell with vendor-locked teach pendants and brittle custom rigs. Changing a SKU mix means calling an integrator. Palletizer OS treats pattern generation and cell orchestration as software: versioned, testable, portable across lines.',
++      de: 'Misch-SKU-Palettieren wird noch immer Zelle für Zelle gelöst — mit herstellergebundenen Teach-Pendants und fragilen Sonderaufbauten. Ein geänderter SKU-Mix heißt: Integrator anrufen. Palletizer OS behandelt Pattern-Erzeugung und Zellen-Orchestrierung als Software: versioniert, testbar, über Linien portierbar.',
++    },
++    architecture: {
++      en: 'A pattern/optimization core (mixed-SKU stacking with stability constraints), a cell-orchestration layer, and a vendor-neutral driver interface intended to sit above specific robot arms and grippers. The mixed-SKU optimizer runs in the browser and is publicly deployed.',
++      de: 'Ein Pattern-/Optimierungskern (Misch-SKU-Stapelung mit Stabilitäts-Constraints), eine Zellen-Orchestrierungsschicht und eine herstellerneutrale Treiber-Schnittstelle oberhalb konkreter Roboterarme und Greifer. Der Misch-SKU-Optimierer läuft im Browser und ist öffentlich deployt.',
++    },
++    integrations: {
++      en: 'Supported robots and grippers: the driver interface is vendor-neutral by design, but no OEM robot or gripper integration is certified yet. If you run a specific arm, bring it to a bench review.',
++      de: 'Unterstützte Roboter und Greifer: Die Treiber-Schnittstelle ist bewusst herstellerneutral, aber noch ist keine OEM-Roboter- oder Greifer-Integration zertifiziert. Wenn Sie einen konkreten Arm betreiben: bringen Sie ihn in ein Bench-Review mit.',
++    },
++    license: {
++      en: 'License: see the repository. Commercial licensing for production use is agreed per project.',
++      de: 'Lizenz: siehe Repository. Kommerzielle Lizenzierung für den Produktiveinsatz wird pro Projekt vereinbart.',
++    },
++    commercial: {
++      en: 'Commercial terms: custom integration is scoped after a free 20-minute bench review. No integration is sold before the fit is proven on your SKU mix.',
++      de: 'Kommerzielle Konditionen: Integrationen werden nach einem kostenlosen 20-Minuten-Bench-Review gescopet. Keine Integration wird verkauft, bevor der Fit an Ihrem SKU-Mix belegt ist.',
++    },
+     repo: 'https://github.com/iceccarelli/palletizer',
+-    live: 'https://palletizer-app.vercel.app',
++    demo: 'https://palletizer-app.vercel.app',
+     status: 'shipped',
++    faqs: [
++      {
++        q: { en: 'Is Palletizer OS production software?', de: 'Ist Palletizer OS Produktivsoftware?' },
++        a: {
++          en: 'The repository and the mixed-SKU optimizer are public and usable today. No OEM robot integration is certified yet; production deployments are scoped per project.',
++          de: 'Repository und Misch-SKU-Optimierer sind öffentlich und heute nutzbar. Noch ist keine OEM-Roboter-Integration zertifiziert; Produktiveinsätze werden pro Projekt gescopet.',
++        },
++      },
++      {
++        q: { en: 'Which robots does it support?', de: 'Welche Roboter werden unterstützt?' },
++        a: {
++          en: 'The architecture is vendor-neutral, but no specific arm or gripper is certified yet. That status will change on this page — not before.',
++          de: 'Die Architektur ist herstellerneutral, aber noch ist kein konkreter Arm oder Greifer zertifiziert. Dieser Status ändert sich auf dieser Seite — nicht vorher.',
++        },
++      },
++      {
++        q: { en: 'Can I try the optimizer?', de: 'Kann ich den Optimierer testen?' },
++        a: {
++          en: 'Yes — the mixed-SKU optimizer is deployed publicly and linked from this page. It runs in your browser.',
++          de: 'Ja — der Misch-SKU-Optimierer ist öffentlich deployt und auf dieser Seite verlinkt. Er läuft im Browser.',
++        },
++      },
++    ],
+   },
+   {
+-    key: 'floorforge',
++    slug: 'floorforge',
+     name: 'FloorForge AI',
+-    tradeKey: 'ff_trade',
+-    taglineKey: 'ff_tag',
++    trade: { en: 'Flooring', de: 'Bodenlegen' },
++    tagline: {
++      en: 'AI-native automation tooling for the flooring trade. Public repository, in active development.',
++      de: 'KI-natives Automatisierungs-Tooling für das Bodenleger-Gewerk. Öffentliches Repository, in aktiver Entwicklung.',
++    },
++    metaTitle: {
++      en: 'FloorForge AI — Flooring Trade Automation',
++      de: 'FloorForge AI — Automatisierung für das Bodenleger-Gewerk',
++    },
++    metaDescription: {
++      en: 'FloorForge AI: automation tooling for flooring contractors — layout, estimation and workflow software in the open. Public repo, not a production deployment. By Grimaldi Engineering.',
++      de: 'FloorForge AI: Automatisierungs-Tooling für Bodenleger-Betriebe — Layout-, Kalkulations- und Workflow-Software, offen entwickelt. Öffentliches Repo, kein Produktiveinsatz. Von Grimaldi Engineering.',
++    },
++    problem: {
++      en: 'Flooring is estimated on paper, laid out by eye, and scheduled by phone. Waste, rework and idle crews are priced in. FloorForge AI works toward software-first layout, estimation and job orchestration for mid-size flooring contractors.',
++      de: 'Bodenlegen wird auf Papier kalkuliert, nach Augenmaß ausgelegt und per Telefon geplant. Verschnitt, Nacharbeit und wartende Kolonnen sind eingepreist. FloorForge AI arbeitet an software-getriebenem Layout, Kalkulation und Auftrags-Orchestrierung für mittelgroße Bodenleger-Betriebe.',
++    },
++    architecture: {
++      en: 'Early-stage codebase, developed in the open. Current focus: layout/estimation primitives. Architecture claims will appear here only once the code backs them.',
++      de: 'Codebasis in frühem Stadium, offen entwickelt. Aktueller Fokus: Layout-/Kalkulations-Primitiven. Architektur-Aussagen erscheinen hier erst, wenn der Code sie deckt.',
++    },
++    integrations: {
++      en: 'Supported hardware: none yet.',
++      de: 'Unterstützte Hardware: noch keine.',
++    },
++    license: {
++      en: 'License: see the repository.',
++      de: 'Lizenz: siehe Repository.',
++    },
++    commercial: {
++      en: 'Commercial terms: not for sale yet. Flooring contractors who want to shape the pilot can join the waitlist or book a bench review.',
++      de: 'Kommerzielle Konditionen: noch nicht im Verkauf. Bodenleger-Betriebe, die den Piloten mitprägen wollen, können sich auf die Warteliste setzen oder ein Bench-Review buchen.',
++    },
+     repo: 'https://github.com/iceccarelli/floorforge-ai',
+-    status: 'in-development',
++    status: 'repo-only',
++    faqs: [
++      {
++        q: { en: 'Can I buy FloorForge AI today?', de: 'Kann ich FloorForge AI heute kaufen?' },
++        a: {
++          en: 'No. It is a public repository under active development, not a production deployment. The waitlist gets one email when that changes.',
++          de: 'Nein. Es ist ein öffentliches Repository in aktiver Entwicklung, kein Produktiveinsatz. Die Warteliste erhält eine E-Mail, wenn sich das ändert.',
++        },
++      },
++      {
++        q: { en: 'Who is it for?', de: 'Für wen ist es gedacht?' },
++        a: {
++          en: 'Mid-size flooring contractors who lose margin to estimation error, material waste and scheduling friction.',
++          de: 'Mittelgroße Bodenleger-Betriebe, die Marge an Kalkulationsfehler, Materialverschnitt und Planungsreibung verlieren.',
++        },
++      },
++    ],
+   },
+   {
+-    key: 'paintforge',
++    slug: 'paintforge',
+     name: 'PaintForge AI',
+-    tradeKey: 'pf_trade',
+-    taglineKey: 'pf_tag',
++    trade: { en: 'Painting', de: 'Malen' },
++    tagline: {
++      en: 'AI-native automation tooling for the painting trade. Public repository, in active development.',
++      de: 'KI-natives Automatisierungs-Tooling für das Maler-Gewerk. Öffentliches Repository, in aktiver Entwicklung.',
++    },
++    metaTitle: {
++      en: 'PaintForge AI — Painting Trade Automation',
++      de: 'PaintForge AI — Automatisierung für das Maler-Gewerk',
++    },
++    metaDescription: {
++      en: 'PaintForge AI: automation tooling for the painting trade, developed in the open. Public repo, not a production deployment. By Grimaldi Engineering.',
++      de: 'PaintForge AI: Automatisierungs-Tooling für das Maler-Gewerk, offen entwickelt. Öffentliches Repo, kein Produktiveinsatz. Von Grimaldi Engineering.',
++    },
++    problem: {
++      en: 'Surface prep, coverage estimation and job sequencing in the painting trade are experience-bound and rarely written down. PaintForge AI explores which of those steps become software.',
++      de: 'Untergrund-Vorbereitung, Verbrauchskalkulation und Auftragsreihenfolge im Maler-Gewerk hängen an Erfahrung und stehen selten auf Papier. PaintForge AI erkundet, welche dieser Schritte Software werden.',
++    },
++    architecture: {
++      en: 'Early-stage codebase, developed in the open. Architecture claims will appear here only once the code backs them.',
++      de: 'Codebasis in frühem Stadium, offen entwickelt. Architektur-Aussagen erscheinen hier erst, wenn der Code sie deckt.',
++    },
++    integrations: { en: 'Supported hardware: none yet.', de: 'Unterstützte Hardware: noch keine.' },
++    license: { en: 'License: see the repository.', de: 'Lizenz: siehe Repository.' },
++    commercial: {
++      en: 'Commercial terms: not for sale yet.',
++      de: 'Kommerzielle Konditionen: noch nicht im Verkauf.',
++    },
+     repo: 'https://github.com/iceccarelli/paintforge-ai',
+-    status: 'in-development',
++    status: 'repo-only',
++    faqs: [
++      {
++        q: { en: 'Is PaintForge AI deployed anywhere?', de: 'Ist PaintForge AI irgendwo im Einsatz?' },
++        a: {
++          en: 'No. It is a public repository under active development — no production deployment exists.',
++          de: 'Nein. Es ist ein öffentliches Repository in aktiver Entwicklung — es existiert kein Produktiveinsatz.',
++        },
++      },
++    ],
+   },
+   {
+-    key: 'dryforge',
++    slug: 'dryforge',
+     name: 'DryForge AI',
+-    tradeKey: 'df_trade',
+-    taglineKey: 'df_tag',
++    trade: { en: 'Drying', de: 'Trocknen' },
++    tagline: {
++      en: 'AI-native automation for drying and climate workflows on site. Public repository, in active development.',
++      de: 'KI-native Automatisierung für Trocknungs- und Klima-Abläufe auf der Baustelle. Öffentliches Repository, in aktiver Entwicklung.',
++    },
++    metaTitle: {
++      en: 'DryForge AI — Site Drying & Climate Automation',
++      de: 'DryForge AI — Baustellen-Trocknung & Klima-Automatisierung',
++    },
++    metaDescription: {
++      en: 'DryForge AI: automation for site drying and climate workflows, developed in the open. Public repo, not a production deployment. By Grimaldi Engineering.',
++      de: 'DryForge AI: Automatisierung für Baustellen-Trocknung und Klima-Abläufe, offen entwickelt. Öffentliches Repo, kein Produktiveinsatz. Von Grimaldi Engineering.',
++    },
++    problem: {
++      en: 'Screed and water-damage drying runs on rented dehumidifiers, paper logs and gut feel — while energy is metered and deadlines are contractual. DryForge AI works toward measured, logged, automated drying workflows.',
++      de: 'Estrich- und Wasserschaden-Trocknung läuft über gemietete Trockner, Papierprotokolle und Bauchgefühl — während Energie gemessen wird und Fristen vertraglich sind. DryForge AI arbeitet an gemessenen, protokollierten, automatisierten Trocknungs-Abläufen.',
++    },
++    architecture: {
++      en: 'Early-stage codebase, developed in the open. Architecture claims will appear here only once the code backs them.',
++      de: 'Codebasis in frühem Stadium, offen entwickelt. Architektur-Aussagen erscheinen hier erst, wenn der Code sie deckt.',
++    },
++    integrations: { en: 'Supported hardware: none yet.', de: 'Unterstützte Hardware: noch keine.' },
++    license: { en: 'License: see the repository.', de: 'Lizenz: siehe Repository.' },
++    commercial: {
++      en: 'Commercial terms: not for sale yet.',
++      de: 'Kommerzielle Konditionen: noch nicht im Verkauf.',
++    },
+     repo: 'https://github.com/iceccarelli/dryforge-ai',
+-    status: 'in-development',
++    status: 'repo-only',
++    faqs: [
++      {
++        q: { en: 'Is DryForge AI deployed anywhere?', de: 'Ist DryForge AI irgendwo im Einsatz?' },
++        a: {
++          en: 'No. It is a public repository under active development — no production deployment exists.',
++          de: 'Nein. Es ist ein öffentliches Repository in aktiver Entwicklung — es existiert kein Produktiveinsatz.',
++        },
++      },
++    ],
+   },
+ ];
++
++export function getProduct(slug: string): ForgeProduct | undefined {
++  return forgeLine.find((p) => p.slug === slug);
++}
+diff --git a/lib/i18n.ts b/lib/i18n.ts
+new file mode 100644
+index 0000000..5778ac2
+--- /dev/null
++++ b/lib/i18n.ts
+@@ -0,0 +1,46 @@
++/**
++ * Route-based i18n. English is canonical at the unprefixed path
++ * (https://engineeringgrimaldi.com/…), German lives under /de/….
++ * middleware.ts rewrites unprefixed requests into the [lang]=en tree,
++ * so `/` serves English with status 200 and /de serves German with
++ * status 200 — no client-side language theater, no 404 locales.
++ *
++ * ES/ZH are intentionally absent: they return only after DE is proven
++ * (indexed, hreflang-clean). Do not re-add languages without routes.
++ */
++
++import type { Metadata } from 'next';
++import { SITE_URL } from './site';
++
++export type Lang = 'en' | 'de';
++
++export const LANGS: readonly Lang[] = ['en', 'de'] as const;
++
++export function isLang(value: string): value is Lang {
++  return (LANGS as readonly string[]).includes(value);
++}
++
++/** Public href for a logical path in a given language.
++ *  `path` is always the unprefixed logical path ('/', '/forge/palletizer'). */
++export function langHref(lang: Lang, path: string): string {
++  const clean = path === '/' ? '' : path;
++  return lang === 'en' ? clean || '/' : `/de${clean}` || '/de';
++}
++
++/** Canonical + hreflang set for one logical path, from one language's view. */
++export function pageAlternates(lang: Lang, path: string): Metadata['alternates'] {
++  return {
++    canonical: `${SITE_URL}${langHref(lang, path)}`,
++    languages: {
++      en: `${SITE_URL}${langHref('en', path)}`,
++      de: `${SITE_URL}${langHref('de', path)}`,
++      'x-default': `${SITE_URL}${langHref('en', path)}`,
++    },
++  };
++}
++
++/** Pick a translated value from a {en, de} pair. */
++export type Localized = { en: string; de: string };
++export function pick(lang: Lang, value: Localized): string {
++  return value[lang];
++}
+diff --git a/lib/i18n.tsx b/lib/i18n.tsx
+deleted file mode 100644
+index 9e44410..0000000
+--- a/lib/i18n.tsx
++++ /dev/null
+@@ -1,63 +0,0 @@
+-'use client';
+-
+-/**
+- * Four-locale layer, same contract as igrimaldi.engineering: English is
+- * canonical and baked into the prerendered HTML; ES/DE/ZH swap client-side.
+- * Locale persists in the shared `vg-locale` key, so a visitor who chose
+- * Deutsch on the portfolio lands here in Deutsch.
+- */
+-
+-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+-import strings from './strings.json';
+-
+-export type Locale = 'en' | 'es' | 'de' | 'zh';
+-
+-export const locales: { code: Locale; native: string }[] = [
+-  { code: 'en', native: 'English' },
+-  { code: 'es', native: 'Español' },
+-  { code: 'de', native: 'Deutsch' },
+-  { code: 'zh', native: '中文' },
+-];
+-
+-type Dict = Record<string, string>;
+-const table = strings as Record<Locale, Dict>;
+-
+-const STORAGE_KEY = 'vg-locale';
+-
+-function detect(): Locale {
+-  if (typeof window === 'undefined') return 'en';
+-  try {
+-    const s = window.localStorage.getItem(STORAGE_KEY);
+-    if (s === 'en' || s === 'es' || s === 'de' || s === 'zh') return s;
+-  } catch {}
+-  const n = (navigator.language || 'en').slice(0, 2);
+-  return n === 'es' || n === 'de' || n === 'zh' ? (n as Locale) : 'en';
+-}
+-
+-const Ctx = createContext<{ locale: Locale; setLocale: (l: Locale) => void; t: (k: string) => string }>({
+-  locale: 'en',
+-  setLocale: () => undefined,
+-  t: (k) => table.en[k] ?? k,
+-});
+-
+-export function LanguageProvider({ children }: { children: ReactNode }) {
+-  const [locale, setLocaleState] = useState<Locale>('en');
+-
+-  useEffect(() => setLocaleState(detect()), []);
+-  useEffect(() => {
+-    document.documentElement.lang = locale === 'zh' ? 'zh-Hans' : locale;
+-  }, [locale]);
+-
+-  const setLocale = useCallback((l: Locale) => {
+-    setLocaleState(l);
+-    try {
+-      window.localStorage.setItem(STORAGE_KEY, l);
+-    } catch {}
+-  }, []);
+-
+-  const t = useCallback((k: string) => table[locale][k] ?? table.en[k] ?? k, [locale]);
+-
+-  return <Ctx.Provider value={{ locale, setLocale, t }}>{children}</Ctx.Provider>;
+-}
+-
+-export const useI18n = () => useContext(Ctx);
+diff --git a/lib/schema.ts b/lib/schema.ts
+new file mode 100644
+index 0000000..f20f47a
+--- /dev/null
++++ b/lib/schema.ts
+@@ -0,0 +1,120 @@
++/**
++ * JSON-LD builders. Plain objects, serialized by <JsonLd/>.
++ * Person lives on THIS origin (with @id continuity to the portfolio),
++ * plus ProfessionalService, SoftwareApplication, FAQPage, BreadcrumbList.
++ */
++
++import type { Lang } from './i18n';
++import { langHref } from './i18n';
++import type { ForgeProduct } from './forge';
++import { PERSON_NAME, SAME_AS, SITE_NAME, SITE_URL } from './site';
++
++type JsonLdObject = Record<string, unknown>;
++
++export function personSchema(): JsonLdObject {
++  return {
++    '@context': 'https://schema.org',
++    '@type': 'Person',
++    '@id': `${SITE_URL}/#person`,
++    name: PERSON_NAME,
++    alternateName: 'Vincenzo Grimaldi',
++    url: `${SITE_URL}/`,
++    jobTitle: 'High-Voltage & Cyber-Physical Systems Engineer',
++    workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
++    sameAs: [...SAME_AS],
++  };
++}
++
++export function websiteSchema(): JsonLdObject {
++  return {
++    '@context': 'https://schema.org',
++    '@type': 'WebSite',
++    '@id': `${SITE_URL}/#website`,
++    url: `${SITE_URL}/`,
++    name: SITE_NAME,
++    inLanguage: ['en', 'de'],
++    publisher: { '@id': `${SITE_URL}/#person` },
++  };
++}
++
++export function professionalServiceSchema(): JsonLdObject {
++  return {
++    '@context': 'https://schema.org',
++    '@type': 'ProfessionalService',
++    '@id': `${SITE_URL}/#service`,
++    name: `${SITE_NAME} — Engineering Advisory`,
++    url: `${SITE_URL}/book`,
++    founder: { '@id': `${SITE_URL}/#person` },
++    areaServed: [
++      { '@type': 'Country', name: 'Germany' },
++      { '@type': 'AdministrativeArea', name: 'European Union' },
++    ],
++    knowsAbout: [
++      'palletizing automation',
++      'high-voltage engineering',
++      'power electronics',
++      'embedded control',
++      'grid physics',
++    ],
++  };
++}
++
++export function softwareApplicationSchema(lang: Lang, product: ForgeProduct): JsonLdObject {
++  const url = `${SITE_URL}${langHref(lang, `/forge/${product.slug}`)}`;
++  const schema: JsonLdObject = {
++    '@context': 'https://schema.org',
++    '@type': 'SoftwareApplication',
++    '@id': `${SITE_URL}/forge/${product.slug}#software`,
++    name: product.name,
++    url,
++    applicationCategory: 'IndustrialApplication',
++    operatingSystem: 'Web',
++    description: product.metaDescription[lang],
++    author: { '@id': `${SITE_URL}/#person` },
++    codeRepository: product.repo,
++  };
++  if (product.demo) {
++    schema.installUrl = product.demo;
++  }
++  // Offers only for the shipped product, and honestly: price on request.
++  if (product.status === 'shipped') {
++    schema.offers = {
++      '@type': 'Offer',
++      url: `${SITE_URL}/book`,
++      priceSpecification: { '@type': 'PriceSpecification', priceCurrency: 'EUR' },
++      description: 'Commercial integration scoped per project after a free bench review.',
++      availability: 'https://schema.org/PreOrder',
++    };
++  }
++  return schema;
++}
++
++export function faqSchema(lang: Lang, product: ForgeProduct): JsonLdObject | null {
++  if (product.faqs.length === 0) return null;
++  return {
++    '@context': 'https://schema.org',
++    '@type': 'FAQPage',
++    '@id': `${SITE_URL}/forge/${product.slug}#faq`,
++    mainEntity: product.faqs.map((f) => ({
++      '@type': 'Question',
++      name: f.q[lang],
++      acceptedAnswer: { '@type': 'Answer', text: f.a[lang] },
++    })),
++  };
++}
++
++export function breadcrumbSchema(
++  lang: Lang,
++  crumbs: { name: string; path: string }[],
++): JsonLdObject {
++  return {
++    '@context': 'https://schema.org',
++    '@type': 'BreadcrumbList',
++    itemListElement: crumbs.map((c, i) => ({
++      '@type': 'ListItem',
++      position: i + 1,
++      name: c.name,
++      item: `${SITE_URL}${langHref(lang, c.path)}`,
++    })),
++  };
++}
+diff --git a/lib/site.ts b/lib/site.ts
+new file mode 100644
+index 0000000..416f48c
+--- /dev/null
++++ b/lib/site.ts
+@@ -0,0 +1,28 @@
++/**
++ * Single source of truth for site-wide constants.
++ * No secrets here — env-dependent values read from process.env with
++ * explicit placeholders so a missing var is visible, never silent.
++ */
++
++export const SITE_URL = 'https://engineeringgrimaldi.com';
++export const SITE_NAME = 'Grimaldi Engineering';
++export const PERSON_NAME = 'Vincenzo Ceccarelli Grimaldi';
++export const PERSON_ID = 'https://igrimaldi.engineering/#person';
++
++/** Cal.com booking URL. Set NEXT_PUBLIC_CAL_URL in Vercel env.
++ *  The fallback is a visible placeholder, never a fake working link. */
++export const CAL_URL =
++  process.env.NEXT_PUBLIC_CAL_URL ?? 'https://cal.com/REPLACE-ME/bench-review';
++
++export const CAL_QUERY = '?utm_source=engineeringgrimaldi&source=engineeringgrimaldi.com';
++
++export const SAME_AS = [
++  'https://github.com/iceccarelli',
++  'https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0',
++  'https://x.com/Vince87Grimaldi',
++  'https://www.instagram.com/grimaldiengineering/',
++  'https://igrimaldi.engineering/',
++  'https://grimaldi.ca/',
++] as const;
++
++export const CONTACT_EMAIL = 'vincenzo@igrimaldi.engineering'; // legal/Impressum contact only — never a CTA
+diff --git a/lib/strings.json b/lib/strings.json
+deleted file mode 100644
+index 03cb506..0000000
+--- a/lib/strings.json
++++ /dev/null
+@@ -1,350 +0,0 @@
+-{
+-  "en": {
+-    "brandTag": "Hardware • Electrical Engineering",
+-    "navD": "Disciplines",
+-    "navM": "Method",
+-    "navN": "Network",
+-    "connect": "Connect",
+-    "kicker": "Grimaldi Engineering · Trades 2.0",
+-    "title": "Migrating the trades from manual craft to automated systems.",
+-    "lead": "The physical layer of the Grimaldi Network — and the home of the Forge Line: products carrying palletizing, flooring, painting and drying from oldschool manual work into Trades 2.0. Underneath them: high-voltage, embedded and power-electronics engineering, documented with instruments.",
+-    "ctaDisciplines": "Explore the disciplines",
+-    "ctaSoftware": "Visit the software surface",
+-    "d_kicker": "Disciplines",
+-    "d_title": "Three tracks of physical engineering",
+-    "d_intro": "Each track publishes complete builds — from first schematic to measured result. No renders passed off as photographs, no specs without instruments behind them.",
+-    "c1tag": "High Voltage",
+-    "c1title": "High-voltage systems",
+-    "c1body": "Traction power, substation hardware, protection and measurement chains — the energy layer, up close, from the engineer who digitises it for German rail.",
+-    "soon": "First build log in preparation",
+-    "c2tag": "Embedded",
+-    "c2title": "Embedded control boards",
+-    "c2body": "Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs that prove the timing before anything touches a real plant.",
+-    "soon2": "First build log in preparation",
+-    "c3tag": "Power Electronics",
+-    "c3title": "Power electronics",
+-    "c3body": "Inverters, converters, and the switching hardware that connects renewables to real grids — measured, thermally characterised, documented.",
+-    "soon3": "First build log in preparation",
+-    "m_kicker": "Method",
+-    "m_title": "How every build gets published",
+-    "m_intro": "The same discipline that governs the software portfolio governs the bench: nothing is claimed that an instrument did not show.",
+-    "s1title": "Design & simulate",
+-    "s1body": "Schematics and models first. Every build log opens with the design intent and the simulation that justified it.",
+-    "s2title": "Build & measure",
+-    "s2body": "Real hardware, real instruments. Scope captures, thermal readings and load tests are the evidence — published as recorded.",
+-    "s3title": "Publish with receipts",
+-    "s3body": "What worked, what failed, and why. Failure notes stay in the record: they are what make the successes credible.",
+-    "n_kicker": "From the network",
+-    "n_title": "The software side is already live",
+-    "n1title": "The software & AI portfolio",
+-    "n1body": "Capability register, work registry, physics-informed learning and agentic middleware — in four languages.",
+-    "open": "Open →",
+-    "n2tag": "Live simulator",
+-    "n2title": "The thesis simulator",
+-    "n2body": "The interactive CIM–ThreMA cross-domain ontology simulator from the 2025 RWTH Aachen M.Sc. thesis.",
+-    "open2": "Open →",
+-    "n3tag": "Business card",
+-    "n3title": "The digital business card",
+-    "n3body": "One URL with the full identity: contact channels, vCard download and a shareable QR.",
+-    "open3": "Open →",
+-    "bannerTitle": "Want to be notified when the lab opens?",
+-    "bannerBody": "One email when the first build log ships. No list, no noise.",
+-    "bannerCta": "Notify me",
+-    "footAbout": "The hardware and electrical engineering surface of the Grimaldi Network.",
+-    "footNet": "The Grimaldi Network",
+-    "netSoftware": "Software & AI",
+-    "netHardware": "Hardware & EE",
+-    "netPersonal": "Personal",
+-    "netCard": "Digital business card",
+-    "footContact": "Contact",
+-    "rights": "© 2026 Vincenzo Grimaldi. All rights reserved.",
+-    "top": "Back to top ↑",
+-    "vKicker": "Live instrument",
+-    "vTitle": "Grid frequency under load — a real droop model",
+-    "vIntro": "Three phases at 50 Hz. Drag the load and the frequency droops exactly as a synchronous grid does; drag the inertia and watch how fast it moves. This is the physics the hardware on this site exists to serve.",
+-    "vLoad": "System load",
+-    "vInertia": "Inertia H",
+-    "vFreq": "Frequency",
+-    "vRocof": "RoCoF",
+-    "vPhases": "L1 · L2 · L3 — 230 V phase voltages",
+-    "navF": "The Forge Line",
+-    "fl_kicker": "Trades 2.0 · The Forge Line",
+-    "fl_title": "One trade, one product at a time",
+-    "fl_intro": "The trades that build the physical world still run on manual labor and brittle custom rigs. The Forge Line migrates them: an automation product per trade, code in the open, status stated plainly.",
+-    "fl_os": "Behind the line: ForgeOS — the AI-native robotic operating system for the highest-pain, highest-ROI trades. In development.",
+-    "pz_trade": "Palletizing",
+-    "pz_tag": "A software foundation for high-throughput end-of-line palletising cells. One codebase, any robot arm, any gripper, any factory — with a live mixed-SKU optimizer.",
+-    "ff_trade": "Flooring",
+-    "ff_tag": "AI-native automation for the flooring trade. In active development — code public.",
+-    "pf_trade": "Painting",
+-    "pf_tag": "AI-native automation for the painting trade. In active development — code public.",
+-    "df_trade": "Drying",
+-    "df_tag": "AI-native automation for drying and climate workflows on site. In active development — code public.",
+-    "fl_openLive": "Open the live optimizer",
+-    "fl_source": "Source",
+-    "fl_shipped": "Shipped",
+-    "fl_dev": "In development",
+-    "navLive": "Live"
+-  },
+-  "es": {
+-    "brandTag": "Hardware • Ingeniería Eléctrica",
+-    "connect": "Contacto",
+-    "kicker": "Grimaldi Engineering · Oficios 2.0",
+-    "title": "Migrando los oficios del trabajo manual a sistemas automatizados.",
+-    "lead": "La capa física de la Red Grimaldi — y el hogar de la Línea Forge: productos que llevan el paletizado, los pisos, la pintura y el secado del trabajo manual de siempre a los Oficios 2.0. Debajo: ingeniería de alta tensión, embebidos y electrónica de potencia, documentada con instrumentos.",
+-    "ctaDisciplines": "Explorar las disciplinas",
+-    "ctaSoftware": "Visitar la superficie de software",
+-    "d_kicker": "Disciplinas",
+-    "d_title": "Tres líneas de ingeniería física",
+-    "d_intro": "Cada línea publica construcciones completas — del primer esquema al resultado medido. Sin renders presentados como fotos, sin especificaciones sin instrumentos detrás.",
+-    "c1tag": "Alta Tensión",
+-    "c1title": "Sistemas de alta tensión",
+-    "c1body": "Energía de tracción, hardware de subestaciones, cadenas de protección y medición — la capa energética de cerca, por el ingeniero que la digitaliza para el ferrocarril alemán.",
+-    "c2tag": "Embebido",
+-    "c2title": "Placas de control embebido",
+-    "c2body": "Controladores deterministas, firmware RTOS, integridad de señal y bancos hardware-in-the-loop que prueban los tiempos antes de tocar una planta real.",
+-    "c3tag": "Electrónica de Potencia",
+-    "c3title": "Electrónica de potencia",
+-    "c3body": "Inversores, convertidores y el hardware de conmutación que conecta las renovables con redes reales — medido, caracterizado térmicamente, documentado.",
+-    "soon": "Primera bitácora en preparación",
+-    "soon2": "Primera bitácora en preparación",
+-    "soon3": "Primera bitácora en preparación",
+-    "m_kicker": "Método",
+-    "m_title": "Cómo se publica cada construcción",
+-    "m_intro": "La misma disciplina que gobierna el portafolio de software gobierna el banco: no se afirma nada que un instrumento no haya mostrado.",
+-    "s1title": "Diseñar y simular",
+-    "s1body": "Primero esquemas y modelos. Cada bitácora abre con la intención de diseño y la simulación que la justificó.",
+-    "s2title": "Construir y medir",
+-    "s2body": "Hardware real, instrumentos reales. Capturas de osciloscopio, lecturas térmicas y pruebas de carga son la evidencia — publicadas tal como se registraron.",
+-    "s3title": "Publicar con recibos",
+-    "s3body": "Qué funcionó, qué falló y por qué. Las notas de fallo quedan en el registro: son lo que hace creíbles los éxitos.",
+-    "n_kicker": "De la red",
+-    "n_title": "El lado del software ya está en vivo",
+-    "n1title": "El portafolio de software e IA",
+-    "n1body": "Registro de capacidades, registro de trabajo, aprendizaje informado por la física y middleware agéntico — en cuatro idiomas.",
+-    "n2tag": "Simulador en vivo",
+-    "n2title": "El simulador de la tesis",
+-    "n2body": "El simulador interactivo de la ontología interdominio CIM–ThreMA de la tesis de M.Sc. de RWTH Aachen 2025.",
+-    "n3tag": "Tarjeta digital",
+-    "n3title": "La tarjeta de presentación digital",
+-    "n3body": "Una URL con la identidad completa: canales de contacto, vCard descargable y QR para compartir.",
+-    "open": "Abrir →",
+-    "open2": "Abrir →",
+-    "open3": "Abrir →",
+-    "bannerTitle": "¿Quieres saber cuándo abre el laboratorio?",
+-    "bannerBody": "Un email cuando salga la primera bitácora. Sin listas, sin ruido.",
+-    "bannerCta": "Avísame",
+-    "footAbout": "La superficie de hardware e ingeniería eléctrica de la Red Grimaldi.",
+-    "footNet": "La Red Grimaldi",
+-    "netSoftware": "Software e IA",
+-    "netHardware": "Hardware e Ing. Eléctrica",
+-    "netPersonal": "Personal",
+-    "netCard": "Tarjeta de presentación digital",
+-    "footContact": "Contacto",
+-    "rights": "© 2026 Vincenzo Grimaldi. Todos los derechos reservados.",
+-    "top": "Volver arriba ↑",
+-    "navD": "Disciplinas",
+-    "navM": "Método",
+-    "navN": "Red",
+-    "vKicker": "Instrumento en vivo",
+-    "vTitle": "Frecuencia de red bajo carga — un modelo de estatismo real",
+-    "vIntro": "Tres fases a 50 Hz. Arrastra la carga y la frecuencia cae exactamente como en una red síncrona; arrastra la inercia y observa la velocidad del cambio. Esta es la física a la que sirve el hardware de este sitio.",
+-    "vLoad": "Carga del sistema",
+-    "vInertia": "Inercia H",
+-    "vFreq": "Frecuencia",
+-    "vRocof": "RoCoF",
+-    "vPhases": "L1 · L2 · L3 — tensiones de fase de 230 V",
+-    "navF": "La Línea Forge",
+-    "fl_kicker": "Oficios 2.0 · La Línea Forge",
+-    "fl_title": "Un oficio, un producto a la vez",
+-    "fl_intro": "Los oficios que construyen el mundo físico aún dependen de trabajo manual y montajes frágiles a medida. La Línea Forge los migra: un producto de automatización por oficio, código abierto, estado declarado con claridad.",
+-    "fl_os": "Detrás de la línea: ForgeOS — el sistema operativo robótico nativo de IA para los oficios de mayor dolor y mayor ROI. En desarrollo.",
+-    "pz_trade": "Paletizado",
+-    "pz_tag": "Una base de software para celdas de paletizado de fin de línea de alto rendimiento. Un código, cualquier brazo robótico, cualquier gripper, cualquier fábrica — con optimizador de SKU mixto en vivo.",
+-    "ff_trade": "Pisos",
+-    "ff_tag": "Automatización nativa de IA para el oficio de los pisos. En desarrollo activo — código público.",
+-    "pf_trade": "Pintura",
+-    "pf_tag": "Automatización nativa de IA para el oficio de la pintura. En desarrollo activo — código público.",
+-    "df_trade": "Secado",
+-    "df_tag": "Automatización nativa de IA para flujos de secado y clima en obra. En desarrollo activo — código público.",
+-    "fl_openLive": "Abrir el optimizador en vivo",
+-    "fl_source": "Código fuente",
+-    "fl_shipped": "Publicado",
+-    "fl_dev": "En desarrollo",
+-    "navLive": "En vivo"
+-  },
+-  "de": {
+-    "brandTag": "Hardware • Elektrotechnik",
+-    "connect": "Kontakt",
+-    "kicker": "Grimaldi Engineering · Gewerke 2.0",
+-    "title": "Die Gewerke wandern vom Handwerk zu automatisierten Systemen.",
+-    "lead": "Die physische Schicht des Grimaldi-Netzwerks — und die Heimat der Forge-Linie: Produkte, die Palettieren, Bodenlegen, Malen und Trocknen aus der manuellen Arbeit von gestern in die Gewerke 2.0 tragen. Darunter: Hochspannungs-, Embedded- und Leistungselektronik, mit Instrumenten dokumentiert.",
+-    "ctaDisciplines": "Disziplinen erkunden",
+-    "ctaSoftware": "Zur Software-Oberfläche",
+-    "d_kicker": "Disziplinen",
+-    "d_title": "Drei Stränge physischer Ingenieursarbeit",
+-    "d_intro": "Jeder Strang veröffentlicht vollständige Aufbauten — vom ersten Schaltplan bis zum gemessenen Ergebnis. Keine Renderings als Fotos, keine Spezifikationen ohne Instrumente dahinter.",
+-    "c1tag": "Hochspannung",
+-    "c1title": "Hochspannungssysteme",
+-    "c1body": "Bahnstrom, Unterwerks-Hardware, Schutz- und Messketten — die Energieebene aus der Nähe, vom Ingenieur, der sie für die deutsche Bahn digitalisiert.",
+-    "c2tag": "Embedded",
+-    "c2title": "Eingebettete Steuerplatinen",
+-    "c2body": "Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände, die das Timing beweisen, bevor etwas eine echte Anlage berührt.",
+-    "c3tag": "Leistungselektronik",
+-    "c3title": "Leistungselektronik",
+-    "c3body": "Wechselrichter, Umrichter und die Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet — gemessen, thermisch charakterisiert, dokumentiert.",
+-    "soon": "Erstes Baujournal in Vorbereitung",
+-    "soon2": "Erstes Baujournal in Vorbereitung",
+-    "soon3": "Erstes Baujournal in Vorbereitung",
+-    "m_kicker": "Methode",
+-    "m_title": "Wie jeder Aufbau veröffentlicht wird",
+-    "m_intro": "Dieselbe Disziplin, die das Software-Portfolio regiert, regiert die Werkbank: Nichts wird behauptet, was ein Instrument nicht gezeigt hat.",
+-    "s1title": "Entwerfen & simulieren",
+-    "s1body": "Erst Schaltpläne und Modelle. Jedes Baujournal beginnt mit der Designabsicht und der Simulation, die sie rechtfertigte.",
+-    "s2title": "Bauen & messen",
+-    "s2body": "Echte Hardware, echte Instrumente. Oszilloskop-Aufnahmen, Thermomessungen und Lasttests sind die Evidenz — veröffentlicht wie aufgezeichnet.",
+-    "s3title": "Mit Belegen veröffentlichen",
+-    "s3body": "Was funktionierte, was scheiterte und warum. Fehlernotizen bleiben im Protokoll: Sie machen die Erfolge glaubwürdig.",
+-    "n_kicker": "Aus dem Netzwerk",
+-    "n_title": "Die Software-Seite ist bereits live",
+-    "n1title": "Das Software- & KI-Portfolio",
+-    "n1body": "Kompetenzregister, Arbeitsregister, physikinformiertes Lernen und agentische Middleware — in vier Sprachen.",
+-    "n2tag": "Live-Simulator",
+-    "n2title": "Der Thesis-Simulator",
+-    "n2body": "Der interaktive CIM–ThreMA-Ontologie-Simulator aus der RWTH-Aachen-Masterthesis 2025.",
+-    "n3tag": "Visitenkarte",
+-    "n3title": "Die digitale Visitenkarte",
+-    "n3body": "Eine URL mit der vollständigen Identität: Kontaktkanäle, vCard-Download und teilbarer QR-Code.",
+-    "open": "Öffnen →",
+-    "open2": "Öffnen →",
+-    "open3": "Öffnen →",
+-    "bannerTitle": "Benachrichtigt werden, wenn das Labor öffnet?",
+-    "bannerBody": "Eine E-Mail, wenn das erste Baujournal erscheint. Keine Liste, kein Lärm.",
+-    "bannerCta": "Benachrichtigen",
+-    "footAbout": "Die Hardware- und Elektrotechnik-Oberfläche des Grimaldi-Netzwerks.",
+-    "footNet": "Das Grimaldi-Netzwerk",
+-    "netSoftware": "Software & KI",
+-    "netHardware": "Hardware & Elektrotechnik",
+-    "netPersonal": "Persönlich",
+-    "netCard": "Digitale Visitenkarte",
+-    "footContact": "Kontakt",
+-    "rights": "© 2026 Vincenzo Grimaldi. Alle Rechte vorbehalten.",
+-    "top": "Nach oben ↑",
+-    "navD": "Disziplinen",
+-    "navM": "Methode",
+-    "navN": "Netzwerk",
+-    "vKicker": "Live-Instrument",
+-    "vTitle": "Netzfrequenz unter Last — ein echtes Statik-Modell",
+-    "vIntro": "Drei Phasen bei 50 Hz. Ziehen Sie die Last und die Frequenz sinkt genau wie in einem Synchronnetz; ziehen Sie die Trägheit und beobachten Sie die Geschwindigkeit. Das ist die Physik, der die Hardware dieser Seite dient.",
+-    "vLoad": "Systemlast",
+-    "vInertia": "Trägheit H",
+-    "vFreq": "Frequenz",
+-    "vRocof": "RoCoF",
+-    "vPhases": "L1 · L2 · L3 — 230-V-Phasenspannungen",
+-    "navF": "Die Forge-Linie",
+-    "fl_kicker": "Gewerke 2.0 · Die Forge-Linie",
+-    "fl_title": "Ein Gewerk, ein Produkt nach dem anderen",
+-    "fl_intro": "Die Gewerke, die die physische Welt bauen, laufen noch auf Handarbeit und fragilen Sonderaufbauten. Die Forge-Linie migriert sie: ein Automatisierungsprodukt pro Gewerk, Code offen, Status klar benannt.",
+-    "fl_os": "Hinter der Linie: ForgeOS — das KI-native Roboter-Betriebssystem für die schmerzhaftesten Gewerke mit dem höchsten ROI. In Entwicklung.",
+-    "pz_trade": "Palettieren",
+-    "pz_tag": "Eine Software-Basis für End-of-Line-Palettierzellen mit hohem Durchsatz. Ein Code, jeder Roboterarm, jeder Greifer, jede Fabrik — mit Live-Misch-SKU-Optimierer.",
+-    "ff_trade": "Bodenlegen",
+-    "ff_tag": "KI-native Automatisierung für das Bodenleger-Gewerk. In aktiver Entwicklung — Code öffentlich.",
+-    "pf_trade": "Malen",
+-    "pf_tag": "KI-native Automatisierung für das Maler-Gewerk. In aktiver Entwicklung — Code öffentlich.",
+-    "df_trade": "Trocknen",
+-    "df_tag": "KI-native Automatisierung für Trocknungs- und Klima-Abläufe auf der Baustelle. In aktiver Entwicklung — Code öffentlich.",
+-    "fl_openLive": "Live-Optimierer öffnen",
+-    "fl_source": "Quellcode",
+-    "fl_shipped": "Veröffentlicht",
+-    "fl_dev": "In Entwicklung",
+-    "navLive": "Live"
+-  },
+-  "zh": {
+-    "brandTag": "硬件 • 电气工程",
+-    "connect": "联系",
+-    "kicker": "Grimaldi Engineering · 工种 2.0",
+-    "title": "让传统工种从手工作业迁移到自动化系统。",
+-    "lead": "Grimaldi 网络的物理层 — 也是 Forge 产品线的家：把码垛、地板、喷涂与干燥从老式手工作业带入工种 2.0 的产品。其下是以仪器记录的高压、嵌入式与电力电子工程。",
+-    "ctaDisciplines": "浏览工程方向",
+-    "ctaSoftware": "访问软件界面",
+-    "d_kicker": "工程方向",
+-    "d_title": "三条实体工程主线",
+-    "d_intro": "每条主线都发布完整的搭建过程 — 从第一张电路图到实测结果。不用渲染图冒充照片，没有仪器支撑的参数不写。",
+-    "c1tag": "高压",
+-    "c1title": "高压系统",
+-    "c1body": "牵引供电、变电站硬件、保护与测量链 — 由为德国铁路做数字化的工程师近距离呈现能源层。",
+-    "c2tag": "嵌入式",
+-    "c2title": "嵌入式控制板",
+-    "c2body": "确定性控制器、RTOS 固件、信号完整性，以及在接触真实设备前验证时序的硬件在环测试台。",
+-    "c3tag": "电力电子",
+-    "c3title": "电力电子",
+-    "c3body": "逆变器、变换器，以及把可再生能源接入真实电网的开关硬件 — 经过测量、热特性分析与完整记录。",
+-    "soon": "首篇搭建日志准备中",
+-    "soon2": "首篇搭建日志准备中",
+-    "soon3": "首篇搭建日志准备中",
+-    "m_kicker": "方法",
+-    "m_title": "每次搭建如何发布",
+-    "m_intro": "管软件作品集的纪律同样管这张工作台：仪器没有显示的东西，绝不声称。",
+-    "s1title": "设计与仿真",
+-    "s1body": "先有电路图和模型。每篇日志以设计意图和支撑它的仿真开篇。",
+-    "s2title": "搭建与测量",
+-    "s2body": "真实硬件、真实仪器。示波器截图、温度读数与负载测试就是证据 — 按原样发布。",
+-    "s3title": "带凭据发布",
+-    "s3body": "什么成功、什么失败、为什么。失败笔记留在记录里：它们让成功可信。",
+-    "n_kicker": "来自网络",
+-    "n_title": "软件一侧已经上线",
+-    "n1title": "软件与 AI 作品集",
+-    "n1body": "能力清单、工作台账、物理信息学习与智能体中间件 — 四种语言。",
+-    "n2tag": "在线模拟器",
+-    "n2title": "论文模拟器",
+-    "n2body": "2025 年亚琛工业大学硕士论文的 CIM–ThreMA 跨域本体交互式模拟器。",
+-    "n3tag": "数字名片",
+-    "n3title": "数字名片",
+-    "n3body": "一个 URL 承载完整身份：联系渠道、vCard 下载与可分享的二维码。",
+-    "open": "打开 →",
+-    "open2": "打开 →",
+-    "open3": "打开 →",
+-    "bannerTitle": "想在实验室开放时收到通知吗？",
+-    "bannerBody": "第一篇搭建日志发布时发一封邮件。没有列表，没有噪音。",
+-    "bannerCta": "通知我",
+-    "footAbout": "Grimaldi 网络的硬件与电气工程界面。",
+-    "footNet": "Grimaldi 站点网络",
+-    "netSoftware": "软件与 AI",
+-    "netHardware": "硬件与电气工程",
+-    "netPersonal": "个人",
+-    "netCard": "数字名片",
+-    "footContact": "联系",
+-    "rights": "© 2026 Vincenzo Grimaldi 版权所有。",
+-    "top": "返回顶部 ↑",
+-    "navD": "工程方向",
+-    "navM": "方法",
+-    "navN": "网络",
+-    "vKicker": "实时仪器",
+-    "vTitle": "负载下的电网频率 — 真实的下垂模型",
+-    "vIntro": "50 Hz 三相。拖动负载，频率会像同步电网一样精确下垂；拖动惯量，观察它变化的速度。这就是本站硬件所服务的物理规律。",
+-    "vLoad": "系统负载",
+-    "vInertia": "惯量 H",
+-    "vFreq": "频率",
+-    "vRocof": "RoCoF",
+-    "vPhases": "L1 · L2 · L3 — 230 V 相电压",
+-    "navF": "Forge 产品线",
+-    "fl_kicker": "工种 2.0 · Forge 产品线",
+-    "fl_title": "一次一个工种，一个产品",
+-    "fl_intro": "建造物理世界的工种仍依赖手工作业和脆弱的定制装置。Forge 产品线正在迁移它们：每个工种一个自动化产品，代码开放，状态如实标注。",
+-    "fl_os": "产品线背后：ForgeOS — 面向痛点最深、回报最高工种的 AI 原生机器人操作系统。开发中。",
+-    "pz_trade": "码垛",
+-    "pz_tag": "面向高吞吐末端码垛单元的软件基座。一套代码，任意机械臂、任意夹爪、任意工厂 — 附带在线混合 SKU 优化器。",
+-    "ff_trade": "地板",
+-    "ff_tag": "面向地板工种的 AI 原生自动化。积极开发中 — 代码公开。",
+-    "pf_trade": "喷涂",
+-    "pf_tag": "面向喷涂工种的 AI 原生自动化。积极开发中 — 代码公开。",
+-    "df_trade": "干燥",
+-    "df_tag": "面向工地干燥与气候流程的 AI 原生自动化。积极开发中 — 代码公开。",
+-    "fl_openLive": "打开在线优化器",
+-    "fl_source": "源码",
+-    "fl_shipped": "已发布",
+-    "fl_dev": "开发中",
+-    "navLive": "在线"
+-  }
+-}
+\ No newline at end of file
+diff --git a/middleware.ts b/middleware.ts
+new file mode 100644
+index 0000000..d5dffc1
+--- /dev/null
++++ b/middleware.ts
+@@ -0,0 +1,37 @@
++import { NextResponse, type NextRequest } from 'next/server';
++
++/**
++ * Locale routing without breaking the canonical origin:
++ * - '/'            → rewritten to /en (English serves at the apex, 200)
++ * - '/de/...'      → served as-is (German tree, 200)
++ * - '/en/...'      → 308 to the unprefixed path (no duplicate content)
++ * - anything else  → rewritten into the en tree; unknown paths hit the
++ *                    [...missing] catch-all and return a real 404.
++ * Assets, API routes and metadata files are excluded by the matcher.
++ */
++
++export function middleware(request: NextRequest): NextResponse {
++  const { pathname } = request.nextUrl;
++
++  if (pathname === '/en' || pathname.startsWith('/en/')) {
++    const url = request.nextUrl.clone();
++    url.pathname = pathname.slice(3) || '/';
++    return NextResponse.redirect(url, 308);
++  }
++
++  if (pathname === '/de' || pathname.startsWith('/de/')) {
++    return NextResponse.next();
++  }
++
++  const url = request.nextUrl.clone();
++  url.pathname = `/en${pathname === '/' ? '' : pathname}`;
++  return NextResponse.rewrite(url);
++}
++
++export const config = {
++  matcher: [
++    // Everything except: api, Next internals, static files with an extension,
++    // and root metadata routes.
++    '/((?!api|_next|_vercel|favicon\\.svg|icon\\.svg|robots\\.txt|sitemap\\.xml|opengraph-image|.*\\..*).*)',
++  ],
++};
+diff --git a/next.config.js b/next.config.js
+index d19f028..8d024c8 100644
+--- a/next.config.js
++++ b/next.config.js
+@@ -1,3 +1,13 @@
+-/** Static export: every page prerenders to plain HTML in out/, so crawlers
+- *  and AI agents read the full site with zero JavaScript. */
+-module.exports = { output: 'export' };
++/**
++ * Standard Vercel serverless output (was `output: 'export'`).
++ * The static export had to go: the waitlist route handler (POST) and
++ * middleware-based locale routing are impossible in a static export.
++ * All marketing pages still prerender via generateStaticParams, so
++ * crawlers get full HTML with zero JavaScript — nothing is lost.
++ * Security headers and the www→apex redirect live in vercel.json.
++ * (Next 14 does not support next.config.ts — this stays .js.)
++ */
++module.exports = {
++  reactStrictMode: true,
++  poweredByHeader: false,
++};
+diff --git a/package-lock.json b/package-lock.json
+index 6edfb40..72d8531 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,13 +1,15 @@
+ {
+   "name": "engineeringgrimaldi",
+-  "version": "3.0.0",
++  "version": "4.0.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "engineeringgrimaldi",
+-      "version": "3.0.0",
++      "version": "4.0.0",
+       "dependencies": {
++        "@vercel/analytics": "^1.5.0",
++        "@vercel/speed-insights": "^1.2.0",
+         "next": "14.2.35",
+         "react": "18.3.1",
+         "react-dom": "18.3.1"
+@@ -223,6 +225,78 @@
+         "@types/react": "^18.0.0"
+       }
+     },
++    "node_modules/@vercel/analytics": {
++      "version": "1.6.1",
++      "resolved": "https://registry.npmjs.org/@vercel/analytics/-/analytics-1.6.1.tgz",
++      "integrity": "sha512-oH9He/bEM+6oKlv3chWuOOcp8Y6fo6/PSro8hEkgCW3pu9/OiCXiUpRUogDh3Fs3LH2sosDrx8CxeOLBEE+afg==",
++      "license": "MPL-2.0",
++      "peerDependencies": {
++        "@remix-run/react": "^2",
++        "@sveltejs/kit": "^1 || ^2",
++        "next": ">= 13",
++        "react": "^18 || ^19 || ^19.0.0-rc",
++        "svelte": ">= 4",
++        "vue": "^3",
++        "vue-router": "^4"
++      },
++      "peerDependenciesMeta": {
++        "@remix-run/react": {
++          "optional": true
++        },
++        "@sveltejs/kit": {
++          "optional": true
++        },
++        "next": {
++          "optional": true
++        },
++        "react": {
++          "optional": true
++        },
++        "svelte": {
++          "optional": true
++        },
++        "vue": {
++          "optional": true
++        },
++        "vue-router": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@vercel/speed-insights": {
++      "version": "1.3.1",
++      "resolved": "https://registry.npmjs.org/@vercel/speed-insights/-/speed-insights-1.3.1.tgz",
++      "integrity": "sha512-PbEr7FrMkUrGYvlcLHGkXdCkxnylCWePx7lPxxq36DNdfo9mcUjLOmqOyPDHAOgnfqgGGdmE3XI9L/4+5fr+vQ==",
++      "license": "Apache-2.0",
++      "peerDependencies": {
++        "@sveltejs/kit": "^1 || ^2",
++        "next": ">= 13",
++        "react": "^18 || ^19 || ^19.0.0-rc",
++        "svelte": ">= 4",
++        "vue": "^3",
++        "vue-router": "^4"
++      },
++      "peerDependenciesMeta": {
++        "@sveltejs/kit": {
++          "optional": true
++        },
++        "next": {
++          "optional": true
++        },
++        "react": {
++          "optional": true
++        },
++        "svelte": {
++          "optional": true
++        },
++        "vue": {
++          "optional": true
++        },
++        "vue-router": {
++          "optional": true
++        }
++      }
++    },
+     "node_modules/busboy": {
+       "version": "1.6.0",
+       "resolved": "https://registry.npmjs.org/busboy/-/busboy-1.6.0.tgz",
+diff --git a/package.json b/package.json
+index aa4dddc..a9175da 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "engineeringgrimaldi",
+-  "version": "3.0.0",
++  "version": "4.0.0",
+   "private": true,
+   "scripts": {
+     "dev": "next dev",
+@@ -9,6 +9,8 @@
+     "lint": "next lint"
+   },
+   "dependencies": {
++    "@vercel/analytics": "^1.5.0",
++    "@vercel/speed-insights": "^1.2.0",
+     "next": "14.2.35",
+     "react": "18.3.1",
+     "react-dom": "18.3.1"
+diff --git a/vercel.json b/vercel.json
+index 57494a2..c671675 100644
+--- a/vercel.json
++++ b/vercel.json
+@@ -1,4 +1,25 @@
+ {
+-  "buildCommand": "npm run build",
+-  "outputDirectory": "out"
++  "redirects": [
++    {
++      "source": "/:path*",
++      "has": [{ "type": "host", "value": "www.engineeringgrimaldi.com" }],
++      "destination": "https://engineeringgrimaldi.com/:path*",
++      "permanent": true
++    }
++  ],
++  "headers": [
++    {
++      "source": "/(.*)",
++      "headers": [
++        { "key": "X-Content-Type-Options", "value": "nosniff" },
++        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
++        { "key": "X-Frame-Options", "value": "DENY" },
++        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
++        {
++          "key": "Content-Security-Policy",
++          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://vitals.vercel-insights.com https://va.vercel-scripts.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
++        }
++      ]
++    }
++  ]
+ }
+-- 
+2.43.0
+
