@@ -66,6 +66,16 @@ export default function Home({ params }: PageProps) {
           </div>
         </div>
 
+        {/* FREE TOOL — the demand asset for ICP A */}
+        <div className="section" id="tool">
+          <a className="tool-band" href={href('/tools/pallet-pattern-calculator')}>
+            <span className="tag">{t.calcCardTag}</span>
+            <h3>{t.calcCardTitle}</h3>
+            <p>{t.calcCardBody}</p>
+            <span className="cta">{t.open}</span>
+          </a>
+        </div>
+
         {/* FORGE LINE */}
         <div className="section" id="forge">
           <span className="kicker">{t.forgeKicker}</span>

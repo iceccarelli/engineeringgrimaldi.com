@@ -4,7 +4,7 @@ import BookCTA from '@/components/BookCTA';
 import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
 import { forgeLine, getProduct } from '@/lib/forge';
-import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
+import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from '@/lib/schema';
 
 /**
@@ -76,6 +76,11 @@ export default function ProductPage({ params }: PageProps) {
             <a className="btn btn-line" href={product.repo} rel="noopener noreferrer">
               {lang === 'de' ? 'Quellcode auf GitHub' : 'Source on GitHub'}
             </a>
+            {product.slug === 'palletizer' && (
+              <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>
+                {lang === 'de' ? 'Kostenloser Palettenmuster-Rechner' : 'Free pallet pattern calculator'}
+              </a>
+            )}
           </div>
 
           <div className="prose">

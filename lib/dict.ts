@@ -12,6 +12,10 @@ export interface Dict {
   navLab: string;
   navDisciplines: string;
   navBook: string;
+  navTools: string;
+  calcCardTag: string;
+  calcCardTitle: string;
+  calcCardBody: string;
   langLabel: string;
 
   // Home
@@ -99,6 +103,10 @@ const en: Dict = {
   navLab: 'Lab',
   navDisciplines: 'Disciplines',
   navBook: 'Book a bench review',
+  navTools: 'Pallet calculator',
+  calcCardTag: 'Free tool',
+  calcCardTitle: 'Pallet pattern calculator',
+  calcCardBody: 'Cases per layer, layer count and cube utilisation for any case on any deck — computed in your browser, CSV export, no sign-up.',
   langLabel: 'Language',
 
   homeKicker: 'Grimaldi Engineering · Frankfurt',
@@ -190,6 +198,10 @@ const de: Dict = {
   navLab: 'Labor',
   navDisciplines: 'Disziplinen',
   navBook: 'Bench-Review buchen',
+  navTools: 'Paletten-Rechner',
+  calcCardTag: 'Kostenloses Werkzeug',
+  calcCardTitle: 'Palettenmuster-Rechner',
+  calcCardBody: 'Kartons pro Lage, Lagenzahl und Raumnutzung für jeden Karton auf jeder Palette — im Browser berechnet, CSV-Export, ohne Anmeldung.',
   langLabel: 'Sprache',
 
   homeKicker: 'Grimaldi Engineering · Frankfurt',

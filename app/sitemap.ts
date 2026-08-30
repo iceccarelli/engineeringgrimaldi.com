@@ -11,6 +11,7 @@ function logicalPaths(): { path: string; priority: number }[] {
     { path: '/forge', priority: 0.9 },
     ...forgeLine.map((p) => ({ path: `/forge/${p.slug}`, priority: 0.9 })),
     ...disciplines.map((d) => ({ path: `/disciplines/${d.slug}`, priority: 0.7 })),
+    { path: '/tools/pallet-pattern-calculator', priority: 0.9 },
     { path: '/lab', priority: 0.7 },
     { path: '/lab/grid-droop', priority: 0.8 },
     { path: '/book', priority: 0.9 },

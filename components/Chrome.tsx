@@ -34,6 +34,7 @@ export default function Chrome({ lang, children }: { lang: Lang; children: React
           </a>
           <div className="nav-links">
             <a href={href('/forge')}>{t.navForge}</a>
+            <a href={href('/tools/pallet-pattern-calculator')}>{t.navTools}</a>
             <a href={href('/lab')}>{t.navLab}</a>
             <a href={href('/disciplines/high-voltage')}>{t.navDisciplines}</a>
           </div>
