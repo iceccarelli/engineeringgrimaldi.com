@@ -227,3 +227,33 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
   .ask-panel { right: .75rem; bottom: 5.2rem; }
   .ask-launcher { right: .75rem; bottom: .9rem; }
 }
+
+/* ── v6: real routes — lang links, prose pages, waitlist, badges ────── */
+.lang a { display: inline-block; color: var(--text-2); font-size: .72rem; font-weight: 600; padding: .22rem .55rem; border-radius: 999px; }
+.lang a:hover { color: var(--text); }
+.lang a.on { background: var(--phosphor); color: #04140b; }
+
+.sheet-top { margin-top: 0; border-radius: 0; }
+
+.prose { max-width: 760px; }
+.prose h2 { margin-top: 2.2rem; }
+.prose h3 { margin: 1.4rem 0 .3rem; font-size: 1rem; }
+.prose p { color: var(--text-2); line-height: 1.75; }
+.prose .formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--phosphor); font-size: 1.05rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: .8rem 1.1rem; display: inline-block; }
+.boundary-note { border-left: 3px solid var(--trace-3); padding-left: 1rem; color: var(--text-2); font-size: .9rem; }
+.author-block { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .84rem; }
+.status-badge { margin: .4rem 0 1.4rem; }
+.book-bring { color: var(--muted); font-size: .88rem; margin: 1rem 0 3rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.foot-disambiguation { font-size: .78rem; color: var(--muted); }
+
+.banner-stack { flex-direction: column; align-items: stretch; }
+.wl-form { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+.wl-field { display: flex; flex-direction: column; gap: .35rem; font-size: .8rem; color: var(--text-2); }
+.wl-field input, .wl-field select { border: 1px solid var(--border-strong); border-radius: 12px; padding: .6rem .85rem; font-size: .92rem; font-family: inherit; color: var(--text); background: var(--bg); min-width: 220px; }
+.wl-field input:focus, .wl-field select:focus { outline: 2px solid rgba(62, 245, 143, 0.5); outline-offset: 1px; }
+.wl-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.wl-form .btn { border: 0; cursor: pointer; font-family: inherit; }
+.wl-form .btn:disabled { opacity: .5; cursor: default; }
+.wl-ok { color: var(--phosphor); font-weight: 600; }
+.wl-error { flex-basis: 100%; color: #f75f5f; font-size: .88rem; margin: 0; }
+.wl-privacy { flex-basis: 100%; color: var(--muted); font-size: .76rem; margin: 0; }

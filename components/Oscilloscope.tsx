@@ -1,7 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '@/lib/i18n';
+
+export type ScopeLabels = {
+  phases: string;
+  freq: string;
+  rocof: string;
+  load: string;
+  inertia: string;
+};
 
 /**
  * The signature instrument of the hardware surface: a three-phase
@@ -20,8 +27,7 @@ const F_NOM = 50;
 const DROOP = 0.04;
 const PHASE_COLORS = ['#3ef58f', '#38bdf8', '#f5b83e'];
 
-export default function Oscilloscope() {
-  const { t } = useI18n();
+export default function Oscilloscope({ labels }: { labels: ScopeLabels }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [load, setLoad] = useState(1.0); // per-unit, generation = 1.0
   const [inertia, setInertia] = useState(4); // seconds
@@ -118,14 +124,14 @@ export default function Oscilloscope() {
   return (
     <div className="scope">
       <div className="scope-screen">
-        <canvas ref={canvasRef} aria-label={t('vPhases')} />
+        <canvas ref={canvasRef} aria-label={labels.phases} />
         <div className="scope-readouts" aria-live="polite">
           <div className={`scope-readout scope-${freqTone}`}>
-            <span>{t('vFreq')}</span>
+            <span>{labels.freq}</span>
             <strong>{freq.toFixed(3)} Hz</strong>
           </div>
           <div className="scope-readout">
-            <span>{t('vRocof')}</span>
+            <span>{labels.rocof}</span>
             <strong>{(rocof * 1000).toFixed(0)} mHz/s</strong>
           </div>
         </div>
@@ -133,21 +139,21 @@ export default function Oscilloscope() {
 
       <div className="scope-controls">
         <label>
-          <span>{t('vLoad')} — {(load * 100).toFixed(0)} %</span>
+          <span>{labels.load} — {(load * 100).toFixed(0)} %</span>
           <input
             type="range" min={0.6} max={1.4} step={0.01} value={load}
             onChange={(e) => setLoad(Number(e.target.value))}
           />
         </label>
         <label>
-          <span>{t('vInertia')} — {inertia.toFixed(1)} s</span>
+          <span>{labels.inertia} — {inertia.toFixed(1)} s</span>
           <input
             type="range" min={1.5} max={8} step={0.1} value={inertia}
             onChange={(e) => setInertia(Number(e.target.value))}
           />
         </label>
       </div>
-      <p className="scope-caption">{t('vPhases')} · Δf = −f·0.04·ΔP · |df/dt| ≤ f·ΔP/2H</p>
+      <p className="scope-caption">{labels.phases} · Δf = −f·0.04·ΔP · |df/dt| ≤ f·ΔP/2H</p>
     </div>
   );
 }
