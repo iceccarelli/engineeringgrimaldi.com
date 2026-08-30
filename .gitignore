@@ -7,3 +7,6 @@ out/
 
 # applied patches — never ship these
 *.patch
+
+# applied patches — never ship these
+*.patch
