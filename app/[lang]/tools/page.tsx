@@ -31,6 +31,17 @@ const COPY = {
         name: 'Truck & container load calculator',
         body: 'Pallets per 13.6 m trailer, 20 ft or 40 ft container. Floor spots, double-stacking, payload limit and floor utilisation.',
       },
+      {
+        path: '/tools/case-size-optimizer',
+        tag: 'Packaging design',
+        name: 'Case size optimizer',
+        body: 'Sweep every carton size you could order and rank them by pallet cube utilisation — with the gain over your current case in percentage points.',
+      },
+    ],
+    referenceH2: 'Reference',
+    reference: [
+      { path: '/reference/pallet-sizes', name: 'Pallet sizes and standards', body: 'EPAL 1, 2, 3, 6 and the North American 48 × 40 — dimensions, own weight, safe working load, sources cited.' },
+      { path: '/reference/container-dimensions', name: 'Shipping container dimensions', body: 'Interior dimensions, tare, payload, volume and EUR pallets per container for 20 ft, 40 ft and high cube.' },
     ],
   },
   de: {
@@ -54,6 +65,17 @@ const COPY = {
         name: 'Lkw- & Container-Laderechner',
         body: 'Paletten pro 13,6-m-Auflieger, 20-Fuß- oder 40-Fuß-Container. Stellplätze, Doppelstockung, Nutzlastgrenze und Flächennutzung.',
       },
+      {
+        path: '/tools/case-size-optimizer',
+        tag: 'Verpackungsdesign',
+        name: 'Kartongrößen-Optimierer',
+        body: 'Jedes bestellbare Kartonmaß durchrechnen und nach Palettenraumnutzung sortieren — mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten.',
+      },
+    ],
+    referenceH2: 'Referenz',
+    reference: [
+      { path: '/reference/pallet-sizes', name: 'Palettenmaße und Normen', body: 'EPAL 1, 2, 3, 6 und die nordamerikanische 48 × 40 — Maße, Eigengewicht, sichere Traglast, mit Quellen.' },
+      { path: '/reference/container-dimensions', name: 'Container-Abmessungen', body: 'Innenmaße, Leergewicht, Nutzlast, Volumen und Europaletten pro Container für 20 Fuß, 40 Fuß und High Cube.' },
     ],
   },
 } as const;
@@ -90,6 +112,17 @@ export default function ToolsIndex({ params }: PageProps) {
             ))}
           </div>
           <p className="book-bring">{copy.chain}</p>
+
+          <h2 className="tools-ref-h2">{copy.referenceH2}</h2>
+          <div className="grid">
+            {copy.reference.map((ref) => (
+              <a className="card card-link" key={ref.path} href={langHref(lang, ref.path)}>
+                <h3>{ref.name}</h3>
+                <p>{ref.body}</p>
+                <span className="cta">{t.open}</span>
+              </a>
+            ))}
+          </div>
           <p className="author-block">{t.authorLine}</p>
         </div>
       </div>

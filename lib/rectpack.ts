@@ -169,3 +169,73 @@ export function shortlistPatterns(patterns: Pattern[], limit: number): Pattern[]
   }
   return out;
 }
+
+/* ── Count-only fast path ─────────────────────────────────────────────
+ * Same three layout families, but allocating nothing. A case-dimension
+ * sweep evaluates thousands of candidates; building placement arrays for
+ * each would make it unusable in a browser. Counts here must always agree
+ * with enumeratePatterns()[0].count — there is a test vector for that.
+ * ------------------------------------------------------------------ */
+
+function columnCount(regionL: number, regionW: number, fx: number, fy: number): number {
+  if (fx <= 0 || fy <= 0) return 0;
+  return Math.floor(regionL / fx) * Math.floor(regionW / fy);
+}
+
+function regionCount(regionL: number, regionW: number, item: Footprint): number {
+  if (regionL <= 0 || regionW <= 0) return 0;
+  return Math.max(
+    columnCount(regionL, regionW, item.length, item.width),
+    columnCount(regionL, regionW, item.width, item.length),
+  );
+}
+
+/** Best achievable item count in an L × W region, counts only. */
+export function maxCountIn(regionL: number, regionW: number, item: Footprint): number {
+  if (regionL <= 0 || regionW <= 0 || item.length <= 0 || item.width <= 0) return 0;
+
+  let best = regionCount(regionL, regionW, item);
+
+  const xs = splitCandidatesFor(regionL, item);
+  const ys = splitCandidatesFor(regionW, item);
+
+  for (const sx of xs) {
+    if (sx <= 0 || sx >= regionL) continue;
+    best = Math.max(
+      best,
+      regionCount(sx, regionW, item) + regionCount(regionL - sx, regionW, item),
+    );
+  }
+  for (const sy of ys) {
+    if (sy <= 0 || sy >= regionW) continue;
+    best = Math.max(
+      best,
+      regionCount(regionL, sy, item) + regionCount(regionL, regionW - sy, item),
+    );
+  }
+  for (const sx of xs) {
+    if (sx <= 0 || sx >= regionL) continue;
+    for (const sy of ys) {
+      if (sy <= 0 || sy >= regionW) continue;
+      best = Math.max(
+        best,
+        regionCount(sx, sy, item) +
+          regionCount(regionL - sx, sy, item) +
+          regionCount(sx, regionW - sy, item) +
+          regionCount(regionL - sx, regionW - sy, item),
+      );
+    }
+  }
+
+  return best;
+}
+
+/** Exported twin of the internal split-candidate helper. */
+function splitCandidatesFor(span: number, item: Footprint): number[] {
+  const set = new Set<number>([0]);
+  for (const step of [item.length, item.width]) {
+    if (step <= 0) continue;
+    for (let v = step; v <= span; v += step) set.add(v);
+  }
+  return Array.from(set).sort((p, q) => p - q).slice(0, MAX_SPLIT_CANDIDATES);
+}
