@@ -4,3 +4,9 @@ out/
 *.tsbuildinfo
 .vercel/
 .DS_Store
+
+# applied patches — never ship these
+*.patch
+
+# applied patches — never ship these
+*.patch
