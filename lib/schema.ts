@@ -19,7 +19,7 @@ export function personSchema(): JsonLdObject {
     name: PERSON_NAME,
     alternateName: 'Vincenzo Grimaldi',
     url: `${SITE_URL}/`,
-    jobTitle: 'High-Voltage & Cyber-Physical Systems Engineer',
+    jobTitle: 'Electrical Machines, Battery Systems & High-Voltage Engineer',
     workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
     sameAs: [...SAME_AS],
   };
@@ -50,10 +50,15 @@ export function professionalServiceSchema(): JsonLdObject {
       { '@type': 'AdministrativeArea', name: 'European Union' },
     ],
     knowsAbout: [
-      'palletizing automation',
-      'high-voltage engineering',
+      'electrical machines',
+      'actuators and servo drives',
+      'asynchronous and synchronous machines',
+      'battery management systems',
+      'battery pack architecture',
       'power electronics',
+      'high-voltage engineering',
       'embedded control',
+      'palletizing automation',
       'grid physics',
     ],
   };

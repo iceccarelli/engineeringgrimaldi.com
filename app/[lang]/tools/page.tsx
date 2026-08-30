@@ -37,6 +37,18 @@ const COPY = {
         name: 'Case size optimizer',
         body: 'Sweep every carton size you could order and rank them by pallet cube utilisation — with the gain over your current case in percentage points.',
       },
+      {
+        path: '/tools/motor-sizing-calculator',
+        tag: 'Actuators',
+        name: 'Servo motor sizing calculator',
+        body: 'Rotary axis and robot joint sizing: reflected inertia, inertia ratio, gravity torque, peak and RMS motor torque, speed and power over a real duty cycle.',
+      },
+      {
+        path: '/tools/battery-pack-calculator',
+        tag: 'Battery systems',
+        name: 'Battery pack calculator',
+        body: 'S/P topology, voltage window, energy, C-rate headroom, runtime, resistive loss — with the design flags that catch a pack before it is built.',
+      },
     ],
     referenceH2: 'Reference',
     reference: [
@@ -70,6 +82,18 @@ const COPY = {
         tag: 'Verpackungsdesign',
         name: 'Kartongrößen-Optimierer',
         body: 'Jedes bestellbare Kartonmaß durchrechnen und nach Palettenraumnutzung sortieren — mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten.',
+      },
+      {
+        path: '/tools/motor-sizing-calculator',
+        tag: 'Aktorik',
+        name: 'Servomotor-Auslegungsrechner',
+        body: 'Auslegung von Drehachsen und Robotergelenken: reduzierte Trägheit, Trägheitsverhältnis, Gravitationsmoment, Spitzen- und Effektivmoment, Drehzahl und Leistung über einen realen Arbeitszyklus.',
+      },
+      {
+        path: '/tools/battery-pack-calculator',
+        tag: 'Batteriesysteme',
+        name: 'Batteriepack-Rechner',
+        body: 'S/P-Topologie, Spannungsfenster, Energie, C-Raten-Reserve, Laufzeit, ohmsche Verluste — mit den Hinweisen, die ein Pack vor dem Bau abfangen.',
       },
     ],
     referenceH2: 'Referenz',

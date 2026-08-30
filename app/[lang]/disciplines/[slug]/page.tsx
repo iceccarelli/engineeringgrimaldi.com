@@ -4,7 +4,8 @@ import BookCTA from '@/components/BookCTA';
 import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
 import { disciplines, getDiscipline } from '@/lib/disciplines';
-import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
+import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { synchronousSpeedTable } from '@/lib/machines';
 import { breadcrumbSchema } from '@/lib/schema';
 
 type PageProps = { params: { lang: string; slug: string } };
@@ -45,7 +46,45 @@ export default function DisciplinePage({ params }: PageProps) {
             ))}
             {discipline.boundary ? <p className="boundary-note">{discipline.boundary[lang]}</p> : null}
           </div>
+
+          {discipline.syncTable && (
+            <>
+              <div className="prose">
+                <p className="formula">n_s = 120 · f / p&nbsp;&nbsp;·&nbsp;&nbsp;s = (n_s − n) / n_s&nbsp;&nbsp;·&nbsp;&nbsp;f_r = s · f&nbsp;&nbsp;·&nbsp;&nbsp;T = P / ω</p>
+              </div>
+              <div className="calc-table-wrap">
+                <table className="calc-table ref-table">
+                  <thead>
+                    <tr>
+                      <th>{lang === 'de' ? 'Pole' : 'Poles'}</th>
+                      <th>{lang === 'de' ? 'Synchrondrehzahl bei 50 Hz' : 'Synchronous speed at 50 Hz'}</th>
+                      <th>{lang === 'de' ? 'Synchrondrehzahl bei 60 Hz' : 'Synchronous speed at 60 Hz'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {synchronousSpeedTable(50).map((row, i) => (
+                      <tr key={row.poles}>
+                        <td>{row.poles}</td>
+                        <td>{row.rpm.toLocaleString(lang)} rpm</td>
+                        <td>{synchronousSpeedTable(60)[i].rpm.toLocaleString(lang)} rpm</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="calc-meta">
+                {lang === 'de'
+                  ? 'Eine Asynchronmaschine läuft unter diesen Drehzahlen; die Differenz ist der Schlupf und erzeugt erst das Drehmoment. Eine Synchronmaschine läuft genau darauf.'
+                  : 'An induction machine runs below these speeds; the difference is slip, and it is what produces torque in the first place. A synchronous machine runs exactly on them.'}
+              </p>
+            </>
+          )}
           <div className="cta-row">
+            {discipline.tool && (
+              <a className="btn btn-glow" href={langHref(lang, discipline.tool.path)}>
+                {discipline.tool.label[lang]}
+              </a>
+            )}
             <BookCTA label={t.ctaBook} variant="line" />
           </div>
           <p className="author-block">{t.authorLine}</p>

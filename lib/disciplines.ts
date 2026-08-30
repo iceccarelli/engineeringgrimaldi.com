@@ -17,6 +17,10 @@ export type Discipline = {
   metaDescription: Localized;
   body: Localized[];
   boundary?: Localized;
+  /** Render the synchronous-speed reference table on this page. */
+  syncTable?: boolean;
+  /** Optional link to a tool that demonstrates this discipline. */
+  tool?: { path: string; label: Localized };
 };
 
 export const disciplines: Discipline[] = [
@@ -45,6 +49,69 @@ export const disciplines: Discipline[] = [
     boundary: {
       en: 'Boundary: nothing published here describes rail-operator systems, critical-infrastructure configurations or employer internals. Public HV content on this site is generic engineering or explicitly cleared material.',
       de: 'Grenze: Nichts, was hier erscheint, beschreibt Systeme von Bahnbetreibern, KRITIS-Konfigurationen oder Arbeitgeber-Interna. Öffentliche HV-Inhalte auf dieser Seite sind generische Ingenieursarbeit oder ausdrücklich freigegebenes Material.',
+    },
+  },
+  {
+    slug: 'machines-actuators',
+    tag: { en: 'Machines & Actuators', de: 'Maschinen & Aktorik' },
+    title: { en: 'Electrical machines and actuators', de: 'Elektrische Maschinen und Aktorik' },
+    metaTitle: {
+      en: 'Electrical Machines & Actuators — DC, AC, Async and Sync',
+      de: 'Elektrische Maschinen & Aktorik — DC, AC, Asynchron und Synchron',
+    },
+    metaDescription: {
+      en: 'Rotors, motors and joints: DC and AC machines, asynchronous and synchronous, servo axis sizing, gearing and reflected inertia. With a free rotary-axis sizing calculator and the governing relations.',
+      de: 'Rotoren, Motoren und Gelenke: Gleich- und Wechselstrommaschinen, asynchron und synchron, Servoachsen-Auslegung, Getriebe und reduzierte Trägheit. Mit kostenlosem Achsen-Auslegungsrechner und den maßgebenden Beziehungen.',
+    },
+    body: [
+      {
+        en: 'The actuator is where every automation claim finally has to be true. A palletizing cell is a set of joints; each joint is a motor, a gearbox and a control loop, and the whole cell is only as capable as the worst-sized axis in it. This track covers the machines that do that work — brushed and brushless DC, asynchronous (induction) and synchronous AC machines, and the permanent-magnet servo machines that dominate jointed automation.',
+        de: 'Am Aktor muss sich jede Automatisierungsbehauptung schließlich bewähren. Eine Palettierzelle ist eine Menge von Gelenken; jedes Gelenk ist Motor, Getriebe und Regelkreis, und die Zelle ist nur so leistungsfähig wie ihre am schlechtesten ausgelegte Achse. Dieser Strang behandelt die Maschinen, die diese Arbeit leisten — bürstenbehaftete und bürstenlose Gleichstrommaschinen, Asynchron- und Synchronmaschinen sowie die Permanentmagnet-Servomaschinen, die die Gelenkautomatisierung dominieren.',
+      },
+      {
+        en: 'The selection question is rarely "which motor is strongest". It is whether the reflected inertia lets the loop stay stable, whether RMS torque over the real duty cycle sits under the continuous rating, and where the deceleration energy goes. Gearing dominates all three, because reflection through a ratio divides inertia by its square.',
+        de: 'Die Auswahlfrage lautet selten „welcher Motor ist der stärkste“. Sie lautet, ob die reduzierte Trägheit den Regelkreis stabil hält, ob das Effektivmoment über den realen Arbeitszyklus unter dem Dauerwert bleibt und wohin die Verzögerungsenergie geht. Das Getriebe dominiert alle drei, denn die Reduktion teilt die Trägheit durch das Quadrat der Übersetzung.',
+      },
+      {
+        en: 'For AC machines the starting arithmetic is the synchronous speed and the slip that separates a synchronous machine from an induction one. The table below is computed, not transcribed.',
+        de: 'Bei Wechselstrommaschinen beginnt die Rechnung mit der synchronen Drehzahl und dem Schlupf, der die Synchron- von der Asynchronmaschine trennt. Die Tabelle unten ist berechnet, nicht abgeschrieben.',
+      },
+    ],
+    syncTable: true,
+    tool: {
+      path: '/tools/motor-sizing-calculator',
+      label: { en: 'Open the rotary axis sizing calculator', de: 'Achsen-Auslegungsrechner öffnen' },
+    },
+  },
+  {
+    slug: 'battery-systems',
+    tag: { en: 'Battery Systems & BMS', de: 'Batteriesysteme & BMS' },
+    title: { en: 'Battery systems and management', de: 'Batteriesysteme und Batteriemanagement' },
+    metaTitle: {
+      en: 'Battery Systems & BMS — Pack Topology, C-Rate and Safety',
+      de: 'Batteriesysteme & BMS — Packtopologie, C-Rate und Sicherheit',
+    },
+    metaDescription: {
+      en: 'Battery pack architecture and management: S/P topology, voltage windows, C-rate limits, balancing, state estimation and the safety boundaries that decide a design. With a free pack calculator.',
+      de: 'Batteriepack-Architektur und -Management: S/P-Topologie, Spannungsfenster, C-Raten-Grenzen, Balancing, Zustandsschätzung und die Sicherheitsgrenzen, die eine Auslegung bestimmen. Mit kostenlosem Pack-Rechner.',
+    },
+    body: [
+      {
+        en: 'A battery pack is a series-parallel arrangement of cells that a management system has to keep inside a window it cannot leave without damage. The architecture question — how many in series, how many strings in parallel — sets voltage, current ceiling, resistance and, quietly, the entire safety classification of the machine it powers.',
+        de: 'Ein Batteriepack ist eine Reihen-Parallel-Anordnung von Zellen, die ein Managementsystem in einem Fenster halten muss, das ohne Schaden nicht verlassen werden darf. Die Architekturfrage — wie viele in Reihe, wie viele Stränge parallel — bestimmt Spannung, Stromgrenze, Widerstand und stillschweigend die gesamte Sicherheitsklassifizierung der Maschine, die davon lebt.',
+      },
+      {
+        en: 'The management system then carries the parts that arithmetic alone will not give you: cell monitoring and balancing, state of charge and state of health estimation, temperature-dependent current limits, contactor and fusing strategy, isolation monitoring above the touch-safe threshold, and a defined response to every fault it can detect. Most first-pass pack designs are not wrong about energy; they are wrong about C-rate, headroom or the voltage class they landed in.',
+        de: 'Das Managementsystem trägt dann die Teile, die reine Arithmetik nicht liefert: Zellüberwachung und Balancing, Schätzung von Ladezustand und Alterungszustand, temperaturabhängige Stromgrenzen, Schütz- und Absicherungsstrategie, Isolationsüberwachung oberhalb der Berührungsschutzgrenze und eine definierte Reaktion auf jeden erkennbaren Fehler. Die meisten ersten Packentwürfe irren nicht bei der Energie, sondern bei C-Rate, Reserve oder der Spannungsklasse, in der sie gelandet sind.',
+      },
+    ],
+    boundary: {
+      en: 'Boundary: public content here is generic engineering. Nothing published describes employer systems, operator installations or critical-infrastructure configurations. Nothing here is a safety qualification: lithium cells fail dangerously when abused, and any pack design belongs in front of a qualified engineer before it is built.',
+      de: 'Grenze: Die öffentlichen Inhalte hier sind generische Ingenieursarbeit. Nichts davon beschreibt Arbeitgebersysteme, Betreiberanlagen oder KRITIS-Konfigurationen. Nichts hier ist eine Sicherheitsqualifizierung: Lithiumzellen versagen bei Missbrauch gefährlich, und jede Packauslegung gehört vor dem Bau einer Fachkraft vorgelegt.',
+    },
+    tool: {
+      path: '/tools/battery-pack-calculator',
+      label: { en: 'Open the battery pack calculator', de: 'Batteriepack-Rechner öffnen' },
     },
   },
   {

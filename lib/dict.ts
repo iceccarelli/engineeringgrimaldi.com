@@ -98,23 +98,23 @@ export interface Dict {
 }
 
 const en: Dict = {
-  brandTag: 'Hardware • Electrical Engineering',
+  brandTag: 'Machines • Batteries • Power Electronics',
   navForge: 'Forge Line',
   navLab: 'Lab',
   navDisciplines: 'Disciplines',
   navBook: 'Book a bench review',
   navTools: 'Tools',
   calcCardTag: 'Free tools',
-  calcCardTitle: 'Free palletizing & logistics calculators',
-  calcCardBody: 'Pallet layer patterns and truck/container load plans. Cases per layer, pallets per vehicle, cube and payload utilisation — computed in your browser, CSV export, no sign-up.',
+  calcCardTitle: 'Free engineering calculators',
+  calcCardBody: 'Servo axis sizing, battery pack topology, pallet patterns and vehicle load plans. Torque, C-rate, cube and payload — computed in your browser, CSV export, no sign-up.',
   langLabel: 'Language',
 
   homeKicker: 'Grimaldi Engineering · Frankfurt',
-  homeH1: 'Automation software for the trades. Engineering you can verify.',
+  homeH1: 'Machines, batteries and the software that drives them.',
   homeLead:
-    'The Forge Line ships automation products for palletizing, flooring, painting and drying — code public, status stated plainly. Underneath: high-voltage, embedded and power-electronics work. Build logs ship with instrument captures; the first are in preparation.',
+    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. On top of that layer sits the Forge Line: automation products for the trades, code public, status stated plainly.',
   ctaBook: 'Book a 20-minute bench review — €0',
-  ctaForge: 'See the Forge Line',
+  ctaForge: 'See the engineering tools',
   icpKicker: 'Start here',
   icpTitle: 'Three doors, one bench',
   icpIntro: 'Pick the door that matches your problem. Each leads to its own page — no mixed pitch.',
@@ -128,10 +128,10 @@ const en: Dict = {
   icpB_body:
     'FloorForge AI is automation tooling for the flooring trade — public repository, in active development, no production deployment yet.',
   icpB_cta: 'FloorForge AI',
-  icpC_tag: 'Grid / OT advisory',
-  icpC_title: 'You need an HV / OT engineer',
+  icpC_tag: 'Machines, batteries & grid',
+  icpC_title: 'You need a machines or battery engineer',
   icpC_body:
-    'Advisory sessions and retainers on high-voltage systems, grid physics and OT digitalisation. Public content stays generic — no operator internals.',
+    'Actuator and drive sizing, electrical machine selection across DC, async and sync, battery pack architecture and BMS specification, high voltage and grid physics. Public content stays generic — no operator internals.',
   icpC_cta: 'See advisory terms',
   forgeKicker: 'Trades 2.0 · The Forge Line',
   forgeTitle: 'One trade, one product at a time',
@@ -143,9 +143,9 @@ const en: Dict = {
     'A three-phase scope driving an actual frequency-droop integrator: Δf = −f·0.04·ΔP, RoCoF bounded by inertia. The readouts come out of the model, not a canned animation.',
   labCta: 'Open the droop instrument',
   discKicker: 'Disciplines',
-  discTitle: 'Three tracks of physical engineering',
+  discTitle: 'Five tracks of physical engineering',
   discIntro:
-    'High voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that.',
+    'Electrical machines and actuators, battery systems and management, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
   open: 'Open →',
 
   statusShipped: 'Shipped',
@@ -173,13 +173,13 @@ const en: Dict = {
   bookBring: 'What to bring: a cell layout, a scope trace, a SKU mix, or a one-paragraph problem statement.',
   offersTitle: 'Working terms',
   offerSession: 'Deep-dive session — €280',
-  offerSessionBody: '90 minutes on your specific problem: palletizing cell design, HV/OT questions, architecture review. Written summary included.',
+  offerSessionBody: '90 minutes on your specific problem: axis and drive sizing, machine selection, battery pack and BMS architecture, palletizing cell design, HV questions. Written summary included.',
   offerRetainer: 'Advisory retainer — €3,200/mo',
-  offerRetainerBody: 'Ongoing engineering advisory: weekly call, async review, priority access. Grid/OT scope stays on public, generic ground.',
+  offerRetainerBody: 'Ongoing engineering advisory across drives, machines, battery systems and grid: weekly call, async review, priority access. Scope stays on public, generic ground.',
   offerIntegration: 'Forge integration — custom quote',
   offerIntegrationBody: 'Palletizer OS or Forge tooling adapted to your line. Scoped after a bench review; no integration is sold before the fit is proven.',
 
-  footAbout: 'The hardware and product surface of the Grimaldi network. Operated from Frankfurt am Main.',
+  footAbout: 'Electrical machines, battery systems and automation software. The hardware and product surface of the Grimaldi network, operated from Frankfurt am Main.',
   footNet: 'The Grimaldi network',
   footLegal: 'Legal',
   footDisambiguation:
@@ -193,23 +193,23 @@ const en: Dict = {
 };
 
 const de: Dict = {
-  brandTag: 'Hardware • Elektrotechnik',
+  brandTag: 'Maschinen • Batterien • Leistungselektronik',
   navForge: 'Forge-Linie',
   navLab: 'Labor',
   navDisciplines: 'Disziplinen',
   navBook: 'Bench-Review buchen',
   navTools: 'Werkzeuge',
   calcCardTag: 'Kostenlose Werkzeuge',
-  calcCardTitle: 'Kostenlose Palettier- & Logistikrechner',
-  calcCardBody: 'Paletten-Lagenmuster und Lkw-/Container-Ladepläne. Kartons pro Lage, Paletten pro Fahrzeug, Raum- und Nutzlastauslastung — im Browser berechnet, CSV-Export, ohne Anmeldung.',
+  calcCardTitle: 'Kostenlose Ingenieur-Rechner',
+  calcCardBody: 'Servoachsen-Auslegung, Batteriepack-Topologie, Palettenmuster und Fahrzeug-Ladepläne. Drehmoment, C-Rate, Raum- und Nutzlast — im Browser berechnet, CSV-Export, ohne Anmeldung.',
   langLabel: 'Sprache',
 
   homeKicker: 'Grimaldi Engineering · Frankfurt',
-  homeH1: 'Automatisierungssoftware für die Gewerke. Ingenieursarbeit zum Nachprüfen.',
+  homeH1: 'Maschinen, Batterien und die Software, die sie antreibt.',
   homeLead:
-    'Die Forge-Linie liefert Automatisierungsprodukte für Palettieren, Bodenlegen, Malen und Trocknen — Code öffentlich, Status klar benannt. Darunter: Hochspannungs-, Embedded- und Leistungselektronik-Arbeit. Baujournale erscheinen mit Instrumenten-Messungen; die ersten sind in Vorbereitung.',
+    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Darüber liegt die Forge-Linie: Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
   ctaBook: '20-Minuten-Bench-Review buchen — 0 €',
-  ctaForge: 'Zur Forge-Linie',
+  ctaForge: 'Zu den Ingenieur-Werkzeugen',
   icpKicker: 'Hier starten',
   icpTitle: 'Drei Türen, eine Werkbank',
   icpIntro: 'Wählen Sie die Tür, die zu Ihrem Problem passt. Jede führt auf eine eigene Seite — kein vermischter Pitch.',
@@ -223,10 +223,10 @@ const de: Dict = {
   icpB_body:
     'FloorForge AI ist Automatisierungs-Tooling für das Bodenleger-Gewerk — öffentliches Repository, in aktiver Entwicklung, noch kein Produktiveinsatz.',
   icpB_cta: 'FloorForge AI',
-  icpC_tag: 'Netz- / OT-Beratung',
-  icpC_title: 'Sie brauchen einen HV-/OT-Ingenieur',
+  icpC_tag: 'Maschinen, Batterien & Netz',
+  icpC_title: 'Sie brauchen einen Maschinen- oder Batterie-Ingenieur',
   icpC_body:
-    'Beratungssessions und Retainer zu Hochspannungssystemen, Netzphysik und OT-Digitalisierung. Öffentliche Inhalte bleiben generisch — keine Betreiber-Interna.',
+    'Auslegung von Aktorik und Antrieben, Maschinenauswahl über Gleichstrom, Asynchron und Synchron, Batteriepack-Architektur und BMS-Spezifikation, Hochspannung und Netzphysik. Öffentliche Inhalte bleiben generisch — keine Betreiber-Interna.',
   icpC_cta: 'Konditionen ansehen',
   forgeKicker: 'Gewerke 2.0 · Die Forge-Linie',
   forgeTitle: 'Ein Gewerk, ein Produkt nach dem anderen',
@@ -238,9 +238,9 @@ const de: Dict = {
     'Ein Drei-Phasen-Oszilloskop mit echtem Frequenz-Statik-Integrator: Δf = −f·0,04·ΔP, RoCoF durch Trägheit begrenzt. Die Anzeigen kommen aus dem Modell, nicht aus einer Animation.',
   labCta: 'Statik-Instrument öffnen',
   discKicker: 'Disziplinen',
-  discTitle: 'Drei Stränge physischer Ingenieursarbeit',
+  discTitle: 'Fünf Stränge physischer Ingenieursarbeit',
   discIntro:
-    'Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das.',
+    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
   open: 'Öffnen →',
 
   statusShipped: 'Veröffentlicht',
@@ -268,13 +268,13 @@ const de: Dict = {
   bookBring: 'Mitbringen: ein Zellen-Layout, eine Scope-Aufnahme, ein SKU-Mix oder eine Problemstellung in einem Absatz.',
   offersTitle: 'Konditionen',
   offerSession: 'Deep-Dive-Session — 280 €',
-  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Palettierzellen-Design, HV-/OT-Fragen, Architektur-Review. Schriftliche Zusammenfassung inklusive.',
+  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Achsen- und Antriebsauslegung, Maschinenauswahl, Batteriepack- und BMS-Architektur, Palettierzellen-Design, HV-Fragen. Schriftliche Zusammenfassung inklusive.',
   offerRetainer: 'Advisory-Retainer — 3.200 €/Monat',
-  offerRetainerBody: 'Laufende Ingenieursberatung: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Netz-/OT-Themen bleiben auf öffentlichem, generischem Terrain.',
+  offerRetainerBody: 'Laufende Ingenieursberatung zu Antrieben, Maschinen, Batteriesystemen und Netz: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Die Themen bleiben auf öffentlichem, generischem Terrain.',
   offerIntegration: 'Forge-Integration — individuelles Angebot',
   offerIntegrationBody: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie. Scoping nach einem Bench-Review; keine Integration wird verkauft, bevor der Fit belegt ist.',
 
-  footAbout: 'Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks. Betrieben aus Frankfurt am Main.',
+  footAbout: 'Elektrische Maschinen, Batteriesysteme und Automatisierungssoftware. Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks, betrieben aus Frankfurt am Main.',
   footNet: 'Das Grimaldi-Netzwerk',
   footLegal: 'Rechtliches',
   footDisambiguation:

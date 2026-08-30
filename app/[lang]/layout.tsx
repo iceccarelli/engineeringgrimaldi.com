@@ -25,12 +25,12 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const title =
     lang === 'de'
-      ? 'Forge Line von Grimaldi Engineering | Palletizer OS, FloorForge, HV-Baujournale'
-      : 'Forge Line by Grimaldi Engineering | Palletizer OS, FloorForge, HV Build Logs';
+      ? 'Grimaldi Engineering | Elektrische Maschinen, Batteriesysteme & Automatisierung'
+      : 'Grimaldi Engineering | Electrical Machines, Battery Systems & Automation';
   const description =
     lang === 'de'
-      ? 'Grimaldi Engineering (Frankfurt): die Forge-Linie — Palletizer OS, FloorForge, PaintForge, DryForge — plus Hochspannungs-, Embedded- und Leistungselektronik-Arbeit von Vincenzo Ceccarelli Grimaldi. Code öffentlich, Status ehrlich.'
-      : 'Grimaldi Engineering (Frankfurt): the Forge Line — Palletizer OS, FloorForge, PaintForge, DryForge — plus high-voltage, embedded and power-electronics work by Vincenzo Ceccarelli Grimaldi. Code public, status honest.';
+      ? 'Grimaldi Engineering (Frankfurt): elektrische Maschinen und Aktorik, Batteriesysteme und BMS, Hochspannung, Leistungselektronik und Embedded-Regelung — mit kostenlosen Rechnern für Achsenauslegung, Batteriepacks und Palettierung. Von Vincenzo Ceccarelli Grimaldi.'
+      : 'Grimaldi Engineering (Frankfurt): electrical machines and actuators, battery systems and BMS, high voltage, power electronics and embedded control — with free calculators for axis sizing, battery packs and palletizing. By Vincenzo Ceccarelli Grimaldi.';
   return {
     metadataBase: new URL(SITE_URL),
     title: {
