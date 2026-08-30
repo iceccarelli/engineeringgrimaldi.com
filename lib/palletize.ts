@@ -1,10 +1,10 @@
 /**
- * Pallet layer-pattern engine — pure, deterministic geometry.
+ * Pallet layer-pattern engine.
  *
- * No ML, no heuristic hand-waving dressed up as optimisation: this is an
- * exhaustive search over a bounded family of well-known layer families
- * (uniform column, two-block split, four-block split), scored by cases
- * per layer. Every number the UI shows comes out of these functions.
+ * The geometry search lives in lib/rectpack.ts (shared with the vehicle
+ * load solver). This module adds the pallet-specific layer: vertical
+ * stacking bounded by usable height AND by payload mass, plus the
+ * utilisation figures an engineer actually argues about.
  *
  * HONESTY BOUNDARY: this computes GEOMETRY. It is not a load-stability,
  * crush-strength or transport-safety calculation, and the UI says so.
@@ -13,25 +13,16 @@
  * millimetres, all masses in kilograms.
  */
 
-export type Placement = {
-  x: number;
-  y: number;
-  /** Footprint along x. */
-  w: number;
-  /** Footprint along y. */
-  d: number;
-  /** True when the box is turned 90° from its nominal orientation. */
-  rotated: boolean;
-};
+import {
+  enumeratePatterns,
+  shortlistPatterns,
+  type Pattern,
+  type Placement,
+} from './rectpack';
 
-export type LayerPattern = {
-  /** Stable key for i18n lookup: the UI translates it. */
-  kind: 'column' | 'two-block' | 'four-block';
-  placements: Placement[];
-  count: number;
-  /** Both orientations present — interlocks better across courses. */
-  interlocked: boolean;
-};
+export type { Placement, Pattern };
+/** Kept for call sites that read better with a domain name. */
+export type LayerPattern = Pattern;
 
 export type PalletSpec = {
   length: number;
@@ -71,140 +62,9 @@ export type PalletizationResult = {
   usableHeight: number;
 };
 
-const MAX_SPLIT_CANDIDATES = 24;
-
-/** Fill a rectangular region with one fixed box footprint, origin-anchored. */
-function columnFill(
-  originX: number,
-  originY: number,
-  regionL: number,
-  regionW: number,
-  footprintX: number,
-  footprintY: number,
-  rotated: boolean,
-): Placement[] {
-  if (footprintX <= 0 || footprintY <= 0) return [];
-  const nx = Math.floor(regionL / footprintX);
-  const ny = Math.floor(regionW / footprintY);
-  if (nx <= 0 || ny <= 0) return [];
-  const out: Placement[] = [];
-  for (let i = 0; i < nx; i++) {
-    for (let j = 0; j < ny; j++) {
-      out.push({
-        x: originX + i * footprintX,
-        y: originY + j * footprintY,
-        w: footprintX,
-        d: footprintY,
-        rotated,
-      });
-    }
-  }
-  return out;
-}
-
-/** Best single-orientation fill of a region (tries both rotations). */
-function packRegion(
-  originX: number,
-  originY: number,
-  regionL: number,
-  regionW: number,
-  box: BoxSpec,
-): Placement[] {
-  const a = columnFill(originX, originY, regionL, regionW, box.length, box.width, false);
-  const b = columnFill(originX, originY, regionL, regionW, box.width, box.length, true);
-  return b.length > a.length ? b : a;
-}
-
-/** Split offsets worth testing along one axis: multiples of each footprint. */
-function splitCandidates(span: number, box: BoxSpec): number[] {
-  const set = new Set<number>([0]);
-  for (const step of [box.length, box.width]) {
-    if (step <= 0) continue;
-    for (let v = step; v <= span; v += step) set.add(v);
-  }
-  return Array.from(set).sort((p, q) => p - q).slice(0, MAX_SPLIT_CANDIDATES);
-}
-
-function toPattern(kind: LayerPattern['kind'], placements: Placement[]): LayerPattern {
-  const rotatedCount = placements.filter((p) => p.rotated).length;
-  return {
-    kind,
-    placements,
-    count: placements.length,
-    interlocked: rotatedCount > 0 && rotatedCount < placements.length,
-  };
-}
-
 /** Enumerate candidate layer patterns, best first. */
 export function layerPatterns(pallet: PalletSpec, box: BoxSpec): LayerPattern[] {
-  const L = pallet.length;
-  const W = pallet.width;
-  const found: LayerPattern[] = [];
-
-  // 1 — uniform column, both orientations.
-  found.push(toPattern('column', columnFill(0, 0, L, W, box.length, box.width, false)));
-  found.push(toPattern('column', columnFill(0, 0, L, W, box.width, box.length, true)));
-
-  // 2 — two-block split along each axis.
-  for (const sx of splitCandidates(L, box)) {
-    if (sx === 0 || sx >= L) continue;
-    found.push(
-      toPattern('two-block', [
-        ...packRegion(0, 0, sx, W, box),
-        ...packRegion(sx, 0, L - sx, W, box),
-      ]),
-    );
-  }
-  for (const sy of splitCandidates(W, box)) {
-    if (sy === 0 || sy >= W) continue;
-    found.push(
-      toPattern('two-block', [
-        ...packRegion(0, 0, L, sy, box),
-        ...packRegion(0, sy, L, W - sy, box),
-      ]),
-    );
-  }
-
-  // 3 — four-block (quadrant) split; subsumes pinwheel-style layouts.
-  for (const sx of splitCandidates(L, box)) {
-    if (sx === 0 || sx >= L) continue;
-    for (const sy of splitCandidates(W, box)) {
-      if (sy === 0 || sy >= W) continue;
-      found.push(
-        toPattern('four-block', [
-          ...packRegion(0, 0, sx, sy, box),
-          ...packRegion(sx, 0, L - sx, sy, box),
-          ...packRegion(0, sy, sx, W - sy, box),
-          ...packRegion(sx, sy, L - sx, W - sy, box),
-        ]),
-      );
-    }
-  }
-
-  // Rank: more cases wins; on a tie prefer an interlocked layer, then the
-  // simpler construction (fewer blocks) for a cell that has to build it.
-  const rank = { column: 0, 'two-block': 1, 'four-block': 2 } as const;
-  return found
-    .filter((p) => p.count > 0)
-    .sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      if (a.interlocked !== b.interlocked) return a.interlocked ? -1 : 1;
-      return rank[a.kind] - rank[b.kind];
-    });
-}
-
-/** Distinct-by-count shortlist, so the UI shows real alternatives. */
-function shortlist(patterns: LayerPattern[], limit: number): LayerPattern[] {
-  const seen = new Set<string>();
-  const out: LayerPattern[] = [];
-  for (const p of patterns) {
-    const key = `${p.count}:${p.kind}:${p.interlocked}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(p);
-    if (out.length >= limit) break;
-  }
-  return out;
+  return enumeratePatterns(pallet.length, pallet.width, { length: box.length, width: box.width });
 }
 
 export function palletize(pallet: PalletSpec, box: BoxSpec): PalletizationResult {
@@ -249,7 +109,7 @@ export function palletize(pallet: PalletSpec, box: BoxSpec): PalletizationResult
       ...empty,
       reason: 'no-vertical-room',
       best,
-      alternatives: shortlist(ranked.slice(1), 3),
+      alternatives: shortlistPatterns(ranked.slice(1), 3),
       layersByHeight,
       layersByWeight,
       limitedBy: layersByWeight === 0 ? 'weight' : 'height',
@@ -271,7 +131,7 @@ export function palletize(pallet: PalletSpec, box: BoxSpec): PalletizationResult
   return {
     ok: true,
     best,
-    alternatives: shortlist(ranked.slice(1), 3),
+    alternatives: shortlistPatterns(ranked.slice(1), 3),
     layers,
     layersByHeight,
     layersByWeight,

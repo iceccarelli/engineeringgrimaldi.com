@@ -304,3 +304,6 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
   .calc-inputs, .calc-output { grid-template-columns: 1fr; }
   .calc-inputs fieldset { grid-template-columns: 1fr 1fr; }
 }
+.calc-check { flex-direction: row; align-items: center; gap: .55rem; }
+.calc-check input { width: auto; accent-color: var(--phosphor); }
+.calc-box-label-sm { font-size: 90px; }

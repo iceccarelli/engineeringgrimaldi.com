@@ -252,6 +252,9 @@ export default function PatternCalculatorPage({ params }: PageProps) {
 
           <div className="cta-row">
             <BookCTA label={t.ctaBook} />
+            <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>
+              {lang === 'de' ? 'Lkw-/Container-Laderechner →' : 'Truck & container load calculator →'}
+            </a>
             <a className="btn btn-line" href={langHref(lang, '/forge/palletizer')}>{copy.productLink}</a>
           </div>
 
@@ -289,6 +292,7 @@ export default function PatternCalculatorPage({ params }: PageProps) {
       <JsonLd
         data={breadcrumbSchema(lang, [
           { name: 'Grimaldi Engineering', path: '/' },
+          { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
           { name: copy.h1, path: PATH },
         ])}
       />

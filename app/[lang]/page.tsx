@@ -68,7 +68,7 @@ export default function Home({ params }: PageProps) {
 
         {/* FREE TOOL — the demand asset for ICP A */}
         <div className="section" id="tool">
-          <a className="tool-band" href={href('/tools/pallet-pattern-calculator')}>
+          <a className="tool-band" href={href('/tools')}>
             <span className="tag">{t.calcCardTag}</span>
             <h3>{t.calcCardTitle}</h3>
             <p>{t.calcCardBody}</p>
