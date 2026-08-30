@@ -1,0 +1,1563 @@
+From 1e5a517e46539a199af17466cfcae27538fb6f2e Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Sun, 30 Aug 2026 19:58:07 +0000
+Subject: [PATCH] feat(v9): case size optimizer + verified reference cluster
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The case-size decision is made once and paid for on every pallet after,
+which makes it the expensive question in this niche and the one no free
+tool answers well. This adds it, plus the reference pages that carry the
+evergreen queries feeding both calculators.
+
+- lib/rectpack.ts: maxCountIn() count-only fast path — verified to agree
+  with the full solver on 1,728 shapes with zero mismatches, sweeping
+  ~1,500 footprints in 6 ms so a full dimension sweep runs client-side
+- lib/caseoptimizer.ts: sweeps every orderable case size, ranks by cube
+  utilisation (not cases per pallet, which would reward shipping less),
+  collapses rotated duplicates, orients survivors to match the current
+  case, and breaks ties toward the least disruptive change
+- /tools/case-size-optimizer (en + de): candidate table with the delta in
+  percentage points against the user's own case, CSV export
+- /reference/pallet-sizes and /reference/container-dimensions (en + de):
+  EPAL and ISO figures read off primary sources and cited on the page;
+  unpublished values left blank rather than estimated
+- Published container pallet counts (20 ft = 11, 40 ft = 25) are asserted
+  on the page to come from this site's solver, and a test confirms they do
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TyfRUMoVXepxUnmXyYyR7r
+---
+ .../reference/container-dimensions/page.tsx   | 143 +++++++++
+ app/[lang]/reference/pallet-sizes/page.tsx    | 142 +++++++++
+ app/[lang]/tools/case-size-optimizer/page.tsx | 292 ++++++++++++++++++
+ app/[lang]/tools/page.tsx                     |  33 ++
+ .../tools/pallet-pattern-calculator/page.tsx  |   3 +
+ app/globals.css                               |  20 ++
+ app/sitemap.ts                                |   3 +
+ components/CaseOptimizer.tsx                  | 287 +++++++++++++++++
+ lib/caseoptimizer.ts                          | 254 +++++++++++++++
+ lib/rectpack.ts                               |  70 +++++
+ lib/reference.ts                              | 164 ++++++++++
+ 11 files changed, 1411 insertions(+)
+ create mode 100644 app/[lang]/reference/container-dimensions/page.tsx
+ create mode 100644 app/[lang]/reference/pallet-sizes/page.tsx
+ create mode 100644 app/[lang]/tools/case-size-optimizer/page.tsx
+ create mode 100644 components/CaseOptimizer.tsx
+ create mode 100644 lib/caseoptimizer.ts
+ create mode 100644 lib/reference.ts
+
+diff --git a/app/[lang]/reference/container-dimensions/page.tsx b/app/[lang]/reference/container-dimensions/page.tsx
+new file mode 100644
+index 0000000..66e97a0
+--- /dev/null
++++ b/app/[lang]/reference/container-dimensions/page.tsx
+@@ -0,0 +1,143 @@
++import type { Metadata } from 'next';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { CONTAINER_SOURCES, CONTAINER_STANDARDS } from '@/lib/reference';
++import { breadcrumbSchema } from '@/lib/schema';
++
++type PageProps = { params: { lang: string } };
++const PATH = '/reference/container-dimensions';
++
++const COPY = {
++  en: {
++    title: 'Shipping Container Dimensions — 20 ft, 40 ft and High Cube',
++    description:
++      'Interior container dimensions in millimetres with tare, payload, volume and EUR pallets per container: 20 ft (11 pallets), 40 ft and 40 ft high cube (25 pallets). Sources cited.',
++    kicker: 'Reference',
++    h1: 'Shipping container dimensions',
++    lead: 'Nominal interior dimensions, payloads and the pallet counts our own solver produces from them.',
++    hName: 'Container',
++    hDims: 'Interior L × W × H (mm)',
++    hTare: 'Tare',
++    hPayload: 'Max payload',
++    hVolume: 'Volume',
++    hPallets: 'EPAL 1 per tier',
++    varianceNote:
++      'Interior dimensions and payloads vary between builders and operators, and the maximum payload permitted on a given movement is set by your carrier and by road weight limits — often well below the container rating. Confirm before booking.',
++    palletsNote:
++      'The pallet counts are not copied from a chart: they come from the same geometry solver behind the load calculator on this site, run on the interior dimensions in this table.',
++    sourcesH2: 'Sources',
++    ctaH2: 'Run your own load',
++    ctaBody: 'Change the deck, the load height or the payload and the count changes with it.',
++    link: 'Truck & container load calculator →',
++  },
++  de: {
++    title: 'Container-Abmessungen — 20 Fuß, 40 Fuß und High Cube',
++    description:
++      'Innenmaße von Containern in Millimetern mit Leergewicht, Nutzlast, Volumen und Europaletten pro Container: 20 Fuß (11 Paletten), 40 Fuß und 40 Fuß High Cube (25 Paletten). Mit Quellen.',
++    kicker: 'Referenz',
++    h1: 'Container-Abmessungen',
++    lead: 'Nominelle Innenmaße, Nutzlasten und die Palettenzahlen, die unser eigener Löser daraus errechnet.',
++    hName: 'Container',
++    hDims: 'Innen L × B × H (mm)',
++    hTare: 'Leergewicht',
++    hPayload: 'Max. Nutzlast',
++    hVolume: 'Volumen',
++    hPallets: 'EPAL 1 pro Lage',
++    varianceNote:
++      'Innenmaße und Nutzlasten unterscheiden sich je nach Hersteller und Betreiber, und die für eine konkrete Fahrt zulässige Nutzlast bestimmen Ihr Carrier und die Straßengewichtsgrenzen — oft deutlich unterhalb der Containerangabe. Vor der Buchung prüfen.',
++    palletsNote:
++      'Die Palettenzahlen sind nicht aus einer Tabelle übernommen: Sie stammen aus demselben Geometrie-Löser, der dem Laderechner dieser Seite zugrunde liegt, angewendet auf die Innenmaße dieser Tabelle.',
++    sourcesH2: 'Quellen',
++    ctaH2: 'Eigene Ladung rechnen',
++    ctaBody: 'Ändern Sie Palette, Ladehöhe oder Nutzlast, und die Zahl ändert sich mit.',
++    link: 'Lkw- & Container-Laderechner →',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: COPY[lang].title,
++    description: COPY[lang].description,
++    alternates: pageAlternates(lang, PATH),
++  };
++}
++
++export default function ContainerDimensionsPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = COPY[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <div className="calc-table-wrap">
++            <table className="calc-table ref-table">
++              <thead>
++                <tr>
++                  <th>{copy.hName}</th>
++                  <th>{copy.hDims}</th>
++                  <th>{copy.hTare}</th>
++                  <th>{copy.hPayload}</th>
++                  <th>{copy.hVolume}</th>
++                  <th>{copy.hPallets}</th>
++                </tr>
++              </thead>
++              <tbody>
++                {CONTAINER_STANDARDS.map((c) => (
++                  <tr key={c.id}>
++                    <td>{c.name}</td>
++                    <td>{c.interiorLength} × {c.interiorWidth} × {c.interiorHeight}</td>
++                    <td>{c.tare.toLocaleString(lang)} kg</td>
++                    <td>{c.payload.toLocaleString(lang)} kg</td>
++                    <td>{c.volume} m³</td>
++                    <td>{c.eurPallets}</td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </div>
++          <p className="calc-meta">{copy.varianceNote}</p>
++
++          <div className="prose">
++            <p>{copy.palletsNote}</p>
++
++            <h2>{copy.sourcesH2}</h2>
++            <ul>
++              {CONTAINER_SOURCES.map((s) => (
++                <li key={s.url}>
++                  <a href={s.url} rel="noopener noreferrer nofollow">{s.label}</a>
++                </li>
++              ))}
++            </ul>
++
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>{copy.link}</a>
++            <a className="btn btn-line" href={langHref(lang, '/reference/pallet-sizes')}>
++              {lang === 'de' ? 'Palettenmaße →' : 'Pallet sizes →'}
++            </a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: copy.kicker, path: '/reference/container-dimensions' },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/reference/pallet-sizes/page.tsx b/app/[lang]/reference/pallet-sizes/page.tsx
+new file mode 100644
+index 0000000..d9ee8bf
+--- /dev/null
++++ b/app/[lang]/reference/pallet-sizes/page.tsx
+@@ -0,0 +1,142 @@
++import type { Metadata } from 'next';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { PALLET_SOURCES, PALLET_STANDARDS } from '@/lib/reference';
++import { breadcrumbSchema } from '@/lib/schema';
++
++type PageProps = { params: { lang: string } };
++const PATH = '/reference/pallet-sizes';
++
++const COPY = {
++  en: {
++    title: 'Pallet Sizes & Standards — EPAL, EUR and 48×40 Dimensions',
++    description:
++      'Standard pallet dimensions in millimetres: EPAL 1 (1200 × 800), EPAL 2, EPAL 3, EPAL 6 half pallet and the North American 48 × 40. With own weight, safe working load and sources.',
++    kicker: 'Reference',
++    h1: 'Pallet sizes and standards',
++    lead: 'The dimensions that decide every downstream calculation on this site, with the figures attributed rather than asserted.',
++    tableCaption: 'Standard pallet dimensions',
++    hName: 'Pallet',
++    hDims: 'L × W × H (mm)',
++    hOwn: 'Own weight',
++    hSwl: 'Safe working load',
++    notesH2: 'Notes',
++    sourcesH2: 'Sources',
++    varianceNote:
++      'Own weight and load ratings vary with timber moisture, build and condition. Where a figure is not published as part of the standard it is left blank rather than estimated.',
++    ctaH2: 'Use these numbers',
++    ctaBody: 'Both calculators on this site are preloaded with these decks.',
++    link1: 'Pallet pattern calculator →',
++    link2: 'Truck & container load calculator →',
++  },
++  de: {
++    title: 'Palettenmaße & Normen — EPAL-, EUR- und 48×40-Abmessungen',
++    description:
++      'Standard-Palettenmaße in Millimetern: EPAL 1 (1200 × 800), EPAL 2, EPAL 3, EPAL 6 Halbpalette und die nordamerikanische 48 × 40. Mit Eigengewicht, sicherer Traglast und Quellen.',
++    kicker: 'Referenz',
++    h1: 'Palettenmaße und Normen',
++    lead: 'Die Maße, die jede weitere Berechnung auf dieser Seite bestimmen — mit Quellenangabe statt bloßer Behauptung.',
++    tableCaption: 'Standard-Palettenmaße',
++    hName: 'Palette',
++    hDims: 'L × B × H (mm)',
++    hOwn: 'Eigengewicht',
++    hSwl: 'Sichere Traglast',
++    notesH2: 'Hinweise',
++    sourcesH2: 'Quellen',
++    varianceNote:
++      'Eigengewicht und Traglast schwanken mit Holzfeuchte, Bauart und Zustand. Wo eine Angabe nicht Teil der veröffentlichten Norm ist, bleibt das Feld leer statt geschätzt.',
++    ctaH2: 'Diese Zahlen nutzen',
++    ctaBody: 'Beide Rechner dieser Seite sind mit diesen Paletten vorbelegt.',
++    link1: 'Palettenmuster-Rechner →',
++    link2: 'Lkw- & Container-Laderechner →',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: COPY[lang].title,
++    description: COPY[lang].description,
++    alternates: pageAlternates(lang, PATH),
++  };
++}
++
++export default function PalletSizesPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = COPY[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <div className="calc-table-wrap">
++            <table className="calc-table ref-table">
++              <caption className="sr-only">{copy.tableCaption}</caption>
++              <thead>
++                <tr>
++                  <th>{copy.hName}</th>
++                  <th>{copy.hDims}</th>
++                  <th>{copy.hOwn}</th>
++                  <th>{copy.hSwl}</th>
++                </tr>
++              </thead>
++              <tbody>
++                {PALLET_STANDARDS.map((p) => (
++                  <tr key={p.id}>
++                    <td>{p.name}</td>
++                    <td>{p.length} × {p.width} × {p.height}</td>
++                    <td>{p.ownWeight === null ? '—' : `${p.ownWeight} kg`}</td>
++                    <td>{p.safeWorkingLoad === null ? '—' : `${p.safeWorkingLoad} kg`}</td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </div>
++          <p className="calc-meta">{copy.varianceNote}</p>
++
++          <div className="prose">
++            <h2>{copy.notesH2}</h2>
++            {PALLET_STANDARDS.map((p) => (
++              <div key={p.id}>
++                <h3>{p.name}</h3>
++                <p>{p.note[lang]}</p>
++              </div>
++            ))}
++
++            <h2>{copy.sourcesH2}</h2>
++            <ul>
++              {PALLET_SOURCES.map((s) => (
++                <li key={s.url}>
++                  <a href={s.url} rel="noopener noreferrer nofollow">{s.label}</a>
++                </li>
++              ))}
++            </ul>
++
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>{copy.link1}</a>
++            <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>{copy.link2}</a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: copy.kicker, path: '/reference/pallet-sizes' },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/tools/case-size-optimizer/page.tsx b/app/[lang]/tools/case-size-optimizer/page.tsx
+new file mode 100644
+index 0000000..06c2e9b
+--- /dev/null
++++ b/app/[lang]/tools/case-size-optimizer/page.tsx
+@@ -0,0 +1,292 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import CaseOptimizer, { type OptimizerLabels } from '@/components/CaseOptimizer';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++import { SITE_URL } from '@/lib/site';
++
++/**
++ * The differentiated tool: not "how does my case pack?" but "which case
++ * size should I have ordered?". Case dimensions are decided once and
++ * paid for on every pallet for years, which is why this is the question
++ * with money attached.
++ */
++
++type PageProps = { params: { lang: string } };
++
++const PATH = '/tools/case-size-optimizer';
++
++const META = {
++  en: {
++    title: 'Case Size Optimizer — Find the Carton That Fills the Pallet',
++    description:
++      'Free case size optimizer: sweep thousands of carton dimensions against your pallet and load limits, ranked by cube utilisation, with the gain over your current case shown in percentage points. Runs in your browser.',
++  },
++  de: {
++    title: 'Kartongrößen-Optimierer — die Schachtel finden, die die Palette füllt',
++    description:
++      'Kostenloser Kartongrößen-Optimierer: Tausende Kartonmaße gegen Palette und Lastgrenzen durchrechnen, nach Raumnutzung sortiert, mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten. Läuft im Browser.',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: META[lang].title,
++    description: META[lang].description,
++    alternates: pageAlternates(lang, PATH),
++    openGraph: {
++      title: `${META[lang].title} | Grimaldi Engineering`,
++      description: META[lang].description,
++      type: 'website',
++    },
++  };
++}
++
++const LABELS: Record<Lang, OptimizerLabels> = {
++  en: {
++    palletLegend: 'Pallet & load limits',
++    preset: 'Pallet',
++    custom: 'Custom',
++    palletLength: 'Pallet length',
++    palletWidth: 'Pallet width',
++    deckHeight: 'Deck height',
++    maxHeight: 'Max total height',
++    maxWeight: 'Max payload',
++    currentLegend: 'Your current case',
++    curLength: 'Length',
++    curWidth: 'Width',
++    curHeight: 'Height',
++    curWeight: 'Weight',
++    rangeLegend: 'Sizes you could order',
++    minLength: 'Length from',
++    maxLength: 'Length to',
++    minWidth: 'Width from',
++    maxWidth: 'Width to',
++    minHeight: 'Height from',
++    maxHeight2: 'Height to',
++    step: 'Grid step',
++    resultsLegend: 'Best cases in your range',
++    yourCase: '(yours)',
++    headerCase: 'Case L × W × H',
++    headerPerLayer: 'Per layer',
++    headerLayers: 'Layers',
++    headerTotal: 'Per pallet',
++    headerCube: 'Cube',
++    headerDelta: 'Δ points',
++    gainHeadline: 'Best case in range gains {points} percentage points of cube utilisation over yours.',
++    gainNone: 'Your current case is already the best in the range you specified.',
++    evaluated: '{n} candidate sizes evaluated',
++    coarsened: 'grid widened to {step} mm to keep the sweep responsive',
++    errInvalidRange: 'Each "from" value must be less than or equal to its "to" value.',
++    errNothingFits: 'No case in this range produces a complete layer inside your height and weight limits.',
++    errInvalid: 'Every dimension must be a positive number.',
++    downloadCsv: 'Download candidates (CSV)',
++    disclaimer:
++      'Geometry only, and the ranking assumes every size in your range physically suits the product — that judgement is yours. Candidate mass is scaled from your current case density. Tooling, artwork, retail-shelf fit, board grade and case-count-per-case are real costs and are NOT modelled. Treat the output as a shortlist to evaluate, never as a purchase decision.',
++  },
++  de: {
++    palletLegend: 'Palette & Lastgrenzen',
++    preset: 'Palette',
++    custom: 'Benutzerdefiniert',
++    palletLength: 'Palettenlänge',
++    palletWidth: 'Palettenbreite',
++    deckHeight: 'Palettenhöhe',
++    maxHeight: 'Max. Gesamthöhe',
++    maxWeight: 'Max. Nutzlast',
++    currentLegend: 'Ihr aktueller Karton',
++    curLength: 'Länge',
++    curWidth: 'Breite',
++    curHeight: 'Höhe',
++    curWeight: 'Gewicht',
++    rangeLegend: 'Bestellbare Maße',
++    minLength: 'Länge von',
++    maxLength: 'Länge bis',
++    minWidth: 'Breite von',
++    maxWidth: 'Breite bis',
++    minHeight: 'Höhe von',
++    maxHeight2: 'Höhe bis',
++    step: 'Rasterschritt',
++    resultsLegend: 'Beste Kartons im Bereich',
++    yourCase: '(Ihrer)',
++    headerCase: 'Karton L × B × H',
++    headerPerLayer: 'Pro Lage',
++    headerLayers: 'Lagen',
++    headerTotal: 'Pro Palette',
++    headerCube: 'Raum',
++    headerDelta: 'Δ Punkte',
++    gainHeadline: 'Der beste Karton im Bereich gewinnt {points} Prozentpunkte Raumnutzung gegenüber Ihrem.',
++    gainNone: 'Ihr aktueller Karton ist im angegebenen Bereich bereits der beste.',
++    evaluated: '{n} Kandidatenmaße berechnet',
++    coarsened: 'Raster auf {step} mm erweitert, damit die Berechnung flüssig bleibt',
++    errInvalidRange: 'Jeder „von“-Wert muss kleiner oder gleich dem „bis“-Wert sein.',
++    errNothingFits: 'Kein Karton in diesem Bereich ergibt eine vollständige Lage innerhalb Ihrer Höhen- und Gewichtsgrenzen.',
++    errInvalid: 'Alle Maße müssen positive Zahlen sein.',
++    downloadCsv: 'Kandidaten herunterladen (CSV)',
++    disclaimer:
++      'Nur Geometrie, und die Rangfolge unterstellt, dass jedes Maß im Bereich physisch zum Produkt passt — diese Beurteilung liegt bei Ihnen. Die Kandidatenmasse wird aus der Dichte Ihres aktuellen Kartons skaliert. Werkzeuge, Druckbild, Regalmaße, Wellpappensorte und Stückzahl je Karton sind reale Kosten und werden NICHT modelliert. Behandeln Sie das Ergebnis als zu prüfende Vorauswahl, nie als Beschaffungsentscheidung.',
++  },
++};
++
++const FAQS: Record<Lang, { q: string; a: string }[]> = {
++  en: [
++    {
++      q: 'Why rank by cube utilisation instead of cases per pallet?',
++      a: 'Because ranking by cases per pallet rewards shrinking the box, which ships less product per pallet — the opposite of what you want. Cube utilisation measures how much of the usable pallet volume your cases actually occupy, so a higher figure means more product per pallet, per truck and per shipment.',
++    },
++    {
++      q: 'How can a 20 mm change matter?',
++      a: 'Because layer count is a floor division. A case 250 mm tall gives six layers under a 1,656 mm usable height and leaves 156 mm of paid-for air; at 270 mm the same six layers fill 1,620 mm. Nothing else changed, and the pallet carries meaningfully more product.',
++    },
++    {
++      q: 'Does it know whether my product fits the new case?',
++      a: 'No, and it does not pretend to. You set the dimension range, which is where product fit, count-per-case and shelf constraints belong. Inside that range the tool ranks geometry — the shortlist is yours to evaluate.',
++    },
++    {
++      q: 'What about tooling and artwork costs?',
++      a: 'Not modelled, deliberately. A case change carries die, plate, artwork and qualification costs that only you can price. This tool tells you the size of the prize; whether it clears your changeover cost is a separate calculation.',
++    },
++    {
++      q: 'How many sizes does it actually try?',
++      a: 'Every combination on your grid — typically several thousand — using a count-only packing routine that agrees exactly with the full layer solver. The sweep runs in your browser in milliseconds, and no dimension you type is ever transmitted.',
++    },
++  ],
++  de: [
++    {
++      q: 'Warum nach Raumnutzung statt nach Kartons pro Palette sortieren?',
++      a: 'Weil eine Sortierung nach Kartons pro Palette das Verkleinern der Schachtel belohnt — und damit weniger Produkt pro Palette versendet. Die Raumnutzung misst, wie viel des nutzbaren Palettenvolumens Ihre Kartons tatsächlich einnehmen: mehr Prozent bedeuten mehr Produkt pro Palette, pro Lkw und pro Sendung.',
++    },
++    {
++      q: 'Wie können 20 mm einen Unterschied machen?',
++      a: 'Weil die Lagenzahl eine Abrundung ist. Ein 250 mm hoher Karton ergibt bei 1.656 mm nutzbarer Höhe sechs Lagen und lässt 156 mm bezahlte Luft übrig; bei 270 mm füllen dieselben sechs Lagen 1.620 mm. Sonst ändert sich nichts, und die Palette trägt spürbar mehr Produkt.',
++    },
++    {
++      q: 'Weiß das Werkzeug, ob mein Produkt in den neuen Karton passt?',
++      a: 'Nein, und es tut auch nicht so. Sie legen den Maßbereich fest — dort gehören Produktpassung, Stückzahl je Karton und Regalvorgaben hin. Innerhalb dieses Bereichs bewertet das Werkzeug Geometrie; die Vorauswahl prüfen Sie.',
++    },
++    {
++      q: 'Und Werkzeug- und Druckkosten?',
++      a: 'Bewusst nicht modelliert. Ein Kartonwechsel bringt Stanz-, Klischee-, Druckbild- und Qualifizierungskosten mit sich, die nur Sie beziffern können. Dieses Werkzeug nennt die Größe des Gewinns; ob er Ihre Umstellungskosten übersteigt, ist eine eigene Rechnung.',
++    },
++    {
++      q: 'Wie viele Maße werden tatsächlich geprüft?',
++      a: 'Jede Kombination Ihres Rasters — typischerweise mehrere Tausend — mit einer reinen Zählroutine, die exakt mit dem vollständigen Lagenlöser übereinstimmt. Der Durchlauf dauert im Browser Millisekunden, und kein eingegebenes Maß wird übertragen.',
++    },
++  ],
++};
++
++const BODY: Record<Lang, { kicker: string; h1: string; lead: string; whyH2: string; why: string[]; faqH2: string; ctaH2: string; ctaBody: string; toolLink: string }> = {
++  en: {
++    kicker: 'Free tool · Packaging design',
++    h1: 'Case size optimizer',
++    lead: 'Your case dimensions were chosen once and are paid for on every pallet since. This sweeps the sizes you could order and shows what the best one is worth, in percentage points of pallet cube.',
++    whyH2: 'Why this is the expensive decision',
++    why: [
++      'A pallet pattern is a consequence, not a choice. By the time a carton spec is signed off, the cases per layer, the layer count and the air you ship are all already determined — and they repeat on every pallet, in every truck, for the life of the SKU.',
++      'The arithmetic is unforgiving in a useful way: layer count is a floor division of usable height by case height, so a case a few millimetres too tall throws away an entire layer, and a case slightly too short leaves a band of paid-for air under the stretch wrap. Neither shows up on a spec sheet.',
++      'The sweep evaluates every size on your grid with a count-only packing routine that agrees exactly with the full layer solver, then ranks by cube utilisation and breaks ties toward the least disruptive change — so the top row is usually a carton you could order tomorrow, not a redesign.',
++    ],
++    faqH2: 'Questions',
++    ctaH2: 'Worth a bench review',
++    ctaBody:
++      'If the sweep shows several points of cube sitting on the table, the next questions are whether your product tolerates the change, what the tooling costs, and whether a mixed-SKU line can hold the new pattern. Twenty minutes, no slides — bring the CSV.',
++    toolLink: 'Check the pattern for one case →',
++  },
++  de: {
++    kicker: 'Kostenloses Werkzeug · Verpackungsdesign',
++    h1: 'Kartongrößen-Optimierer',
++    lead: 'Ihre Kartonmaße wurden einmal festgelegt und werden seither auf jeder Palette bezahlt. Dieses Werkzeug durchsucht die bestellbaren Maße und zeigt, was das beste wert ist — in Prozentpunkten Palettenraum.',
++    whyH2: 'Warum das die teure Entscheidung ist',
++    why: [
++      'Ein Palettenmuster ist eine Folge, keine Wahl. Sobald eine Kartonspezifikation freigegeben ist, stehen Kartons pro Lage, Lagenzahl und die mitversendete Luft bereits fest — und sie wiederholen sich auf jeder Palette, in jedem Lkw, über die gesamte Laufzeit des Artikels.',
++      'Die Arithmetik ist auf nützliche Weise unerbittlich: Die Lagenzahl ist eine Abrundung der nutzbaren Höhe durch die Kartonhöhe. Ein paar Millimeter zu hoch kostet eine ganze Lage; etwas zu niedrig lässt ein Band bezahlter Luft unter der Stretchfolie. Beides steht auf keinem Datenblatt.',
++      'Der Durchlauf bewertet jedes Maß Ihres Rasters mit einer reinen Zählroutine, die exakt mit dem vollständigen Lagenlöser übereinstimmt, sortiert nach Raumnutzung und entscheidet Gleichstände zugunsten der kleinsten Änderung — die oberste Zeile ist deshalb meist ein Karton, den Sie morgen bestellen könnten, keine Neukonstruktion.',
++    ],
++    faqH2: 'Fragen',
++    ctaH2: 'Ein Bench-Review wert',
++    ctaBody:
++      'Wenn der Durchlauf mehrere Prozentpunkte Raum offenlegt, lauten die nächsten Fragen: Verträgt das Produkt die Änderung, was kosten die Werkzeuge, und hält eine Misch-SKU-Linie das neue Muster? Zwanzig Minuten, keine Folien — bringen Sie die CSV mit.',
++    toolLink: 'Muster für einen Karton prüfen →',
++  },
++};
++
++export default function CaseOptimizerPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = BODY[lang];
++  const faqs = FAQS[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <CaseOptimizer labels={LABELS[lang]} lang={lang} />
++
++          <div className="prose">
++            <h2>{copy.whyH2}</h2>
++            {copy.why.map((paragraph) => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}
++
++            <h2>{copy.faqH2}</h2>
++            {faqs.map((f) => (
++              <div key={f.q}>
++                <h3>{f.q}</h3>
++                <p>{f.a}</p>
++              </div>
++            ))}
++
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>{copy.toolLink}</a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd
++        data={{
++          '@context': 'https://schema.org',
++          '@type': 'SoftwareApplication',
++          '@id': `${SITE_URL}${PATH}#tool`,
++          name: META[lang].title,
++          url: `${SITE_URL}${langHref(lang, PATH)}`,
++          applicationCategory: 'BusinessApplication',
++          operatingSystem: 'Web',
++          description: META[lang].description,
++          author: { '@id': `${SITE_URL}/#person` },
++          isAccessibleForFree: true,
++          offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
++        }}
++      />
++      <JsonLd
++        data={{
++          '@context': 'https://schema.org',
++          '@type': 'FAQPage',
++          '@id': `${SITE_URL}${PATH}#faq`,
++          mainEntity: faqs.map((f) => ({
++            '@type': 'Question',
++            name: f.q,
++            acceptedAnswer: { '@type': 'Answer', text: f.a },
++          })),
++        }}
++      />
++      <JsonLd
++        data={breadcrumbSchema(lang, [
++          { name: 'Grimaldi Engineering', path: '/' },
++          { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
++          { name: copy.h1, path: PATH },
++        ])}
++      />
++    </main>
++  );
++}
+diff --git a/app/[lang]/tools/page.tsx b/app/[lang]/tools/page.tsx
+index 935ce9b..48c336a 100644
+--- a/app/[lang]/tools/page.tsx
++++ b/app/[lang]/tools/page.tsx
+@@ -31,6 +31,17 @@ const COPY = {
+         name: 'Truck & container load calculator',
+         body: 'Pallets per 13.6 m trailer, 20 ft or 40 ft container. Floor spots, double-stacking, payload limit and floor utilisation.',
+       },
++      {
++        path: '/tools/case-size-optimizer',
++        tag: 'Packaging design',
++        name: 'Case size optimizer',
++        body: 'Sweep every carton size you could order and rank them by pallet cube utilisation — with the gain over your current case in percentage points.',
++      },
++    ],
++    referenceH2: 'Reference',
++    reference: [
++      { path: '/reference/pallet-sizes', name: 'Pallet sizes and standards', body: 'EPAL 1, 2, 3, 6 and the North American 48 × 40 — dimensions, own weight, safe working load, sources cited.' },
++      { path: '/reference/container-dimensions', name: 'Shipping container dimensions', body: 'Interior dimensions, tare, payload, volume and EUR pallets per container for 20 ft, 40 ft and high cube.' },
+     ],
+   },
+   de: {
+@@ -54,6 +65,17 @@ const COPY = {
+         name: 'Lkw- & Container-Laderechner',
+         body: 'Paletten pro 13,6-m-Auflieger, 20-Fuß- oder 40-Fuß-Container. Stellplätze, Doppelstockung, Nutzlastgrenze und Flächennutzung.',
+       },
++      {
++        path: '/tools/case-size-optimizer',
++        tag: 'Verpackungsdesign',
++        name: 'Kartongrößen-Optimierer',
++        body: 'Jedes bestellbare Kartonmaß durchrechnen und nach Palettenraumnutzung sortieren — mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten.',
++      },
++    ],
++    referenceH2: 'Referenz',
++    reference: [
++      { path: '/reference/pallet-sizes', name: 'Palettenmaße und Normen', body: 'EPAL 1, 2, 3, 6 und die nordamerikanische 48 × 40 — Maße, Eigengewicht, sichere Traglast, mit Quellen.' },
++      { path: '/reference/container-dimensions', name: 'Container-Abmessungen', body: 'Innenmaße, Leergewicht, Nutzlast, Volumen und Europaletten pro Container für 20 Fuß, 40 Fuß und High Cube.' },
+     ],
+   },
+ } as const;
+@@ -90,6 +112,17 @@ export default function ToolsIndex({ params }: PageProps) {
+             ))}
+           </div>
+           <p className="book-bring">{copy.chain}</p>
++
++          <h2 className="tools-ref-h2">{copy.referenceH2}</h2>
++          <div className="grid">
++            {copy.reference.map((ref) => (
++              <a className="card card-link" key={ref.path} href={langHref(lang, ref.path)}>
++                <h3>{ref.name}</h3>
++                <p>{ref.body}</p>
++                <span className="cta">{t.open}</span>
++              </a>
++            ))}
++          </div>
+           <p className="author-block">{t.authorLine}</p>
+         </div>
+       </div>
+diff --git a/app/[lang]/tools/pallet-pattern-calculator/page.tsx b/app/[lang]/tools/pallet-pattern-calculator/page.tsx
+index d15c577..6f4e511 100644
+--- a/app/[lang]/tools/pallet-pattern-calculator/page.tsx
++++ b/app/[lang]/tools/pallet-pattern-calculator/page.tsx
+@@ -252,6 +252,9 @@ export default function PatternCalculatorPage({ params }: PageProps) {
+ 
+           <div className="cta-row">
+             <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/tools/case-size-optimizer')}>
++              {lang === 'de' ? 'Kartongrößen-Optimierer →' : 'Case size optimizer →'}
++            </a>
+             <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>
+               {lang === 'de' ? 'Lkw-/Container-Laderechner →' : 'Truck & container load calculator →'}
+             </a>
+diff --git a/app/globals.css b/app/globals.css
+index 7adb9dc..225300d 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -307,3 +307,23 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
+ .calc-check { flex-direction: row; align-items: center; gap: .55rem; }
+ .calc-check input { width: auto; accent-color: var(--phosphor); }
+ .calc-box-label-sm { font-size: 90px; }
++
++/* ── v9: case optimiser tables + reference ──────────────────────────── */
++.calc-inputs-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
++.calc-result-block { padding: 1.5rem; }
++.calc-result-block h3 { margin: 0 0 .8rem; font-size: 1rem; }
++.calc-headline { margin: 0 0 1rem; font-size: .95rem; color: var(--text-2); line-height: 1.6; }
++.calc-headline-win { color: var(--phosphor); font-weight: 600; }
++.calc-table-wrap { overflow-x: auto; }
++.calc-table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
++.calc-table th { text-align: left; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: .5rem .7rem; border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
++.calc-table td { padding: .55rem .7rem; border-bottom: 1px solid var(--border); color: var(--text-2); white-space: nowrap; }
++.calc-table tbody tr:hover td { background: rgba(56, 189, 248, 0.05); }
++.calc-row-current td { color: var(--text); background: rgba(62, 245, 143, 0.06); }
++.calc-row-current em { font-style: normal; color: var(--muted); font-size: .78rem; }
++.calc-delta-up { color: var(--phosphor); font-weight: 600; }
++.calc-meta { margin: .9rem 0 0; font-size: .78rem; color: var(--muted); line-height: 1.6; }
++.ref-table td:first-child { color: var(--text); }
++.tools-ref-h2 { margin-top: 3rem; }
++.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
++@media (max-width: 980px) { .calc-inputs-3 { grid-template-columns: 1fr; } }
+diff --git a/app/sitemap.ts b/app/sitemap.ts
+index c300e65..82b9ff5 100644
+--- a/app/sitemap.ts
++++ b/app/sitemap.ts
+@@ -14,6 +14,9 @@ function logicalPaths(): { path: string; priority: number }[] {
+     { path: '/tools', priority: 0.8 },
+     { path: '/tools/pallet-pattern-calculator', priority: 0.9 },
+     { path: '/tools/truck-load-calculator', priority: 0.9 },
++    { path: '/tools/case-size-optimizer', priority: 0.9 },
++    { path: '/reference/pallet-sizes', priority: 0.8 },
++    { path: '/reference/container-dimensions', priority: 0.8 },
+     { path: '/lab', priority: 0.7 },
+     { path: '/lab/grid-droop', priority: 0.8 },
+     { path: '/book', priority: 0.9 },
+diff --git a/components/CaseOptimizer.tsx b/components/CaseOptimizer.tsx
+new file mode 100644
+index 0000000..b237133
+--- /dev/null
++++ b/components/CaseOptimizer.tsx
+@@ -0,0 +1,287 @@
++'use client';
++
++/**
++ * Case-size optimiser island. Sweeps thousands of candidate cartons in
++ * the browser (the count-only packer makes that cheap) and ranks them
++ * against the user's current case.
++ */
++
++import { useMemo, useState } from 'react';
++import { optimiseCase, type CaseRange, type Candidate, type CurrentCase } from '@/lib/caseoptimizer';
++import { PALLET_PRESETS, type PalletSpec } from '@/lib/palletize';
++
++export type OptimizerLabels = {
++  palletLegend: string;
++  preset: string;
++  custom: string;
++  palletLength: string;
++  palletWidth: string;
++  deckHeight: string;
++  maxHeight: string;
++  maxWeight: string;
++  currentLegend: string;
++  curLength: string;
++  curWidth: string;
++  curHeight: string;
++  curWeight: string;
++  rangeLegend: string;
++  minLength: string;
++  maxLength: string;
++  minWidth: string;
++  maxWidth: string;
++  minHeight: string;
++  maxHeight2: string;
++  step: string;
++  resultsLegend: string;
++  yourCase: string;
++  headerCase: string;
++  headerPerLayer: string;
++  headerLayers: string;
++  headerTotal: string;
++  headerCube: string;
++  headerDelta: string;
++  gainHeadline: string;
++  gainNone: string;
++  evaluated: string;
++  coarsened: string;
++  errInvalidRange: string;
++  errNothingFits: string;
++  errInvalid: string;
++  downloadCsv: string;
++  disclaimer: string;
++};
++
++export default function CaseOptimizer({
++  labels,
++  lang,
++}: {
++  labels: OptimizerLabels;
++  lang: 'en' | 'de';
++}) {
++  const [presetId, setPresetId] = useState(PALLET_PRESETS[0].id);
++  const [palletLength, setPalletLength] = useState(1200);
++  const [palletWidth, setPalletWidth] = useState(800);
++  const [deckHeight, setDeckHeight] = useState(144);
++  const [maxHeight, setMaxHeight] = useState(1800);
++  const [maxWeight, setMaxWeight] = useState(1000);
++
++  const [curLength, setCurLength] = useState(400);
++  const [curWidth, setCurWidth] = useState(300);
++  const [curHeight, setCurHeight] = useState(250);
++  const [curWeight, setCurWeight] = useState(5);
++
++  const [minLength, setMinLength] = useState(300);
++  const [maxLengthR, setMaxLengthR] = useState(500);
++  const [minWidth, setMinWidth] = useState(200);
++  const [maxWidthR, setMaxWidthR] = useState(400);
++  const [minHeightR, setMinHeightR] = useState(180);
++  const [maxHeightR, setMaxHeightR] = useState(320);
++  const [step, setStep] = useState(10);
++
++  const nf = useMemo(() => new Intl.NumberFormat(lang), [lang]);
++
++  function applyPreset(id: string) {
++    setPresetId(id);
++    const preset = PALLET_PRESETS.find((p) => p.id === id);
++    if (!preset) return;
++    setPalletLength(preset.length);
++    setPalletWidth(preset.width);
++    setDeckHeight(preset.height);
++  }
++
++  const pallet: PalletSpec = {
++    length: palletLength,
++    width: palletWidth,
++    height: deckHeight,
++    maxLoadHeight: maxHeight,
++    maxLoadWeight: maxWeight,
++  };
++  const current: CurrentCase = {
++    length: curLength, width: curWidth, height: curHeight, weight: curWeight,
++  };
++  const range: CaseRange = {
++    minLength, maxLength: maxLengthR,
++    minWidth, maxWidth: maxWidthR,
++    minHeight: minHeightR, maxHeight: maxHeightR,
++    step,
++  };
++
++  const result = useMemo(() => optimiseCase(pallet, current, range), [
++    palletLength, palletWidth, deckHeight, maxHeight, maxWeight,
++    curLength, curWidth, curHeight, curWeight,
++    minLength, maxLengthR, minWidth, maxWidthR, minHeightR, maxHeightR, step,
++  ]);
++
++  function downloadCsv() {
++    const rows: string[] = [];
++    rows.push('# Grimaldi Engineering - case size candidates (geometry only)');
++    rows.push('# Tooling, artwork, shelf fit and board cost are NOT modelled.');
++    rows.push(`# pallet_mm,${palletLength},${palletWidth},max_height_mm,${maxHeight},max_payload_kg,${maxWeight}`);
++    rows.push(`# current_case_mm,${curLength},${curWidth},${curHeight},kg,${curWeight}`);
++    rows.push('rank,length_mm,width_mm,height_mm,cases_per_layer,layers,cases_per_pallet,cube_utilisation_pct,load_height_mm,load_weight_kg');
++    if (result.current) {
++      const c = result.current;
++      rows.push(`current,${c.length},${c.width},${c.height},${c.casesPerLayer},${c.layers},${c.totalCases},${(c.cubeUtilisation * 100).toFixed(2)},${c.loadHeight},${c.loadWeight.toFixed(2)}`);
++    }
++    result.best.forEach((c, i) => {
++      rows.push(`${i + 1},${c.length},${c.width},${c.height},${c.casesPerLayer},${c.layers},${c.totalCases},${(c.cubeUtilisation * 100).toFixed(2)},${c.loadHeight},${c.loadWeight.toFixed(2)}`);
++    });
++    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
++    const url = globalThis.URL.createObjectURL(blob);
++    const a = document.createElement('a');
++    a.href = url;
++    a.download = `case-size-candidates-${palletLength}x${palletWidth}.csv`;
++    document.body.appendChild(a);
++    a.click();
++    document.body.removeChild(a);
++    globalThis.URL.revokeObjectURL(url);
++  }
++
++  const errorText =
++    result.reason === 'invalid-range'
++      ? labels.errInvalidRange
++      : result.reason === 'nothing-fits'
++        ? labels.errNothingFits
++        : result.reason === 'invalid-input'
++          ? labels.errInvalid
++          : null;
++
++  const pct = (v: number) => `${(v * 100).toFixed(1)} %`;
++  const dims = (c: Candidate) => `${c.length} × ${c.width} × ${c.height}`;
++
++  return (
++    <div className="calc">
++      <div className="calc-inputs calc-inputs-3">
++        <fieldset>
++          <legend>{labels.palletLegend}</legend>
++          <label className="calc-field calc-field-wide">
++            <span>{labels.preset}</span>
++            <select value={presetId} onChange={(e) => applyPreset(e.target.value)}>
++              {PALLET_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
++              <option value="custom">{labels.custom}</option>
++            </select>
++          </label>
++          <NumberField label={labels.palletLength} value={palletLength} onChange={(v) => { setPresetId('custom'); setPalletLength(v); }} />
++          <NumberField label={labels.palletWidth} value={palletWidth} onChange={(v) => { setPresetId('custom'); setPalletWidth(v); }} />
++          <NumberField label={labels.deckHeight} value={deckHeight} onChange={setDeckHeight} />
++          <NumberField label={labels.maxHeight} value={maxHeight} onChange={setMaxHeight} />
++          <NumberField label={labels.maxWeight} value={maxWeight} onChange={setMaxWeight} unit="kg" />
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.currentLegend}</legend>
++          <NumberField label={labels.curLength} value={curLength} onChange={setCurLength} />
++          <NumberField label={labels.curWidth} value={curWidth} onChange={setCurWidth} />
++          <NumberField label={labels.curHeight} value={curHeight} onChange={setCurHeight} />
++          <NumberField label={labels.curWeight} value={curWeight} onChange={setCurWeight} unit="kg" step={0.1} />
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.rangeLegend}</legend>
++          <NumberField label={labels.minLength} value={minLength} onChange={setMinLength} />
++          <NumberField label={labels.maxLength} value={maxLengthR} onChange={setMaxLengthR} />
++          <NumberField label={labels.minWidth} value={minWidth} onChange={setMinWidth} />
++          <NumberField label={labels.maxWidth} value={maxWidthR} onChange={setMaxWidthR} />
++          <NumberField label={labels.minHeight} value={minHeightR} onChange={setMinHeightR} />
++          <NumberField label={labels.maxHeight2} value={maxHeightR} onChange={setMaxHeightR} />
++          <NumberField label={labels.step} value={step} onChange={setStep} step={5} />
++        </fieldset>
++      </div>
++
++      <div className="calc-result-block">
++        <h3>{labels.resultsLegend}</h3>
++        {errorText ? (
++          <p className="calc-error" role="alert">{errorText}</p>
++        ) : (
++          <>
++            <p className={result.gainPoints > 0.05 ? 'calc-headline calc-headline-win' : 'calc-headline'}>
++              {result.gainPoints > 0.05
++                ? labels.gainHeadline
++                    .replace('{points}', result.gainPoints.toFixed(1))
++                    .replace('{cases}', nf.format(Math.abs(result.gainCases)))
++                : labels.gainNone}
++            </p>
++
++            <div className="calc-table-wrap">
++              <table className="calc-table">
++                <thead>
++                  <tr>
++                    <th>{labels.headerCase}</th>
++                    <th>{labels.headerPerLayer}</th>
++                    <th>{labels.headerLayers}</th>
++                    <th>{labels.headerTotal}</th>
++                    <th>{labels.headerCube}</th>
++                    <th>{labels.headerDelta}</th>
++                  </tr>
++                </thead>
++                <tbody>
++                  {result.current && (
++                    <tr className="calc-row-current">
++                      <td>{dims(result.current)} <em>{labels.yourCase}</em></td>
++                      <td>{nf.format(result.current.casesPerLayer)}</td>
++                      <td>{nf.format(result.current.layers)}</td>
++                      <td>{nf.format(result.current.totalCases)}</td>
++                      <td>{pct(result.current.cubeUtilisation)}</td>
++                      <td>—</td>
++                    </tr>
++                  )}
++                  {result.best.map((c) => {
++                    const delta = result.current
++                      ? (c.cubeUtilisation - result.current.cubeUtilisation) * 100
++                      : 0;
++                    return (
++                      <tr key={`${c.length}-${c.width}-${c.height}`}>
++                        <td>{dims(c)}</td>
++                        <td>{nf.format(c.casesPerLayer)}</td>
++                        <td>{nf.format(c.layers)}</td>
++                        <td>{nf.format(c.totalCases)}</td>
++                        <td>{pct(c.cubeUtilisation)}</td>
++                        <td className={delta > 0 ? 'calc-delta-up' : undefined}>
++                          {delta > 0 ? '+' : ''}{delta.toFixed(1)}
++                        </td>
++                      </tr>
++                    );
++                  })}
++                </tbody>
++              </table>
++            </div>
++
++            <p className="calc-meta">
++              {labels.evaluated.replace('{n}', nf.format(result.evaluated))}
++              {result.coarsened ? ` · ${labels.coarsened.replace('{step}', String(result.effectiveStep))}` : ''}
++            </p>
++
++            <button type="button" className="btn btn-line calc-download" onClick={downloadCsv}>
++              {labels.downloadCsv}
++            </button>
++          </>
++        )}
++      </div>
++
++      <p className="calc-disclaimer">{labels.disclaimer}</p>
++    </div>
++  );
++}
++
++function NumberField({
++  label, value, onChange, unit = 'mm', step = 1,
++}: {
++  label: string; value: number; onChange: (v: number) => void; unit?: string; step?: number;
++}) {
++  return (
++    <label className="calc-field">
++      <span>{label}</span>
++      <span className="calc-input-row">
++        <input
++          type="number"
++          inputMode="decimal"
++          min={0}
++          step={step}
++          value={Number.isFinite(value) ? value : ''}
++          onChange={(e) => onChange(Number(e.target.value))}
++        />
++        <em>{unit}</em>
++      </span>
++    </label>
++  );
++}
+diff --git a/lib/caseoptimizer.ts b/lib/caseoptimizer.ts
+new file mode 100644
+index 0000000..10fb08b
+--- /dev/null
++++ b/lib/caseoptimizer.ts
+@@ -0,0 +1,254 @@
++/**
++ * Case-size optimiser — the reverse question.
++ *
++ * The pattern calculator answers "how does MY case pack?". This answers
++ * "which case size in the range I can actually order packs best?", which
++ * is where the money is: case dimensions are chosen once, then paid for
++ * on every pallet and every truck for years.
++ *
++ * OBJECTIVE. Candidates are ranked by CUBE UTILISATION — the share of the
++ * usable pallet cube occupied by case volume. That is the honest general
++ * objective: if the case is the vessel your product ships in, more case
++ * volume per pallet is more product per pallet. Ranking by "cases per
++ * pallet" alone would reward shrinking the case, which ships less.
++ *
++ * STATED SIMPLIFICATIONS (surfaced in the UI, not buried here):
++ * - Every candidate in the range is assumed to physically suit the
++ *   product. The range is the user's to set; we do not model fit,
++ *   count-per-case, or integer product arrangement inside the case.
++ * - Candidate mass is derived from the current case's density, so the
++ *   payload limit stays meaningful across the sweep.
++ * - Tooling, artwork, retail-shelf fit and carton-board cost are real
++ *   and are NOT modelled. This ranks geometry only.
++ */
++
++import { maxCountIn } from './rectpack';
++import type { PalletSpec } from './palletize';
++
++export type CaseRange = {
++  minLength: number;
++  maxLength: number;
++  minWidth: number;
++  maxWidth: number;
++  minHeight: number;
++  maxHeight: number;
++  /** Grid resolution in mm. Clamped to a sane minimum. */
++  step: number;
++};
++
++export type CurrentCase = {
++  length: number;
++  width: number;
++  height: number;
++  weight: number;
++};
++
++export type Candidate = {
++  length: number;
++  width: number;
++  height: number;
++  weight: number;
++  casesPerLayer: number;
++  layers: number;
++  totalCases: number;
++  areaUtilisation: number;
++  cubeUtilisation: number;
++  loadHeight: number;
++  loadWeight: number;
++};
++
++export type OptimizeResult = {
++  ok: boolean;
++  reason?: 'invalid-range' | 'nothing-fits' | 'invalid-input';
++  /** The user's own case, evaluated on the same basis. */
++  current: Candidate | null;
++  /** Best candidates, cube utilisation descending. */
++  best: Candidate[];
++  evaluated: number;
++  /** True when the grid was too large and the step was widened. */
++  coarsened: boolean;
++  effectiveStep: number;
++  /** Percentage points of cube utilisation gained over the current case. */
++  gainPoints: number;
++  /** Extra cases per pallet versus the current case. */
++  gainCases: number;
++};
++
++const MIN_STEP = 5;
++const MAX_EVALUATIONS = 60000;
++
++function axisValues(min: number, max: number, step: number): number[] {
++  const out: number[] = [];
++  for (let v = min; v <= max + 1e-9; v += step) out.push(Math.round(v));
++  if (out.length === 0) out.push(min);
++  return out;
++}
++
++function evaluate(
++  pallet: PalletSpec,
++  usableHeight: number,
++  density: number,
++  length: number,
++  width: number,
++  height: number,
++  countPerLayer: number,
++): Candidate | null {
++  if (countPerLayer <= 0 || height <= 0 || height > usableHeight) return null;
++
++  const volume = length * width * height;
++  const weight = density * volume;
++  const layersByHeight = Math.floor(usableHeight / height);
++  const layerWeight = countPerLayer * weight;
++  const layersByWeight = layerWeight > 0 ? Math.floor(pallet.maxLoadWeight / layerWeight) : 0;
++  const layers = Math.max(0, Math.min(layersByHeight, layersByWeight));
++  if (layers === 0) return null;
++
++  const totalCases = countPerLayer * layers;
++  const deckArea = pallet.length * pallet.width;
++  const usableCube = deckArea * usableHeight;
++
++  return {
++    length,
++    width,
++    height,
++    weight,
++    casesPerLayer: countPerLayer,
++    layers,
++    totalCases,
++    areaUtilisation: deckArea > 0 ? (countPerLayer * length * width) / deckArea : 0,
++    cubeUtilisation: usableCube > 0 ? (totalCases * volume) / usableCube : 0,
++    loadHeight: pallet.height + layers * height,
++    loadWeight: totalCases * weight,
++  };
++}
++
++export function optimiseCase(
++  pallet: PalletSpec,
++  current: CurrentCase,
++  range: CaseRange,
++  limit = 8,
++): OptimizeResult {
++  const empty: OptimizeResult = {
++    ok: false,
++    current: null,
++    best: [],
++    evaluated: 0,
++    coarsened: false,
++    effectiveStep: range.step,
++    gainPoints: 0,
++    gainCases: 0,
++  };
++
++  const numbers = [
++    pallet.length, pallet.width, pallet.maxLoadHeight, pallet.maxLoadWeight,
++    current.length, current.width, current.height, current.weight,
++    range.minLength, range.maxLength, range.minWidth, range.maxWidth,
++    range.minHeight, range.maxHeight, range.step,
++  ];
++  if (!numbers.every((v) => Number.isFinite(v) && v > 0)) return { ...empty, reason: 'invalid-input' };
++  if (range.maxLength < range.minLength || range.maxWidth < range.minWidth || range.maxHeight < range.minHeight) {
++    return { ...empty, reason: 'invalid-range' };
++  }
++
++  const usableHeight = pallet.maxLoadHeight - pallet.height;
++  if (usableHeight <= 0) return { ...empty, reason: 'nothing-fits' };
++
++  const density = current.weight / (current.length * current.width * current.height);
++
++  // Widen the step if the requested grid is unreasonably large, and say so.
++  let step = Math.max(MIN_STEP, Math.round(range.step));
++  let coarsened = false;
++  const gridSize = (s: number) =>
++    axisValues(range.minLength, range.maxLength, s).length *
++    axisValues(range.minWidth, range.maxWidth, s).length *
++    axisValues(range.minHeight, range.maxHeight, s).length;
++  while (gridSize(step) > MAX_EVALUATIONS) {
++    step *= 2;
++    coarsened = true;
++  }
++
++  const lengths = axisValues(range.minLength, range.maxLength, step);
++  const widths = axisValues(range.minWidth, range.maxWidth, step);
++  const heights = axisValues(range.minHeight, range.maxHeight, step);
++
++  const found: Candidate[] = [];
++  let evaluated = 0;
++
++  for (const length of lengths) {
++    for (const width of widths) {
++      // Footprint packing is height-independent — compute it once.
++      const countPerLayer = maxCountIn(pallet.length, pallet.width, { length, width });
++      if (countPerLayer <= 0) {
++        evaluated += heights.length;
++        continue;
++      }
++      for (const height of heights) {
++        evaluated += 1;
++        const candidate = evaluate(pallet, usableHeight, density, length, width, height, countPerLayer);
++        if (candidate) found.push(candidate);
++      }
++    }
++  }
++
++  const currentCount = maxCountIn(pallet.length, pallet.width, {
++    length: current.length,
++    width: current.width,
++  });
++  const currentCandidate = evaluate(
++    pallet, usableHeight, density,
++    current.length, current.width, current.height, currentCount,
++  );
++
++  if (found.length === 0) {
++    return { ...empty, reason: 'nothing-fits', current: currentCandidate, evaluated, coarsened, effectiveStep: step };
++  }
++
++  // A case is defined by its footprint regardless of which side you call
++  // "length": 400x300 and 300x400 are the same carton. Collapse them.
++  // Packing already tries both orientations, so a candidate's length/width
++  // labelling is free. Orient every survivor the same way round as the
++  // current case, otherwise "same box, 20 mm taller" gets mis-scored below
++  // as a full redesign.
++  const currentLongFirst = current.length >= current.width;
++  const orient = (c: Candidate): Candidate => {
++    const lo = Math.min(c.length, c.width);
++    const hi = Math.max(c.length, c.width);
++    return { ...c, length: currentLongFirst ? hi : lo, width: currentLongFirst ? lo : hi };
++  };
++
++  const unique = new Map<string, Candidate>();
++  for (const raw of found) {
++    const c = orient(raw);
++    const key = `${Math.min(c.length, c.width)}x${Math.max(c.length, c.width)}x${c.height}`;
++    const seen = unique.get(key);
++    if (!seen || c.cubeUtilisation > seen.cubeUtilisation) unique.set(key, c);
++  }
++
++  // Rank by cube utilisation, then by how little the case has to change.
++  // An engineer can act on "same box, 20 mm taller"; they cannot act on
++  // "redesign the carton" for the same result.
++  const disruption = (c: Candidate) =>
++    Math.abs(c.length - current.length) / current.length +
++    Math.abs(c.width - current.width) / current.width +
++    Math.abs(c.height - current.height) / current.height;
++
++  const ranked = Array.from(unique.values()).sort((a, b) => {
++    const cube = b.cubeUtilisation - a.cubeUtilisation;
++    if (Math.abs(cube) > 1e-9) return cube;
++    return disruption(a) - disruption(b);
++  });
++
++  const best = ranked.slice(0, limit);
++  const top = best[0];
++
++  return {
++    ok: true,
++    current: currentCandidate,
++    best,
++    evaluated,
++    coarsened,
++    effectiveStep: step,
++    gainPoints: currentCandidate ? (top.cubeUtilisation - currentCandidate.cubeUtilisation) * 100 : 0,
++    gainCases: currentCandidate ? top.totalCases - currentCandidate.totalCases : 0,
++  };
++}
+diff --git a/lib/rectpack.ts b/lib/rectpack.ts
+index e2a7f81..a0d1ba4 100644
+--- a/lib/rectpack.ts
++++ b/lib/rectpack.ts
+@@ -169,3 +169,73 @@ export function shortlistPatterns(patterns: Pattern[], limit: number): Pattern[]
+   }
+   return out;
+ }
++
++/* ── Count-only fast path ─────────────────────────────────────────────
++ * Same three layout families, but allocating nothing. A case-dimension
++ * sweep evaluates thousands of candidates; building placement arrays for
++ * each would make it unusable in a browser. Counts here must always agree
++ * with enumeratePatterns()[0].count — there is a test vector for that.
++ * ------------------------------------------------------------------ */
++
++function columnCount(regionL: number, regionW: number, fx: number, fy: number): number {
++  if (fx <= 0 || fy <= 0) return 0;
++  return Math.floor(regionL / fx) * Math.floor(regionW / fy);
++}
++
++function regionCount(regionL: number, regionW: number, item: Footprint): number {
++  if (regionL <= 0 || regionW <= 0) return 0;
++  return Math.max(
++    columnCount(regionL, regionW, item.length, item.width),
++    columnCount(regionL, regionW, item.width, item.length),
++  );
++}
++
++/** Best achievable item count in an L × W region, counts only. */
++export function maxCountIn(regionL: number, regionW: number, item: Footprint): number {
++  if (regionL <= 0 || regionW <= 0 || item.length <= 0 || item.width <= 0) return 0;
++
++  let best = regionCount(regionL, regionW, item);
++
++  const xs = splitCandidatesFor(regionL, item);
++  const ys = splitCandidatesFor(regionW, item);
++
++  for (const sx of xs) {
++    if (sx <= 0 || sx >= regionL) continue;
++    best = Math.max(
++      best,
++      regionCount(sx, regionW, item) + regionCount(regionL - sx, regionW, item),
++    );
++  }
++  for (const sy of ys) {
++    if (sy <= 0 || sy >= regionW) continue;
++    best = Math.max(
++      best,
++      regionCount(regionL, sy, item) + regionCount(regionL, regionW - sy, item),
++    );
++  }
++  for (const sx of xs) {
++    if (sx <= 0 || sx >= regionL) continue;
++    for (const sy of ys) {
++      if (sy <= 0 || sy >= regionW) continue;
++      best = Math.max(
++        best,
++        regionCount(sx, sy, item) +
++          regionCount(regionL - sx, sy, item) +
++          regionCount(sx, regionW - sy, item) +
++          regionCount(regionL - sx, regionW - sy, item),
++      );
++    }
++  }
++
++  return best;
++}
++
++/** Exported twin of the internal split-candidate helper. */
++function splitCandidatesFor(span: number, item: Footprint): number[] {
++  const set = new Set<number>([0]);
++  for (const step of [item.length, item.width]) {
++    if (step <= 0) continue;
++    for (let v = step; v <= span; v += step) set.add(v);
++  }
++  return Array.from(set).sort((p, q) => p - q).slice(0, MAX_SPLIT_CANDIDATES);
++}
+diff --git a/lib/reference.ts b/lib/reference.ts
+new file mode 100644
+index 0000000..bad4951
+--- /dev/null
++++ b/lib/reference.ts
+@@ -0,0 +1,164 @@
++/**
++ * Reference data — standard pallets and standard containers.
++ *
++ * SOURCING RULE: every figure here was read off a primary or
++ * near-primary source (EPAL's own specification pages, ISO container
++ * references) and each table carries its sources on the rendered page.
++ * Figures that vary by manufacturer or carrier are labelled "typical"
++ * rather than presented as standards, because a reference page that
++ * quietly rounds is worse than no reference page.
++ *
++ * Interior container dimensions and payloads in particular vary between
++ * builders and operators; they are given here as the widely published
++ * nominal values and the page says to confirm with the carrier.
++ */
++
++import type { Localized } from './i18n';
++
++export type PalletStandard = {
++  id: string;
++  name: string;
++  /** Longer deck dimension, mm. */
++  length: number;
++  /** Shorter deck dimension, mm. */
++  width: number;
++  height: number;
++  /** Own weight, kg — typical. */
++  ownWeight: number | null;
++  /** Safe working load, kg, where the standard states one. */
++  safeWorkingLoad: number | null;
++  note: Localized;
++};
++
++export const PALLET_STANDARDS: PalletStandard[] = [
++  {
++    id: 'epal1',
++    name: 'EPAL 1 (EUR / Euro pallet)',
++    length: 1200,
++    width: 800,
++    height: 144,
++    ownWeight: 25,
++    safeWorkingLoad: 1500,
++    note: {
++      en: 'The European default. EPAL states an own weight of approximately 25 kg and a safe working load of 1,500 kg; when laden pallets are stacked on a solid, even surface the bottom pallet must not carry more than 5,500 kg.',
++      de: 'Der europäische Standard. EPAL nennt ein Eigengewicht von etwa 25 kg und eine sichere Traglast von 1.500 kg; beim Stapeln beladener Paletten auf festem, ebenem Untergrund darf die unterste Palette höchstens 5.500 kg tragen.',
++    },
++  },
++  {
++    id: 'epal2',
++    name: 'EPAL 2',
++    length: 1200,
++    width: 1000,
++    height: 144,
++    ownWeight: null,
++    safeWorkingLoad: null,
++    note: {
++      en: 'The 1200 × 1000 mm industrial format. Common in chemicals and beverages, and a better match for many 40 ft container loads than the EPAL 1.',
++      de: 'Das industrielle Format 1200 × 1000 mm. Verbreitet in Chemie und Getränken und für viele 40-Fuß-Containerladungen besser geeignet als die EPAL 1.',
++    },
++  },
++  {
++    id: 'epal3',
++    name: 'EPAL 3',
++    length: 1200,
++    width: 1000,
++    height: 144,
++    ownWeight: null,
++    safeWorkingLoad: null,
++    note: {
++      en: 'A heavier-duty 1000 × 1200 mm construction. Same footprint as the EPAL 2, different build.',
++      de: 'Eine schwerere Ausführung im Format 1000 × 1200 mm. Gleiche Grundfläche wie die EPAL 2, andere Bauweise.',
++    },
++  },
++  {
++    id: 'epal6',
++    name: 'EPAL 6 (half pallet)',
++    length: 800,
++    width: 600,
++    height: 144,
++    ownWeight: null,
++    safeWorkingLoad: null,
++    note: {
++      en: 'Half the EPAL 1 footprint — 800 × 600 mm. Used for retail display and smaller consignments; also known as the Düsseldorf pallet.',
++      de: 'Halbe EPAL-1-Grundfläche — 800 × 600 mm. Für Verkaufsdisplays und kleinere Sendungen; auch Düsseldorfer Palette genannt.',
++    },
++  },
++  {
++    id: 'na48x40',
++    name: 'North American 48" × 40"',
++    length: 1219,
++    width: 1016,
++    height: 140,
++    ownWeight: null,
++    safeWorkingLoad: null,
++    note: {
++      en: 'The dominant North American format, 48 × 40 inches (1219 × 1016 mm). Height varies by build; 140 mm is typical.',
++      de: 'Das vorherrschende nordamerikanische Format, 48 × 40 Zoll (1219 × 1016 mm). Die Höhe variiert je nach Bauart; 140 mm ist typisch.',
++    },
++  },
++];
++
++export type ContainerStandard = {
++  id: string;
++  name: string;
++  /** Nominal interior dimensions, mm. */
++  interiorLength: number;
++  interiorWidth: number;
++  interiorHeight: number;
++  /** Typical tare, kg. */
++  tare: number;
++  /** Typical maximum payload, kg. */
++  payload: number;
++  /** Nominal interior volume, m³. */
++  volume: number;
++  /** EPAL 1 pallets in a single floor tier, from this site's own solver. */
++  eurPallets: number;
++};
++
++export const CONTAINER_STANDARDS: ContainerStandard[] = [
++  {
++    id: 'c20',
++    name: '20 ft standard',
++    interiorLength: 5898,
++    interiorWidth: 2352,
++    interiorHeight: 2393,
++    tare: 2300,
++    payload: 28200,
++    volume: 33,
++    eurPallets: 11,
++  },
++  {
++    id: 'c40',
++    name: '40 ft standard',
++    interiorLength: 12032,
++    interiorWidth: 2352,
++    interiorHeight: 2393,
++    tare: 3700,
++    payload: 26700,
++    volume: 67,
++    eurPallets: 25,
++  },
++  {
++    id: 'c40hc',
++    name: '40 ft high cube',
++    interiorLength: 12032,
++    interiorWidth: 2352,
++    interiorHeight: 2698,
++    tare: 3900,
++    payload: 26500,
++    volume: 76,
++    eurPallets: 25,
++  },
++];
++
++export type SourceLink = { label: string; url: string };
++
++export const PALLET_SOURCES: SourceLink[] = [
++  { label: 'EPAL — EPAL Euro pallet specification', url: 'https://www.epal-pallets.org/eu-en/load-carriers/epal-euro-pallet' },
++  { label: 'Wikipedia — EUR-pallet', url: 'https://en.wikipedia.org/wiki/EUR-pallet' },
++];
++
++export const CONTAINER_SOURCES: SourceLink[] = [
++  { label: 'iContainers — 40 ft container dimensions', url: 'https://www.icontainers.com/help/40-foot-container/' },
++  { label: 'iContainers — 20 ft container dimensions', url: 'https://www.icontainers.com/help/20-foot-container/' },
++];
+-- 
+2.43.0
+
