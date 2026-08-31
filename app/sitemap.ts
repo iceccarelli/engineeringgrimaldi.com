@@ -1,30 +1,34 @@
 import type { MetadataRoute } from 'next';
-import { disciplines } from '@/lib/disciplines';
-import { forgeLine } from '@/lib/forge';
 import { langHref } from '@/lib/i18n';
+import { allNavPaths } from '@/lib/nav';
 import { SITE_URL } from '@/lib/site';
+import { solutions } from '@/lib/solutions';
 
-/** Logical paths (unprefixed). Each emits an en + de entry with hreflang. */
+/**
+ * The sitemap derives from the navigation spine, so a page that is in the
+ * menu is in the sitemap by construction and a page in neither does not
+ * silently exist. Only genuinely unlinked-but-indexable extras are added
+ * explicitly below.
+ */
 function logicalPaths(): { path: string; priority: number }[] {
+  const priorityFor = (path: string): number => {
+    if (path === '/') return 1;
+    if (path.startsWith('/tools/') || path.startsWith('/forge/')) return 0.9;
+    if (path.startsWith('/solutions')) return 0.9;
+    if (path === '/pricing' || path === '/book') return 0.9;
+    if (path.startsWith('/reference/')) return 0.8;
+    if (path.startsWith('/disciplines/')) return 0.7;
+    return 0.8;
+  };
+
+  const paths = new Set<string>(['/', ...allNavPaths()]);
+  for (const s of solutions) paths.add(`/solutions/${s.slug}`);
+  // Legal pages are noindex but remain listed for completeness.
+  const extras = ['/impressum', '/datenschutz'];
+
   return [
-    { path: '/', priority: 1 },
-    { path: '/forge', priority: 0.9 },
-    ...forgeLine.map((p) => ({ path: `/forge/${p.slug}`, priority: 0.9 })),
-    ...disciplines.map((d) => ({ path: `/disciplines/${d.slug}`, priority: 0.7 })),
-    { path: '/tools', priority: 0.8 },
-    { path: '/tools/pallet-pattern-calculator', priority: 0.9 },
-    { path: '/tools/truck-load-calculator', priority: 0.9 },
-    { path: '/tools/case-size-optimizer', priority: 0.9 },
-    { path: '/tools/motor-sizing-calculator', priority: 0.9 },
-    { path: '/tools/battery-pack-calculator', priority: 0.9 },
-    { path: '/tools/control-loop-calculator', priority: 0.9 },
-    { path: '/reference/pallet-sizes', priority: 0.8 },
-    { path: '/reference/container-dimensions', priority: 0.8 },
-    { path: '/lab', priority: 0.7 },
-    { path: '/lab/grid-droop', priority: 0.8 },
-    { path: '/book', priority: 0.9 },
-    { path: '/impressum', priority: 0.2 },
-    { path: '/datenschutz', priority: 0.2 },
+    ...Array.from(paths).map((path) => ({ path, priority: priorityFor(path) })),
+    ...extras.map((path) => ({ path, priority: 0.2 })),
   ];
 }
 

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import BookCTA from '@/components/BookCTA';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import JsonLd from '@/components/JsonLd';
 import PatternCalculator, { type CalculatorLabels } from '@/components/PatternCalculator';
 import { getDict } from '@/lib/dict';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
-import { breadcrumbSchema } from '@/lib/schema';
 import { SITE_URL } from '@/lib/site';
 
 /**
@@ -225,6 +225,11 @@ export default function PatternCalculatorPage({ params }: PageProps) {
     <main>
       <div className="sheet sheet-top">
         <div className="section">
+          <Breadcrumbs lang={lang} crumbs={[
+            { name: 'Grimaldi Engineering', path: '/' },
+            { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
+            { name: copy.h1, path: PATH },
+          ]} />
           <span className="kicker">{copy.kicker}</span>
           <h1>{copy.h1}</h1>
           <p className="intro">{copy.lead}</p>
@@ -291,13 +296,6 @@ export default function PatternCalculatorPage({ params }: PageProps) {
             acceptedAnswer: { '@type': 'Answer', text: f.a },
           })),
         }}
-      />
-      <JsonLd
-        data={breadcrumbSchema(lang, [
-          { name: 'Grimaldi Engineering', path: '/' },
-          { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
-          { name: copy.h1, path: PATH },
-        ])}
       />
     </main>
   );
