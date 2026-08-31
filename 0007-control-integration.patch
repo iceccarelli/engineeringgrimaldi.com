@@ -1,0 +1,935 @@
+From 1ca92b8ad94e0d8e9f244cc6810273041bda0f10 Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Mon, 31 Aug 2026 03:17:12 +0000
+Subject: [PATCH] feat(v11): machine control and software integration
+
+The layer where software becomes machine behaviour, with the budget that
+decides whether it holds.
+
+- lib/control.ts: loop dead-time budget (ZOH + sensor + transport +
+  compute + actuator), phase lag phi = 360*f*Td, achievable closed-loop
+  bandwidth inverted from a chosen phase budget, sample-rate adequacy
+  against the 10-20x rule; plus fieldbus frame time, bus utilisation,
+  axes that fit a cycle and the fastest cycle an axis count supports.
+  Verified by hand: 1 kHz loop with 700 us transport gives 1.2 ms dead
+  time and 69.4 Hz at a 30 deg budget, and the phase-lag round trip
+  closes exactly on the budget.
+- /tools/control-loop-calculator (en + de): both budgets, verdict codes
+  for marginal sampling, delay-dominated architecture, compute overrun,
+  dead time exceeding a period, and bus over-capacity.
+- /disciplines/control-integration (en + de): determinism and bounded
+  worst-case timing, motion profiles and kinematics, fieldbus budgets,
+  state machines and diagnostics, and the agentic layer above them.
+
+The safety boundary is stated on both pages and is not negotiable: an
+agent may interpret, propose, explain and generate; it may not close a
+cycle-time-critical loop and may never implement a safety function.
+Safety-rated stopping, speed and separation monitoring, interlocks and
+emergency stop belong on qualified hardware under their own standards.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TyfRUMoVXepxUnmXyYyR7r
+---
+ .../tools/control-loop-calculator/page.tsx    | 246 ++++++++++++++++++
+ app/[lang]/tools/page.tsx                     |  12 +
+ app/globals.css                               |   1 +
+ app/sitemap.ts                                |   1 +
+ components/ControlBudget.tsx                  | 243 +++++++++++++++++
+ lib/control.ts                                | 222 ++++++++++++++++
+ lib/dict.ts                                   |  12 +-
+ lib/disciplines.ts                            |  35 +++
+ lib/schema.ts                                 |   3 +
+ 9 files changed, 769 insertions(+), 6 deletions(-)
+ create mode 100644 app/[lang]/tools/control-loop-calculator/page.tsx
+ create mode 100644 components/ControlBudget.tsx
+ create mode 100644 lib/control.ts
+
+diff --git a/app/[lang]/tools/control-loop-calculator/page.tsx b/app/[lang]/tools/control-loop-calculator/page.tsx
+new file mode 100644
+index 0000000..ebc7954
+--- /dev/null
++++ b/app/[lang]/tools/control-loop-calculator/page.tsx
+@@ -0,0 +1,246 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import ControlBudget, { type ControlLabels } from '@/components/ControlBudget';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++import { SITE_URL } from '@/lib/site';
++
++type PageProps = { params: { lang: string } };
++const PATH = '/tools/control-loop-calculator';
++
++const META = {
++  en: {
++    title: 'Control Loop & Fieldbus Budget Calculator — Latency, Bandwidth, Bus Load',
++    description:
++      'Free control loop calculator: sample period, zero-order-hold and transport dead time, achievable closed-loop bandwidth for a phase budget, plus fieldbus frame time, bus utilisation and axes per cycle.',
++  },
++  de: {
++    title: 'Regelkreis- & Feldbus-Budgetrechner — Latenz, Bandbreite, Buslast',
++    description:
++      'Kostenloser Regelkreisrechner: Abtastperiode, Halteglied- und Transporttotzeit, erreichbare Regelbandbreite für ein Phasenbudget sowie Feldbus-Rahmenzeit, Busauslastung und Achsen pro Zyklus.',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: META[lang].title,
++    description: META[lang].description,
++    alternates: pageAlternates(lang, PATH),
++    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++  };
++}
++
++const LABELS: Record<Lang, ControlLabels> = {
++  en: {
++    loopLegend: 'Control loop',
++    sampleRate: 'Sample rate',
++    sensorLatency: 'Sensor acquisition',
++    commsIn: 'Transport in',
++    compute: 'Computation',
++    commsOut: 'Transport out',
++    actuatorLatency: 'Drive & actuator',
++    phaseBudget: 'Phase budget for delay',
++    busLegend: 'Fieldbus',
++    busPreset: 'Bus',
++    custom: 'Custom',
++    axes: 'Coordinated axes',
++    bytesPerAxis: 'Process data per axis',
++    overheadBytes: 'Frame overhead',
++    bitrate: 'Line rate',
++    cycleTime: 'Cycle time',
++    loopResults: 'Loop budget',
++    samplePeriod: 'Sample period',
++    nyquist: 'Nyquist frequency',
++    zohDelay: 'Zero-order-hold delay',
++    transportDelay: 'Transport + compute delay',
++    deadTime: 'Total dead time',
++    deadTimeInSamples: 'Dead time in samples',
++    maxBandwidth: 'Achievable bandwidth',
++    samplesPerBandwidth: 'Samples per bandwidth',
++    busResults: 'Bus budget',
++    frameBytes: 'Frame size',
++    frameTime: 'Wire time per cycle',
++    utilisation: 'Bus utilisation',
++    headroom: 'Cycle headroom',
++    maxAxes: 'Axes that fit this cycle',
++    minCycle: 'Fastest cycle for these axes',
++    flagsH: 'Verdicts',
++    fSampleMarginal: 'Sample rate is under ten times the achievable bandwidth. The usual guidance is 10–20×; below that, discretisation starts shaping the response you tuned.',
++    fDelayDominates: 'Transport and computation exceed the hold delay: the architecture, not the sample rate, is limiting this loop. Raising the sample rate will not help until the path gets shorter.',
++    fComputeOver: 'Computation consumes more than half the sample period. Jitter and worst-case execution time need bounding before this schedule is trustworthy.',
++    fDeadtimeExceeds: 'Total dead time exceeds one sample period. The controller is acting on information already older than its own cycle.',
++    fOverCapacity: 'Bus data does not fit the cycle. Reduce axes or process data, shorten the frame, raise the line rate, or lengthen the cycle.',
++    fTight: 'Bus utilisation above 70 %. Little room for diagnostics, asynchronous traffic or added axes.',
++    fHeadroomOk: 'Bus has comfortable headroom at this cycle.',
++    noFlags: 'No verdicts raised for this budget.',
++    errInvalid: 'Check the inputs: sample rate and bus parameters positive, latencies non-negative, phase budget between 0 and 180°.',
++    downloadCsv: 'Download budget (CSV)',
++    disclaimer:
++      'First-order budgets. The bandwidth figure is the ceiling imposed by dead time alone, for the phase you chose to spend on it — it is not a stability result. Real loops are also shaped by plant dynamics, mechanical resonance, quantisation, jitter distribution and non-linear friction. Bus figures assume the stated payload every cycle with no retransmission, topology delay or asynchronous traffic. Nothing here is a safety-function analysis: safety-rated stopping, monitoring and interlocks are designed and validated under their own standards, not budgeted on this page.',
++  },
++  de: {
++    loopLegend: 'Regelkreis',
++    sampleRate: 'Abtastrate',
++    sensorLatency: 'Sensorerfassung',
++    commsIn: 'Transport hin',
++    compute: 'Berechnung',
++    commsOut: 'Transport zurück',
++    actuatorLatency: 'Antrieb & Aktor',
++    phaseBudget: 'Phasenbudget für Totzeit',
++    busLegend: 'Feldbus',
++    busPreset: 'Bus',
++    custom: 'Benutzerdefiniert',
++    axes: 'Koordinierte Achsen',
++    bytesPerAxis: 'Prozessdaten je Achse',
++    overheadBytes: 'Rahmen-Overhead',
++    bitrate: 'Übertragungsrate',
++    cycleTime: 'Zykluszeit',
++    loopResults: 'Regelkreis-Budget',
++    samplePeriod: 'Abtastperiode',
++    nyquist: 'Nyquist-Frequenz',
++    zohDelay: 'Halteglied-Totzeit',
++    transportDelay: 'Transport- und Rechenzeit',
++    deadTime: 'Gesamttotzeit',
++    deadTimeInSamples: 'Totzeit in Abtastschritten',
++    maxBandwidth: 'Erreichbare Bandbreite',
++    samplesPerBandwidth: 'Abtastungen je Bandbreite',
++    busResults: 'Bus-Budget',
++    frameBytes: 'Rahmengröße',
++    frameTime: 'Übertragungszeit je Zyklus',
++    utilisation: 'Busauslastung',
++    headroom: 'Zyklusreserve',
++    maxAxes: 'Achsen in diesem Zyklus',
++    minCycle: 'Schnellster Zyklus für diese Achsen',
++    flagsH: 'Bewertungen',
++    fSampleMarginal: 'Die Abtastrate liegt unter dem Zehnfachen der erreichbaren Bandbreite. Üblich sind 10–20×; darunter prägt die Diskretisierung das Verhalten, das Sie eingestellt haben.',
++    fDelayDominates: 'Transport und Berechnung übersteigen die Halteglied-Totzeit: Nicht die Abtastrate, sondern die Architektur begrenzt diesen Kreis. Eine höhere Abtastrate hilft erst, wenn der Pfad kürzer wird.',
++    fComputeOver: 'Die Berechnung belegt mehr als die halbe Abtastperiode. Jitter und Worst-Case-Ausführungszeit müssen begrenzt werden, bevor dieser Zeitplan belastbar ist.',
++    fDeadtimeExceeds: 'Die Gesamttotzeit übersteigt eine Abtastperiode. Der Regler handelt auf Basis von Information, die älter ist als sein eigener Zyklus.',
++    fOverCapacity: 'Die Busdaten passen nicht in den Zyklus. Achsen oder Prozessdaten reduzieren, Rahmen verkürzen, Übertragungsrate erhöhen oder Zyklus verlängern.',
++    fTight: 'Busauslastung über 70 %. Wenig Raum für Diagnose, azyklischen Verkehr oder zusätzliche Achsen.',
++    fHeadroomOk: 'Der Bus hat bei diesem Zyklus komfortable Reserve.',
++    noFlags: 'Für dieses Budget wurden keine Bewertungen ausgelöst.',
++    errInvalid: 'Eingaben prüfen: Abtastrate und Busparameter positiv, Latenzen nicht negativ, Phasenbudget zwischen 0 und 180°.',
++    downloadCsv: 'Budget herunterladen (CSV)',
++    disclaimer:
++      'Budgets erster Ordnung. Der Bandbreitenwert ist die allein durch die Totzeit gesetzte Obergrenze für die von Ihnen dafür aufgewendete Phase — kein Stabilitätsnachweis. Reale Kreise werden zusätzlich von Streckendynamik, mechanischen Resonanzen, Quantisierung, Jitter-Verteilung und nichtlinearer Reibung geprägt. Die Buswerte unterstellen die angegebene Nutzlast in jedem Zyklus ohne Wiederholungen, Topologielaufzeit oder azyklischen Verkehr. Nichts hiervon ist eine Sicherheitsfunktionsanalyse: sicherheitsgerichtetes Stillsetzen, Überwachung und Verriegelungen werden nach eigenen Normen ausgelegt und validiert, nicht auf dieser Seite budgetiert.',
++  },
++};
++
++const FAQS: Record<Lang, { q: string; a: string }[]> = {
++  en: [
++    { q: 'Why does dead time cap bandwidth?', a: 'A pure delay contributes phase lag proportional to frequency — 360·f·Td degrees — while contributing no attenuation. Gain cannot buy that back and a PID cannot tune it away. Decide how much phase margin you are willing to spend on delay, and that fixes the crossover frequency you can reach. Everything else in the loop then has to fit inside what is left.' },
++    { q: 'Why add half a sample period?', a: 'A zero-order hold applies each computed output until the next update, so on average the actuator acts on a command half a period old. It is the cheapest delay to describe and one of the easiest to forget, and at low sample rates it dominates everything else in the budget.' },
++    { q: 'What does "delay dominates" actually mean for me?', a: 'That transport and computation together exceed the hold delay — so the loop is limited by where the code runs and how it gets to the drive, not by how often it runs. Doubling the sample rate in that regime buys almost nothing. Moving the loop closer to the actuator, or shortening the communication path, buys everything.' },
++    { q: 'Is the bus calculation specific to one protocol?', a: 'No, deliberately. You give payload per axis, frame overhead and line rate, so it applies to any cyclic industrial network. Protocol-specific behaviour — summation frames, distributed clocks, topology propagation, retransmission — is not modelled, so treat the result as the floor of what the wire costs you, not the whole story.' },
++  ],
++  de: [
++    { q: 'Warum begrenzt die Totzeit die Bandbreite?', a: 'Eine reine Totzeit erzeugt eine frequenzproportionale Phasendrehung — 360·f·Td Grad — ohne jede Dämpfung. Verstärkung holt das nicht zurück, und ein PID kann es nicht wegregeln. Legen Sie fest, wie viel Phasenreserve Sie für die Totzeit ausgeben, und damit steht die erreichbare Durchtrittsfrequenz fest. Alles Übrige muss in den Rest passen.' },
++    { q: 'Warum eine halbe Abtastperiode?', a: 'Ein Halteglied hält jeden berechneten Stellwert bis zur nächsten Aktualisierung, sodass der Aktor im Mittel auf einen halbe Periode alten Befehl reagiert. Es ist die am einfachsten zu beschreibende und am leichtesten zu vergessende Totzeit — bei niedrigen Abtastraten dominiert sie das gesamte Budget.' },
++    { q: 'Was bedeutet „Totzeit dominiert“ praktisch?', a: 'Dass Transport und Berechnung zusammen die Halteglied-Totzeit übersteigen — der Kreis wird also davon begrenzt, wo der Code läuft und wie er zum Antrieb gelangt, nicht davon, wie oft er läuft. Eine verdoppelte Abtastrate bringt in diesem Bereich fast nichts. Den Regler näher an den Aktor zu holen oder den Kommunikationsweg zu verkürzen bringt alles.' },
++    { q: 'Gilt die Busrechnung für ein bestimmtes Protokoll?', a: 'Bewusst nein. Sie geben Nutzlast je Achse, Rahmen-Overhead und Übertragungsrate an — damit gilt sie für jedes zyklische Industrienetz. Protokollspezifisches Verhalten wie Summenrahmen, verteilte Uhren, Topologielaufzeit oder Wiederholungen wird nicht modelliert; das Ergebnis ist die Untergrenze der Leitungskosten, nicht die ganze Geschichte.' },
++  ],
++};
++
++const BODY: Record<Lang, { kicker: string; h1: string; lead: string; methodH2: string; method: string[]; faqH2: string; safetyH2: string; safety: string; ctaH2: string; ctaBody: string; link: string }> = {
++  en: {
++    kicker: 'Free tool · Control & integration',
++    h1: 'Control loop & fieldbus budget',
++    lead: 'Where software meets a machine, two budgets decide whether it works: the dead time around the loop, and the data that has to cross the bus every cycle. Both are computed here.',
++    methodH2: 'What it computes',
++    method: [
++      'The loop budget adds every delay between measuring and acting — sensor acquisition, transport in, computation, transport out, drive and actuator response — and puts half a sample period on top for the zero-order hold. That total is dead time, and dead time is the one term in a control loop that neither gain nor clever tuning can remove.',
++      'Because a pure delay costs phase in proportion to frequency, the achievable closed-loop bandwidth follows directly from how much phase margin you are willing to spend on it. The tool inverts that relation: choose a phase budget, get the crossover frequency dead time still allows, and check it against the classic guidance of sampling ten to twenty times faster than the bandwidth you want.',
++      'The bus budget is simpler arithmetic with sharper consequences: axis count times process data per axis, plus frame overhead, over the line rate. It answers how many joints one controller can actually coordinate at a given cycle, and how fast a cycle a given axis count can support — the constraint that quietly decides cell architecture.',
++    ],
++    faqH2: 'Questions',
++    safetyH2: 'Where the agent layer stops',
++    safety:
++      'Language models and planning agents belong on the supervisory side of this boundary: interpreting a task, generating a candidate plan, selecting a pattern, explaining a fault, writing a recipe a deterministic controller will then execute. They do not belong inside a cycle-time-critical loop, and they never belong inside a safety function. Safety-rated stopping, speed and separation monitoring, interlocks and emergency stop are designed, implemented and validated under their own standards on hardware qualified for it. Any architecture that puts a probabilistic component in that path is not an innovation; it is a defect. This is the line the tool above exists to make explicit — one side is budgeted in microseconds, the other is not budgeted at all.',
++    ctaH2: 'Integrating software with a real machine',
++    ctaBody: 'Most integration problems present as a tuning problem and turn out to be a topology problem — the loop is closed in the wrong place, or the bus was specified before the axis count was known. Twenty minutes, no slides — bring the CSV.',
++    link: 'Servo motor sizing calculator →',
++  },
++  de: {
++    kicker: 'Kostenloses Werkzeug · Regelung & Integration',
++    h1: 'Regelkreis- & Feldbus-Budget',
++    lead: 'Wo Software auf eine Maschine trifft, entscheiden zwei Budgets: die Totzeit im Kreis und die Daten, die jeden Zyklus über den Bus müssen. Beide werden hier berechnet.',
++    methodH2: 'Was berechnet wird',
++    method: [
++      'Das Kreisbudget summiert jede Verzögerung zwischen Messen und Stellen — Sensorerfassung, Transport hin, Berechnung, Transport zurück, Antriebs- und Aktorreaktion — und addiert eine halbe Abtastperiode für das Halteglied. Diese Summe ist die Totzeit, und sie ist der eine Term im Regelkreis, den weder Verstärkung noch geschickte Einstellung entfernen kann.',
++      'Da eine reine Totzeit Phase proportional zur Frequenz kostet, folgt die erreichbare Regelbandbreite unmittelbar daraus, wie viel Phasenreserve Sie dafür ausgeben. Das Werkzeug kehrt diese Beziehung um: Phasenbudget wählen, die von der Totzeit noch erlaubte Durchtrittsfrequenz erhalten und gegen die klassische Regel prüfen, zehn- bis zwanzigmal schneller abzutasten als die gewünschte Bandbreite.',
++      'Das Busbudget ist einfachere Arithmetik mit schärferen Folgen: Achsenzahl mal Prozessdaten je Achse plus Rahmen-Overhead, geteilt durch die Übertragungsrate. Es beantwortet, wie viele Gelenke eine Steuerung bei gegebenem Zyklus tatsächlich koordinieren kann und welchen Zyklus eine gegebene Achsenzahl trägt — die Randbedingung, die still über die Zellenarchitektur entscheidet.',
++    ],
++    faqH2: 'Fragen',
++    safetyH2: 'Wo die Agentenebene aufhört',
++    safety:
++      'Sprachmodelle und planende Agenten gehören auf die übergeordnete Seite dieser Grenze: eine Aufgabe interpretieren, einen Planvorschlag erzeugen, ein Muster auswählen, einen Fehler erklären, ein Rezept schreiben, das anschließend ein deterministischer Regler ausführt. Sie gehören nicht in einen zykluszeitkritischen Kreis und niemals in eine Sicherheitsfunktion. Sicherheitsgerichtetes Stillsetzen, Geschwindigkeits- und Abstandsüberwachung, Verriegelungen und Not-Halt werden nach eigenen Normen auf dafür qualifizierter Hardware ausgelegt, umgesetzt und validiert. Eine Architektur, die eine probabilistische Komponente in diesen Pfad setzt, ist keine Innovation, sondern ein Mangel. Genau diese Linie soll das Werkzeug oben sichtbar machen — die eine Seite wird in Mikrosekunden budgetiert, die andere gar nicht.',
++    ctaH2: 'Software mit einer echten Maschine integrieren',
++    ctaBody: 'Die meisten Integrationsprobleme treten als Einstellproblem auf und sind Topologieprobleme — der Kreis wird an der falschen Stelle geschlossen, oder der Bus wurde vor der Achsenzahl festgelegt. Zwanzig Minuten, keine Folien — bringen Sie die CSV mit.',
++    link: 'Servomotor-Auslegungsrechner →',
++  },
++};
++
++export default function ControlLoopPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = BODY[lang];
++  const faqs = FAQS[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <ControlBudget labels={LABELS[lang]} lang={lang} />
++
++          <div className="prose">
++            <h2>{copy.methodH2}</h2>
++            <p className="formula">φ(f) = 360 · f · T_d&nbsp;&nbsp;·&nbsp;&nbsp;T_d = T_s/2 + Σ latencies&nbsp;&nbsp;·&nbsp;&nbsp;f_max = φ_budget / (360 · T_d)</p>
++            {copy.method.map((p) => <p key={p.slice(0, 40)}>{p}</p>)}
++
++            <h2>{copy.safetyH2}</h2>
++            <p className="boundary-note">{copy.safety}</p>
++
++            <h2>{copy.faqH2}</h2>
++            {faqs.map((f) => (<div key={f.q}><h3>{f.q}</h3><p>{f.a}</p></div>))}
++
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/tools/motor-sizing-calculator')}>{copy.link}</a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'SoftwareApplication',
++        '@id': `${SITE_URL}${PATH}#tool`, name: META[lang].title,
++        url: `${SITE_URL}${langHref(lang, PATH)}`,
++        applicationCategory: 'EngineeringApplication', operatingSystem: 'Web',
++        description: META[lang].description, author: { '@id': `${SITE_URL}/#person` },
++        isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
++      }} />
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'FAQPage', '@id': `${SITE_URL}${PATH}#faq`,
++        mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
++      }} />
++      <JsonLd data={breadcrumbSchema(lang, [
++        { name: 'Grimaldi Engineering', path: '/' },
++        { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
++        { name: copy.h1, path: PATH },
++      ])} />
++    </main>
++  );
++}
+diff --git a/app/[lang]/tools/page.tsx b/app/[lang]/tools/page.tsx
+index 2411f67..6daae61 100644
+--- a/app/[lang]/tools/page.tsx
++++ b/app/[lang]/tools/page.tsx
+@@ -49,6 +49,12 @@ const COPY = {
+         name: 'Battery pack calculator',
+         body: 'S/P topology, voltage window, energy, C-rate headroom, runtime, resistive loss — with the design flags that catch a pack before it is built.',
+       },
++      {
++        path: '/tools/control-loop-calculator',
++        tag: 'Control & integration',
++        name: 'Control loop & fieldbus budget',
++        body: 'Dead time, achievable closed-loop bandwidth for a phase budget, bus frame time, utilisation and axes per cycle — the two budgets that decide whether software controls a machine or just talks to it.',
++      },
+     ],
+     referenceH2: 'Reference',
+     reference: [
+@@ -95,6 +101,12 @@ const COPY = {
+         name: 'Batteriepack-Rechner',
+         body: 'S/P-Topologie, Spannungsfenster, Energie, C-Raten-Reserve, Laufzeit, ohmsche Verluste — mit den Hinweisen, die ein Pack vor dem Bau abfangen.',
+       },
++      {
++        path: '/tools/control-loop-calculator',
++        tag: 'Regelung & Integration',
++        name: 'Regelkreis- & Feldbus-Budget',
++        body: 'Totzeit, erreichbare Regelbandbreite für ein Phasenbudget, Rahmenzeit, Busauslastung und Achsen pro Zyklus — die beiden Budgets, die entscheiden, ob Software eine Maschine regelt oder nur mit ihr spricht.',
++      },
+     ],
+     referenceH2: 'Referenz',
+     reference: [
+diff --git a/app/globals.css b/app/globals.css
+index 0ce68ee..4b28b95 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -338,3 +338,4 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
+ .calc-selection { margin-top: 1.3rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+ .calc-selection h4 { margin: 0 0 .5rem; font-size: .82rem; color: var(--phosphor); }
+ .calc-selection ul { margin: 0; padding-left: 1.1rem; color: var(--text-2); font-size: .86rem; line-height: 1.7; }
++.calc-second-h { margin-top: 1.8rem !important; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+diff --git a/app/sitemap.ts b/app/sitemap.ts
+index 633520e..23de804 100644
+--- a/app/sitemap.ts
++++ b/app/sitemap.ts
+@@ -17,6 +17,7 @@ function logicalPaths(): { path: string; priority: number }[] {
+     { path: '/tools/case-size-optimizer', priority: 0.9 },
+     { path: '/tools/motor-sizing-calculator', priority: 0.9 },
+     { path: '/tools/battery-pack-calculator', priority: 0.9 },
++    { path: '/tools/control-loop-calculator', priority: 0.9 },
+     { path: '/reference/pallet-sizes', priority: 0.8 },
+     { path: '/reference/container-dimensions', priority: 0.8 },
+     { path: '/lab', priority: 0.7 },
+diff --git a/components/ControlBudget.tsx b/components/ControlBudget.tsx
+new file mode 100644
+index 0000000..7500d92
+--- /dev/null
++++ b/components/ControlBudget.tsx
+@@ -0,0 +1,243 @@
++'use client';
++
++/** Loop timing + fieldbus budget island. Client-side maths only. */
++
++import { useMemo, useState } from 'react';
++import { BUS_PRESETS, analyseBus, analyseLoop, type BusFlag, type LoopFlag } from '@/lib/control';
++
++export type ControlLabels = {
++  loopLegend: string;
++  sampleRate: string;
++  sensorLatency: string;
++  commsIn: string;
++  compute: string;
++  commsOut: string;
++  actuatorLatency: string;
++  phaseBudget: string;
++  busLegend: string;
++  busPreset: string;
++  custom: string;
++  axes: string;
++  bytesPerAxis: string;
++  overheadBytes: string;
++  bitrate: string;
++  cycleTime: string;
++  loopResults: string;
++  samplePeriod: string;
++  nyquist: string;
++  zohDelay: string;
++  transportDelay: string;
++  deadTime: string;
++  deadTimeInSamples: string;
++  maxBandwidth: string;
++  samplesPerBandwidth: string;
++  busResults: string;
++  frameBytes: string;
++  frameTime: string;
++  utilisation: string;
++  headroom: string;
++  maxAxes: string;
++  minCycle: string;
++  flagsH: string;
++  fSampleMarginal: string;
++  fDelayDominates: string;
++  fComputeOver: string;
++  fDeadtimeExceeds: string;
++  fOverCapacity: string;
++  fTight: string;
++  fHeadroomOk: string;
++  noFlags: string;
++  errInvalid: string;
++  downloadCsv: string;
++  disclaimer: string;
++};
++
++export default function ControlBudget({ labels, lang }: { labels: ControlLabels; lang: 'en' | 'de' }) {
++  const [sampleRateHz, setSampleRateHz] = useState(1000);
++  const [sensorLatencyUs, setSensorLatencyUs] = useState(100);
++  const [commsInUs, setCommsInUs] = useState(125);
++  const [computeUs, setComputeUs] = useState(150);
++  const [commsOutUs, setCommsOutUs] = useState(125);
++  const [actuatorLatencyUs, setActuatorLatencyUs] = useState(200);
++  const [phaseBudgetDeg, setPhaseBudgetDeg] = useState(30);
++
++  const [busPreset, setBusPreset] = useState(BUS_PRESETS[0].id);
++  const [axes, setAxes] = useState(8);
++  const [bytesPerAxis, setBytesPerAxis] = useState(12);
++  const [overheadBytes, setOverheadBytes] = useState(60);
++  const [bitrateMbps, setBitrateMbps] = useState(100);
++  const [cycleTimeUs, setCycleTimeUs] = useState(1000);
++
++  const nf = useMemo(() => new Intl.NumberFormat(lang, { maximumFractionDigits: 2 }), [lang]);
++  const us = (s: number) => `${nf.format(s * 1e6)} µs`;
++
++  function applyBusPreset(id: string) {
++    setBusPreset(id);
++    const p = BUS_PRESETS.find((x) => x.id === id);
++    if (!p) return;
++    setBitrateMbps(p.bitrateBps / 1e6);
++    setOverheadBytes(p.overheadBytes);
++    setCycleTimeUs(p.cycleTimeUs);
++  }
++
++  const loop = useMemo(
++    () => analyseLoop({ sampleRateHz, sensorLatencyUs, commsInUs, computeUs, commsOutUs, actuatorLatencyUs, phaseBudgetDeg }),
++    [sampleRateHz, sensorLatencyUs, commsInUs, computeUs, commsOutUs, actuatorLatencyUs, phaseBudgetDeg],
++  );
++  const bus = useMemo(
++    () => analyseBus({ axes, bytesPerAxis, overheadBytes, bitrateBps: bitrateMbps * 1e6, cycleTimeUs }),
++    [axes, bytesPerAxis, overheadBytes, bitrateMbps, cycleTimeUs],
++  );
++
++  const loopFlagText: Record<LoopFlag, string> = {
++    'sample-rate-marginal': labels.fSampleMarginal,
++    'delay-dominates': labels.fDelayDominates,
++    'compute-over-budget': labels.fComputeOver,
++    'deadtime-exceeds-period': labels.fDeadtimeExceeds,
++  };
++  const busFlagText: Record<BusFlag, string> = {
++    'over-capacity': labels.fOverCapacity,
++    'tight-utilisation': labels.fTight,
++    'headroom-ok': labels.fHeadroomOk,
++  };
++
++  function downloadCsv() {
++    const rows = [
++      '# Grimaldi Engineering - control loop and fieldbus budget (first-order)',
++      '# NOT a stability analysis and NOT a safety-function analysis.',
++      `# loop_inputs,fs_Hz,${sampleRateHz},sensor_us,${sensorLatencyUs},comms_in_us,${commsInUs},compute_us,${computeUs},comms_out_us,${commsOutUs},actuator_us,${actuatorLatencyUs},phase_budget_deg,${phaseBudgetDeg}`,
++      `# bus_inputs,axes,${axes},bytes_per_axis,${bytesPerAxis},overhead_bytes,${overheadBytes},bitrate_Mbps,${bitrateMbps},cycle_us,${cycleTimeUs}`,
++      'quantity,value,unit',
++      `sample_period,${(loop.samplePeriodS * 1e6).toFixed(2)},us`,
++      `nyquist,${loop.nyquistHz.toFixed(1)},Hz`,
++      `zoh_delay,${(loop.zohDelayS * 1e6).toFixed(2)},us`,
++      `transport_delay,${(loop.transportDelayS * 1e6).toFixed(2)},us`,
++      `dead_time,${(loop.deadTimeS * 1e6).toFixed(2)},us`,
++      `dead_time_in_samples,${loop.deadTimeInSamples.toFixed(3)},Ts`,
++      `max_bandwidth,${loop.maxBandwidthHz.toFixed(2)},Hz`,
++      `samples_per_bandwidth,${loop.samplesPerBandwidth.toFixed(2)},x`,
++      `frame_bytes,${bus.frameBytes},B`,
++      `frame_time,${(bus.frameTimeS * 1e6).toFixed(3)},us`,
++      `bus_utilisation,${(bus.utilisation * 100).toFixed(2)},%`,
++      `max_axes_at_cycle,${bus.maxAxesAtCycle},`,
++      `min_cycle_time,${(bus.minCycleTimeS * 1e6).toFixed(3)},us`,
++      `loop_flags,"${loop.flags.join(' ')}",`,
++      `bus_flags,"${bus.flags.join(' ')}",`,
++    ].join('\n');
++    const blob = new Blob([rows], { type: 'text/csv;charset=utf-8' });
++    const url = globalThis.URL.createObjectURL(blob);
++    const a = document.createElement('a');
++    a.href = url;
++    a.download = `control-budget-${sampleRateHz}Hz-${axes}axes.csv`;
++    document.body.appendChild(a); a.click(); document.body.removeChild(a);
++    globalThis.URL.revokeObjectURL(url);
++  }
++
++  return (
++    <div className="calc">
++      <div className="calc-inputs">
++        <fieldset>
++          <legend>{labels.loopLegend}</legend>
++          <Num label={labels.sampleRate} value={sampleRateHz} onChange={setSampleRateHz} unit="Hz" step={100} />
++          <Num label={labels.sensorLatency} value={sensorLatencyUs} onChange={setSensorLatencyUs} unit="µs" step={5} />
++          <Num label={labels.commsIn} value={commsInUs} onChange={setCommsInUs} unit="µs" step={5} />
++          <Num label={labels.compute} value={computeUs} onChange={setComputeUs} unit="µs" step={5} />
++          <Num label={labels.commsOut} value={commsOutUs} onChange={setCommsOutUs} unit="µs" step={5} />
++          <Num label={labels.actuatorLatency} value={actuatorLatencyUs} onChange={setActuatorLatencyUs} unit="µs" step={5} />
++          <Num label={labels.phaseBudget} value={phaseBudgetDeg} onChange={setPhaseBudgetDeg} unit="°" step={5} />
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.busLegend}</legend>
++          <label className="calc-field calc-field-wide">
++            <span>{labels.busPreset}</span>
++            <select value={busPreset} onChange={(e) => applyBusPreset(e.target.value)}>
++              {BUS_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
++              <option value="custom">{labels.custom}</option>
++            </select>
++          </label>
++          <Num label={labels.axes} value={axes} onChange={setAxes} unit="" step={1} />
++          <Num label={labels.bytesPerAxis} value={bytesPerAxis} onChange={setBytesPerAxis} unit="B" step={1} />
++          <Num label={labels.overheadBytes} value={overheadBytes} onChange={(v) => { setBusPreset('custom'); setOverheadBytes(v); }} unit="B" step={1} />
++          <Num label={labels.bitrate} value={bitrateMbps} onChange={(v) => { setBusPreset('custom'); setBitrateMbps(v); }} unit="Mbit/s" step={10} />
++          <Num label={labels.cycleTime} value={cycleTimeUs} onChange={(v) => { setBusPreset('custom'); setCycleTimeUs(v); }} unit="µs" step={50} />
++        </fieldset>
++      </div>
++
++      <div className="calc-result-block">
++        <h3>{labels.loopResults}</h3>
++        {!loop.ok ? (
++          <p className="calc-error" role="alert">{labels.errInvalid}</p>
++        ) : (
++          <div className="calc-stat-grid">
++            <Stat label={labels.maxBandwidth} value={`${nf.format(loop.maxBandwidthHz)} Hz`} strong />
++            <Stat label={labels.deadTime} value={us(loop.deadTimeS)} strong />
++            <Stat label={labels.samplesPerBandwidth} value={`${nf.format(loop.samplesPerBandwidth)} ×`} strong />
++            <Stat label={labels.samplePeriod} value={us(loop.samplePeriodS)} />
++            <Stat label={labels.nyquist} value={`${nf.format(loop.nyquistHz)} Hz`} />
++            <Stat label={labels.zohDelay} value={us(loop.zohDelayS)} />
++            <Stat label={labels.transportDelay} value={us(loop.transportDelayS)} />
++            <Stat label={labels.deadTimeInSamples} value={`${nf.format(loop.deadTimeInSamples)} Ts`} />
++          </div>
++        )}
++
++        <h3 className="calc-second-h">{labels.busResults}</h3>
++        {!bus.ok ? (
++          <p className="calc-error" role="alert">{labels.errInvalid}</p>
++        ) : (
++          <div className="calc-stat-grid">
++            <Stat label={labels.utilisation} value={`${nf.format(bus.utilisation * 100)} %`} strong />
++            <Stat label={labels.maxAxes} value={nf.format(bus.maxAxesAtCycle)} strong />
++            <Stat label={labels.minCycle} value={us(bus.minCycleTimeS)} strong />
++            <Stat label={labels.frameBytes} value={`${nf.format(bus.frameBytes)} B`} />
++            <Stat label={labels.frameTime} value={us(bus.frameTimeS)} />
++            <Stat label={labels.headroom} value={us(bus.headroomS)} />
++          </div>
++        )}
++
++        <div className="calc-flags">
++          <h4>{labels.flagsH}</h4>
++          {loop.flags.length === 0 && bus.flags.filter((f) => f !== 'headroom-ok').length === 0 ? (
++            <p className="calc-flag calc-flag-ok">{labels.noFlags}</p>
++          ) : null}
++          {loop.flags.map((f) => <p key={f} className="calc-flag calc-flag-warn">{loopFlagText[f]}</p>)}
++          {bus.flags.map((f) => (
++            <p key={f} className={f === 'headroom-ok' ? 'calc-flag calc-flag-ok' : 'calc-flag calc-flag-warn'}>
++              {busFlagText[f]}
++            </p>
++          ))}
++        </div>
++
++        <button type="button" className="btn btn-line calc-download" onClick={downloadCsv}>
++          {labels.downloadCsv}
++        </button>
++      </div>
++
++      <p className="calc-disclaimer">{labels.disclaimer}</p>
++    </div>
++  );
++}
++
++function Num({ label, value, onChange, unit, step = 1 }: {
++  label: string; value: number; onChange: (v: number) => void; unit: string; step?: number;
++}) {
++  return (
++    <label className="calc-field">
++      <span>{label}</span>
++      <span className="calc-input-row">
++        <input type="number" inputMode="decimal" step={step} value={Number.isFinite(value) ? value : ''}
++               onChange={(e) => onChange(Number(e.target.value))} />
++        {unit ? <em>{unit}</em> : null}
++      </span>
++    </label>
++  );
++}
++
++function Stat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
++  return (
++    <div className={strong ? 'calc-stat calc-stat-strong' : 'calc-stat'}>
++      <dt>{label}</dt>
++      <dd>{value}</dd>
++    </div>
++  );
++}
+diff --git a/lib/control.ts b/lib/control.ts
+new file mode 100644
+index 0000000..bb6f8f2
+--- /dev/null
++++ b/lib/control.ts
+@@ -0,0 +1,222 @@
++/**
++ * The software-to-hardware boundary, quantified.
++ *
++ * Two budgets decide whether a control system built in software actually
++ * works on a machine, and both are usually discovered late:
++ *
++ * 1. THE LOOP BUDGET. Every element between measuring and acting adds
++ *    dead time — sensor acquisition, the bus in, computation, the bus
++ *    out, actuator response — and the sample-and-hold adds half a sample
++ *    period on top. Dead time cannot be tuned away. It spends phase
++ *    margin at a rate proportional to frequency, and that is what caps
++ *    achievable closed-loop bandwidth.
++ *
++ * 2. THE BUS BUDGET. A fieldbus cycle must carry every axis's process
++ *    data and still finish inside the cycle time. Axis count, bytes per
++ *    axis and bitrate decide how many joints a controller can actually
++ *    coordinate — the number that quietly limits cell architecture.
++ *
++ * HONESTY BOUNDARY: these are first-order budgets. Real loops have plant
++ * dynamics, resonances, quantisation, jitter distributions and non-linear
++ * friction that decide stability alongside dead time. A bandwidth figure
++ * here is an upper bound set by delay, not a promise about your plant,
++ * and nothing here is a safety-function analysis.
++ */
++
++/* ── Loop timing budget ─────────────────────────────────────────────── */
++
++export type LoopInput = {
++  /** Control loop sample rate, Hz. */
++  sampleRateHz: number;
++  /** Sensor acquisition and conversion, microseconds. */
++  sensorLatencyUs: number;
++  /** Transport from sensor to controller, microseconds. */
++  commsInUs: number;
++  /** Controller computation, microseconds. */
++  computeUs: number;
++  /** Transport from controller to drive, microseconds. */
++  commsOutUs: number;
++  /** Drive and actuator response, microseconds. */
++  actuatorLatencyUs: number;
++  /** Degrees of phase margin you are willing to spend on dead time. */
++  phaseBudgetDeg: number;
++};
++
++export type LoopResult = {
++  ok: boolean;
++  reason?: 'invalid-input';
++  /** Sample period, seconds. */
++  samplePeriodS: number;
++  /** Nyquist frequency, Hz. */
++  nyquistHz: number;
++  /** Average zero-order-hold delay, seconds (Ts/2). */
++  zohDelayS: number;
++  /** Sum of the transport and processing latencies, seconds. */
++  transportDelayS: number;
++  /** Total loop dead time, seconds. */
++  deadTimeS: number;
++  /** Dead time as a multiple of the sample period. */
++  deadTimeInSamples: number;
++  /** Bandwidth at which dead time alone consumes the phase budget, Hz. */
++  maxBandwidthHz: number;
++  /** Sample rate divided by that bandwidth. */
++  samplesPerBandwidth: number;
++  /** Phase lag from dead time at the achievable bandwidth, degrees. */
++  phaseLagAtBandwidthDeg: number;
++  /** True when the loop is delay-limited rather than sample-rate-limited. */
++  delayDominated: boolean;
++  /** Verdict codes for the UI to translate. */
++  flags: LoopFlag[];
++};
++
++export type LoopFlag =
++  | 'sample-rate-marginal'
++  | 'delay-dominates'
++  | 'compute-over-budget'
++  | 'deadtime-exceeds-period';
++
++/** Phase lag in degrees contributed by a pure delay at a frequency. */
++export function delayPhaseLagDeg(frequencyHz: number, deadTimeS: number): number {
++  return 360 * frequencyHz * deadTimeS;
++}
++
++export function analyseLoop(input: LoopInput): LoopResult {
++  const empty: LoopResult = {
++    ok: false,
++    samplePeriodS: 0, nyquistHz: 0, zohDelayS: 0, transportDelayS: 0,
++    deadTimeS: 0, deadTimeInSamples: 0, maxBandwidthHz: 0,
++    samplesPerBandwidth: 0, phaseLagAtBandwidthDeg: 0,
++    delayDominated: false, flags: [],
++  };
++
++  const latencies = [
++    input.sensorLatencyUs, input.commsInUs, input.computeUs,
++    input.commsOutUs, input.actuatorLatencyUs,
++  ];
++  if (
++    !Number.isFinite(input.sampleRateHz) || input.sampleRateHz <= 0 ||
++    !latencies.every((v) => Number.isFinite(v) && v >= 0) ||
++    !Number.isFinite(input.phaseBudgetDeg) || input.phaseBudgetDeg <= 0 || input.phaseBudgetDeg >= 180
++  ) {
++    return { ...empty, reason: 'invalid-input' };
++  }
++
++  const samplePeriodS = 1 / input.sampleRateHz;
++  const zohDelayS = samplePeriodS / 2;
++  const transportDelayS = latencies.reduce((a, b) => a + b, 0) * 1e-6;
++  const deadTimeS = zohDelayS + transportDelayS;
++
++  // Dead time spends phase linearly with frequency: phi = 360 * f * Td.
++  // Solving for the frequency at which it consumes the whole budget.
++  const maxBandwidthHz = deadTimeS > 0 ? input.phaseBudgetDeg / (360 * deadTimeS) : Infinity;
++  const samplesPerBandwidth = maxBandwidthHz > 0 ? input.sampleRateHz / maxBandwidthHz : Infinity;
++
++  const flags: LoopFlag[] = [];
++  // The classic rule of thumb: sample at 10-20x the closed-loop bandwidth.
++  if (samplesPerBandwidth < 10) flags.push('sample-rate-marginal');
++  // Transport delay larger than the ZOH term means the architecture, not
++  // the sample rate, is the limiting factor.
++  if (transportDelayS > zohDelayS) flags.push('delay-dominates');
++  if (input.computeUs * 1e-6 > samplePeriodS * 0.5) flags.push('compute-over-budget');
++  if (deadTimeS > samplePeriodS) flags.push('deadtime-exceeds-period');
++
++  return {
++    ok: true,
++    samplePeriodS,
++    nyquistHz: input.sampleRateHz / 2,
++    zohDelayS,
++    transportDelayS,
++    deadTimeS,
++    deadTimeInSamples: deadTimeS / samplePeriodS,
++    maxBandwidthHz,
++    samplesPerBandwidth,
++    phaseLagAtBandwidthDeg: delayPhaseLagDeg(maxBandwidthHz, deadTimeS),
++    delayDominated: transportDelayS > zohDelayS,
++    flags,
++  };
++}
++
++/* ── Fieldbus budget ────────────────────────────────────────────────── */
++
++export type BusInput = {
++  /** Number of coordinated axes or nodes. */
++  axes: number;
++  /** Process data per axis per cycle, bytes (both directions). */
++  bytesPerAxis: number;
++  /** Protocol and frame overhead per cycle, bytes. */
++  overheadBytes: number;
++  /** Line rate, bits per second. */
++  bitrateBps: number;
++  /** Target cycle time, microseconds. */
++  cycleTimeUs: number;
++};
++
++export type BusResult = {
++  ok: boolean;
++  reason?: 'invalid-input';
++  frameBytes: number;
++  /** Wire time for one cycle's data, seconds. */
++  frameTimeS: number;
++  /** frameTime / cycleTime. */
++  utilisation: number;
++  /** Cycle time headroom, seconds. */
++  headroomS: number;
++  /** Axes that still fit at this cycle time. */
++  maxAxesAtCycle: number;
++  /** Fastest cycle this axis count supports at 100 % utilisation, seconds. */
++  minCycleTimeS: number;
++  flags: BusFlag[];
++};
++
++export type BusFlag = 'over-capacity' | 'tight-utilisation' | 'headroom-ok';
++
++export function analyseBus(input: BusInput): BusResult {
++  const empty: BusResult = {
++    ok: false, frameBytes: 0, frameTimeS: 0, utilisation: 0,
++    headroomS: 0, maxAxesAtCycle: 0, minCycleTimeS: 0, flags: [],
++  };
++
++  const valid =
++    Number.isFinite(input.axes) && input.axes > 0 &&
++    Number.isFinite(input.bytesPerAxis) && input.bytesPerAxis > 0 &&
++    Number.isFinite(input.overheadBytes) && input.overheadBytes >= 0 &&
++    Number.isFinite(input.bitrateBps) && input.bitrateBps > 0 &&
++    Number.isFinite(input.cycleTimeUs) && input.cycleTimeUs > 0;
++  if (!valid) return { ...empty, reason: 'invalid-input' };
++
++  const frameBytes = input.axes * input.bytesPerAxis + input.overheadBytes;
++  const frameTimeS = (frameBytes * 8) / input.bitrateBps;
++  const cycleTimeS = input.cycleTimeUs * 1e-6;
++  const utilisation = frameTimeS / cycleTimeS;
++
++  // How many axes still fit inside the cycle, overhead accounted for.
++  const budgetBytes = (cycleTimeS * input.bitrateBps) / 8;
++  const maxAxesAtCycle = Math.max(
++    0,
++    Math.floor((budgetBytes - input.overheadBytes) / input.bytesPerAxis),
++  );
++
++  const flags: BusFlag[] = [];
++  if (utilisation > 1) flags.push('over-capacity');
++  else if (utilisation > 0.7) flags.push('tight-utilisation');
++  else flags.push('headroom-ok');
++
++  return {
++    ok: true,
++    frameBytes,
++    frameTimeS,
++    utilisation,
++    headroomS: cycleTimeS - frameTimeS,
++    maxAxesAtCycle,
++    minCycleTimeS: frameTimeS,
++    flags,
++  };
++}
++
++/** Common industrial line rates, as starting points. */
++export const BUS_PRESETS: { id: string; label: string; bitrateBps: number; overheadBytes: number; cycleTimeUs: number }[] = [
++  { id: 'fast-ethernet', label: '100 Mbit/s industrial Ethernet — 1 ms cycle', bitrateBps: 100e6, overheadBytes: 60, cycleTimeUs: 1000 },
++  { id: 'fast-ethernet-250', label: '100 Mbit/s industrial Ethernet — 250 µs cycle', bitrateBps: 100e6, overheadBytes: 60, cycleTimeUs: 250 },
++  { id: 'gig-ethernet', label: '1 Gbit/s industrial Ethernet — 250 µs cycle', bitrateBps: 1e9, overheadBytes: 60, cycleTimeUs: 250 },
++  { id: 'canopen', label: 'CAN 1 Mbit/s — 10 ms cycle', bitrateBps: 1e6, overheadBytes: 8, cycleTimeUs: 10000 },
++];
+diff --git a/lib/dict.ts b/lib/dict.ts
+index 226cac0..848d338 100644
+--- a/lib/dict.ts
++++ b/lib/dict.ts
+@@ -112,7 +112,7 @@ const en: Dict = {
+   homeKicker: 'Grimaldi Engineering · Frankfurt',
+   homeH1: 'Machines, batteries and the software that drives them.',
+   homeLead:
+-    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. On top of that layer sits the Forge Line: automation products for the trades, code public, status stated plainly.',
++    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. Between the software and the machine: deterministic control, motion and fieldbus integration. On top of it all sits the Forge Line — automation products for the trades, code public, status stated plainly.',
+   ctaBook: 'Book a 20-minute bench review — €0',
+   ctaForge: 'See the engineering tools',
+   icpKicker: 'Start here',
+@@ -143,9 +143,9 @@ const en: Dict = {
+     'A three-phase scope driving an actual frequency-droop integrator: Δf = −f·0.04·ΔP, RoCoF bounded by inertia. The readouts come out of the model, not a canned animation.',
+   labCta: 'Open the droop instrument',
+   discKicker: 'Disciplines',
+-  discTitle: 'Five tracks of physical engineering',
++  discTitle: 'Six tracks of physical engineering',
+   discIntro:
+-    'Electrical machines and actuators, battery systems and management, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
++    'Electrical machines and actuators, battery systems and management, machine control and software integration, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
+   open: 'Open →',
+ 
+   statusShipped: 'Shipped',
+@@ -207,7 +207,7 @@ const de: Dict = {
+   homeKicker: 'Grimaldi Engineering · Frankfurt',
+   homeH1: 'Maschinen, Batterien und die Software, die sie antreibt.',
+   homeLead:
+-    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Darüber liegt die Forge-Linie: Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
++    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Zwischen Software und Maschine: deterministische Regelung, Bewegungsführung und Feldbus-Integration. Darüber die Forge-Linie — Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
+   ctaBook: '20-Minuten-Bench-Review buchen — 0 €',
+   ctaForge: 'Zu den Ingenieur-Werkzeugen',
+   icpKicker: 'Hier starten',
+@@ -238,9 +238,9 @@ const de: Dict = {
+     'Ein Drei-Phasen-Oszilloskop mit echtem Frequenz-Statik-Integrator: Δf = −f·0,04·ΔP, RoCoF durch Trägheit begrenzt. Die Anzeigen kommen aus dem Modell, nicht aus einer Animation.',
+   labCta: 'Statik-Instrument öffnen',
+   discKicker: 'Disziplinen',
+-  discTitle: 'Fünf Stränge physischer Ingenieursarbeit',
++  discTitle: 'Sechs Stränge physischer Ingenieursarbeit',
+   discIntro:
+-    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
++    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Maschinensteuerung und Software-Integration, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
+   open: 'Öffnen →',
+ 
+   statusShipped: 'Veröffentlicht',
+diff --git a/lib/disciplines.ts b/lib/disciplines.ts
+index 2d1357b..7b1e106 100644
+--- a/lib/disciplines.ts
++++ b/lib/disciplines.ts
+@@ -83,6 +83,41 @@ export const disciplines: Discipline[] = [
+       label: { en: 'Open the rotary axis sizing calculator', de: 'Achsen-Auslegungsrechner öffnen' },
+     },
+   },
++  {
++    slug: 'control-integration',
++    tag: { en: 'Control & Integration', de: 'Regelung & Integration' },
++    title: { en: 'Machine control and software integration', de: 'Maschinensteuerung und Software-Integration' },
++    metaTitle: {
++      en: 'Machine Control & Software Integration — Determinism, Fieldbus, Agents',
++      de: 'Maschinensteuerung & Software-Integration — Determinismus, Feldbus, Agenten',
++    },
++    metaDescription: {
++      en: 'The software-to-hardware layer: deterministic control, motion profiles and kinematics, fieldbus timing, controller architecture, and where an AI agent may and may not sit. With a free loop and bus budget calculator.',
++      de: 'Die Schicht zwischen Software und Hardware: deterministische Regelung, Bewegungsprofile und Kinematik, Feldbus-Timing, Steuerungsarchitektur und wo ein KI-Agent sitzen darf und wo nicht. Mit kostenlosem Regelkreis- und Bus-Budgetrechner.',
++    },
++    body: [
++      {
++        en: 'Automation software is judged at one boundary: the moment a computed intention becomes torque in a real joint. Everything upstream — planning, scheduling, pattern generation, the vendor-neutral driver interface that lets one codebase drive different arms — only matters if that boundary holds its timing. This track is about the layer where software becomes machine behaviour.',
++        de: 'Automatisierungssoftware wird an einer Grenze gemessen: dem Moment, in dem eine berechnete Absicht zu Drehmoment in einem echten Gelenk wird. Alles davor — Planung, Ablaufsteuerung, Mustererzeugung, die herstellerneutrale Treiberschnittstelle, mit der eine Codebasis verschiedene Arme antreibt — zählt nur, wenn diese Grenze ihr Timing hält. Dieser Strang behandelt die Schicht, in der Software zu Maschinenverhalten wird.',
++      },
++      {
++        en: 'Concretely: deterministic execution and bounded worst-case timing rather than average throughput; motion profile generation with jerk limits, and the kinematics that turn a Cartesian target into coordinated joint trajectories; fieldbus cycle budgets that decide how many axes one controller can hold; state machines and interlocking that survive a power cycle mid-motion; and the diagnostics that make a stopped cell explainable instead of merely stopped.',
++        de: 'Konkret: deterministische Ausführung und begrenzte Worst-Case-Zeiten statt mittlerem Durchsatz; Bewegungsprofilerzeugung mit Ruckbegrenzung und die Kinematik, die ein kartesisches Ziel in koordinierte Gelenkbahnen übersetzt; Feldbus-Zyklusbudgets, die bestimmen, wie viele Achsen eine Steuerung hält; Zustandsautomaten und Verriegelungen, die einen Spannungsausfall mitten in der Bewegung überstehen; und die Diagnose, die eine stehende Zelle erklärbar macht statt nur stehend.',
++      },
++      {
++        en: 'Above that sits the layer this decade actually added: agentic software that reads a task, proposes a plan and drives tooling through a protocol interface rather than a bespoke integration. It is genuinely useful for interpretation, generation and explanation, and the Forge Line is built to accept it. What it is not is a participant in the control loop.',
++        de: 'Darüber liegt die Schicht, die dieses Jahrzehnt tatsächlich hinzugefügt hat: agentische Software, die eine Aufgabe liest, einen Plan vorschlägt und Werkzeuge über eine Protokollschnittstelle ansteuert statt über eine Sonderintegration. Für Interpretation, Erzeugung und Erklärung ist sie wirklich nützlich, und die Forge-Linie ist darauf ausgelegt, sie aufzunehmen. Was sie nicht ist: Teilnehmerin im Regelkreis.',
++      },
++    ],
++    boundary: {
++      en: 'Boundary — stated because the industry keeps blurring it: a language model or planning agent may interpret, propose, explain and generate. It may not close a cycle-time-critical loop, and it may never implement a safety function. Safety-rated stopping, speed and separation monitoring, interlocks and emergency stop belong on qualified hardware, designed and validated under their own standards. Nothing published on this site describes employer systems, operator installations or critical-infrastructure configurations.',
++      de: 'Grenze — ausgesprochen, weil die Branche sie beharrlich verwischt: Ein Sprachmodell oder planender Agent darf interpretieren, vorschlagen, erklären und erzeugen. Er darf keinen zykluszeitkritischen Regelkreis schließen und niemals eine Sicherheitsfunktion umsetzen. Sicherheitsgerichtetes Stillsetzen, Geschwindigkeits- und Abstandsüberwachung, Verriegelungen und Not-Halt gehören auf qualifizierte Hardware, ausgelegt und validiert nach eigenen Normen. Nichts auf dieser Seite beschreibt Arbeitgebersysteme, Betreiberanlagen oder KRITIS-Konfigurationen.',
++    },
++    tool: {
++      path: '/tools/control-loop-calculator',
++      label: { en: 'Open the loop & bus budget calculator', de: 'Regelkreis- & Bus-Budgetrechner öffnen' },
++    },
++  },
+   {
+     slug: 'battery-systems',
+     tag: { en: 'Battery Systems & BMS', de: 'Batteriesysteme & BMS' },
+diff --git a/lib/schema.ts b/lib/schema.ts
+index bdf309d..ab5c45b 100644
+--- a/lib/schema.ts
++++ b/lib/schema.ts
+@@ -58,6 +58,9 @@ export function professionalServiceSchema(): JsonLdObject {
+       'power electronics',
+       'high-voltage engineering',
+       'embedded control',
++      'real-time machine control',
++      'fieldbus and motion control integration',
++      'robot cell architecture',
+       'palletizing automation',
+       'grid physics',
+     ],
+-- 
+2.43.0
+
