@@ -1,0 +1,1797 @@
+From 9835e1b5cc6348bd505732429e043c68b7feb44f Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Sun, 30 Aug 2026 20:45:24 +0000
+Subject: [PATCH] feat(v10): headline machines, actuators and battery systems
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Repositions the site around the two disciplines that were buried, and
+proves each with a working instrument rather than a claim.
+
+- lib/machines.ts: rotary axis sizing (reflected inertia, inertia ratio,
+  gravity torque, symmetric trapezoidal profile, peak/RMS motor torque,
+  speed and power) plus synchronous speed, slip, rotor frequency and
+  torque-from-power. Verified against textbook values: 50 Hz 2/4/6-pole
+  = 3000/1500/1000 rpm, 60 Hz 2/4-pole = 3600/1800 rpm, 3 % slip at
+  1455 rpm, 49.2 N*m for 7.5 kW at 1455 rpm. The velocity profile is
+  checked to integrate to exactly the commanded angle.
+- lib/battery.ts: pack topology, voltage window, energy, continuous
+  current and power ceilings, demanded C-rate, runtime, pack resistance,
+  I2R loss and sag, specific energy — with design flags for C-rate
+  overrun, the 60 V and 120 V DC boundaries, parallel-string count,
+  thin power headroom and excessive resistive loss.
+- /tools/motor-sizing-calculator and /tools/battery-pack-calculator
+  (en + de): full SSR method and FAQ, CSV export, schema, disclaimers
+  naming precisely what is NOT modelled.
+- /disciplines/machines-actuators (with a computed synchronous-speed
+  table for DC/AC, async/sync) and /disciplines/battery-systems, both
+  carrying the employer/KRITIS boundary statement.
+- Headline, meta, ICP C, Person jobTitle and ProfessionalService
+  knowsAbout all repositioned to lead with machines and batteries.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TyfRUMoVXepxUnmXyYyR7r
+---
+ app/[lang]/disciplines/[slug]/page.tsx        |  41 ++-
+ app/[lang]/layout.tsx                         |   8 +-
+ .../tools/battery-pack-calculator/page.tsx    | 234 ++++++++++++++++++
+ .../tools/motor-sizing-calculator/page.tsx    | 220 ++++++++++++++++
+ app/[lang]/tools/page.tsx                     |  24 ++
+ app/globals.css                               |  11 +
+ app/sitemap.ts                                |   2 +
+ components/AxisSizer.tsx                      | 204 +++++++++++++++
+ components/PackDesigner.tsx                   | 224 +++++++++++++++++
+ lib/battery.ts                                | 187 ++++++++++++++
+ lib/dict.ts                                   |  56 ++---
+ lib/disciplines.ts                            |  67 +++++
+ lib/machines.ts                               | 211 ++++++++++++++++
+ lib/schema.ts                                 |  11 +-
+ 14 files changed, 1464 insertions(+), 36 deletions(-)
+ create mode 100644 app/[lang]/tools/battery-pack-calculator/page.tsx
+ create mode 100644 app/[lang]/tools/motor-sizing-calculator/page.tsx
+ create mode 100644 components/AxisSizer.tsx
+ create mode 100644 components/PackDesigner.tsx
+ create mode 100644 lib/battery.ts
+ create mode 100644 lib/machines.ts
+
+diff --git a/app/[lang]/disciplines/[slug]/page.tsx b/app/[lang]/disciplines/[slug]/page.tsx
+index 0ba03b7..a14cf51 100644
+--- a/app/[lang]/disciplines/[slug]/page.tsx
++++ b/app/[lang]/disciplines/[slug]/page.tsx
+@@ -4,7 +4,8 @@ import BookCTA from '@/components/BookCTA';
+ import JsonLd from '@/components/JsonLd';
+ import { getDict } from '@/lib/dict';
+ import { disciplines, getDiscipline } from '@/lib/disciplines';
+-import { LANGS, isLang, pageAlternates, type Lang } from '@/lib/i18n';
++import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { synchronousSpeedTable } from '@/lib/machines';
+ import { breadcrumbSchema } from '@/lib/schema';
+ 
+ type PageProps = { params: { lang: string; slug: string } };
+@@ -45,7 +46,45 @@ export default function DisciplinePage({ params }: PageProps) {
+             ))}
+             {discipline.boundary ? <p className="boundary-note">{discipline.boundary[lang]}</p> : null}
+           </div>
++
++          {discipline.syncTable && (
++            <>
++              <div className="prose">
++                <p className="formula">n_s = 120 · f / p&nbsp;&nbsp;·&nbsp;&nbsp;s = (n_s − n) / n_s&nbsp;&nbsp;·&nbsp;&nbsp;f_r = s · f&nbsp;&nbsp;·&nbsp;&nbsp;T = P / ω</p>
++              </div>
++              <div className="calc-table-wrap">
++                <table className="calc-table ref-table">
++                  <thead>
++                    <tr>
++                      <th>{lang === 'de' ? 'Pole' : 'Poles'}</th>
++                      <th>{lang === 'de' ? 'Synchrondrehzahl bei 50 Hz' : 'Synchronous speed at 50 Hz'}</th>
++                      <th>{lang === 'de' ? 'Synchrondrehzahl bei 60 Hz' : 'Synchronous speed at 60 Hz'}</th>
++                    </tr>
++                  </thead>
++                  <tbody>
++                    {synchronousSpeedTable(50).map((row, i) => (
++                      <tr key={row.poles}>
++                        <td>{row.poles}</td>
++                        <td>{row.rpm.toLocaleString(lang)} rpm</td>
++                        <td>{synchronousSpeedTable(60)[i].rpm.toLocaleString(lang)} rpm</td>
++                      </tr>
++                    ))}
++                  </tbody>
++                </table>
++              </div>
++              <p className="calc-meta">
++                {lang === 'de'
++                  ? 'Eine Asynchronmaschine läuft unter diesen Drehzahlen; die Differenz ist der Schlupf und erzeugt erst das Drehmoment. Eine Synchronmaschine läuft genau darauf.'
++                  : 'An induction machine runs below these speeds; the difference is slip, and it is what produces torque in the first place. A synchronous machine runs exactly on them.'}
++              </p>
++            </>
++          )}
+           <div className="cta-row">
++            {discipline.tool && (
++              <a className="btn btn-glow" href={langHref(lang, discipline.tool.path)}>
++                {discipline.tool.label[lang]}
++              </a>
++            )}
+             <BookCTA label={t.ctaBook} variant="line" />
+           </div>
+           <p className="author-block">{t.authorLine}</p>
+diff --git a/app/[lang]/layout.tsx b/app/[lang]/layout.tsx
+index 798f2cd..9e61493 100644
+--- a/app/[lang]/layout.tsx
++++ b/app/[lang]/layout.tsx
+@@ -25,12 +25,12 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
+   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+   const title =
+     lang === 'de'
+-      ? 'Forge Line von Grimaldi Engineering | Palletizer OS, FloorForge, HV-Baujournale'
+-      : 'Forge Line by Grimaldi Engineering | Palletizer OS, FloorForge, HV Build Logs';
++      ? 'Grimaldi Engineering | Elektrische Maschinen, Batteriesysteme & Automatisierung'
++      : 'Grimaldi Engineering | Electrical Machines, Battery Systems & Automation';
+   const description =
+     lang === 'de'
+-      ? 'Grimaldi Engineering (Frankfurt): die Forge-Linie — Palletizer OS, FloorForge, PaintForge, DryForge — plus Hochspannungs-, Embedded- und Leistungselektronik-Arbeit von Vincenzo Ceccarelli Grimaldi. Code öffentlich, Status ehrlich.'
+-      : 'Grimaldi Engineering (Frankfurt): the Forge Line — Palletizer OS, FloorForge, PaintForge, DryForge — plus high-voltage, embedded and power-electronics work by Vincenzo Ceccarelli Grimaldi. Code public, status honest.';
++      ? 'Grimaldi Engineering (Frankfurt): elektrische Maschinen und Aktorik, Batteriesysteme und BMS, Hochspannung, Leistungselektronik und Embedded-Regelung — mit kostenlosen Rechnern für Achsenauslegung, Batteriepacks und Palettierung. Von Vincenzo Ceccarelli Grimaldi.'
++      : 'Grimaldi Engineering (Frankfurt): electrical machines and actuators, battery systems and BMS, high voltage, power electronics and embedded control — with free calculators for axis sizing, battery packs and palletizing. By Vincenzo Ceccarelli Grimaldi.';
+   return {
+     metadataBase: new URL(SITE_URL),
+     title: {
+diff --git a/app/[lang]/tools/battery-pack-calculator/page.tsx b/app/[lang]/tools/battery-pack-calculator/page.tsx
+new file mode 100644
+index 0000000..67b6f5d
+--- /dev/null
++++ b/app/[lang]/tools/battery-pack-calculator/page.tsx
+@@ -0,0 +1,234 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import JsonLd from '@/components/JsonLd';
++import PackDesigner, { type PackLabels } from '@/components/PackDesigner';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++import { SITE_URL } from '@/lib/site';
++
++type PageProps = { params: { lang: string } };
++const PATH = '/tools/battery-pack-calculator';
++
++const META = {
++  en: {
++    title: 'Battery Pack Calculator — S/P Topology, C-Rate and Runtime',
++    description:
++      'Free battery pack calculator: enter a cell and an S/P arrangement, get pack voltage window, energy, continuous current and power ceilings, demanded C-rate, runtime, internal resistance loss and BMS design flags.',
++  },
++  de: {
++    title: 'Batteriepack-Rechner — S/P-Topologie, C-Rate und Laufzeit',
++    description:
++      'Kostenloser Batteriepack-Rechner: Zelle und S/P-Anordnung eingeben und Spannungsfenster, Energie, Dauerstrom- und Leistungsgrenzen, geforderte C-Rate, Laufzeit, Innenwiderstandsverluste und BMS-Hinweise erhalten.',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: META[lang].title,
++    description: META[lang].description,
++    alternates: pageAlternates(lang, PATH),
++    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++  };
++}
++
++const LABELS: Record<Lang, PackLabels> = {
++  en: {
++    cellLegend: 'Cell',
++    preset: 'Cell type',
++    custom: 'Custom',
++    nominalVoltage: 'Nominal voltage',
++    maxVoltage: 'Charge voltage',
++    minVoltage: 'Cut-off voltage',
++    capacityAh: 'Capacity',
++    maxDischargeC: 'Max continuous discharge',
++    internalResistance: 'Internal resistance',
++    cellMass: 'Cell mass',
++    topologyLegend: 'Topology & duty',
++    series: 'Cells in series',
++    parallel: 'Strings in parallel',
++    loadPower: 'Continuous load',
++    depthOfDischarge: 'Usable depth of discharge',
++    resultsLegend: 'Pack',
++    cellCount: 'Cell count',
++    packNominal: 'Nominal voltage',
++    packWindow: 'Voltage window',
++    packCapacity: 'Capacity',
++    packEnergy: 'Energy',
++    usableEnergy: 'Usable energy',
++    maxCurrent: 'Max continuous current',
++    maxPower: 'Max continuous power',
++    loadCurrent: 'Load current',
++    demandedC: 'Demanded C-rate',
++    headroom: 'Power headroom',
++    runtime: 'Runtime at load',
++    packResistance: 'Pack resistance',
++    resistiveLoss: 'I²R loss at load',
++    voltageSag: 'Voltage sag at load',
++    packMass: 'Cell mass total',
++    specificEnergy: 'Specific energy (cells only)',
++    warningsH: 'Design flags',
++    wCRate: 'The load demands more current than the cell rating allows. Add parallel strings, choose a higher-rate cell, or reduce the load.',
++    w60v: 'Maximum pack voltage exceeds 60 V DC — above the usual touch-safe threshold. Insulation, connector and service-disconnect requirements change from here.',
++    w120v: 'Maximum pack voltage exceeds 120 V DC. This is high-voltage territory: interlocks, insulation monitoring, isolation testing and qualified-personnel rules apply.',
++    wStrings: 'More than four parallel strings. Cell-to-cell variation and fusing per string need explicit attention; unfused parallel strings can back-feed a shorted cell.',
++    wHeadroom: 'Less than 25 % power headroom. Any transient, cold start, or aged capacity will push this pack past its continuous rating.',
++    wIrLoss: 'Resistive loss exceeds 5 % of load power. Check busbar and interconnect design as well as cell choice; this heat has to leave the pack.',
++    noWarnings: 'No flags raised for this arrangement at this load.',
++    errInvalid: 'Check the inputs: positive values, integer S and P counts, and cut-off ≤ nominal ≤ charge voltage.',
++    downloadCsv: 'Download pack sheet (CSV)',
++    disclaimer:
++      'Topology and steady-state duty only. This is NOT a thermal model, NOT a cell-ageing or capacity-fade model, and NOT a fault-propagation or thermal-runaway analysis. Cell limits vary strongly with temperature and state of charge; this assumes the ratings you enter hold across the whole envelope, which they do not. It is no substitute for the cell datasheet, for a BMS specification, or for IEC 62133 / UN 38.3 qualification. Lithium cells fail dangerously when abused — have any pack design reviewed by a qualified engineer before building it.',
++  },
++  de: {
++    cellLegend: 'Zelle',
++    preset: 'Zelltyp',
++    custom: 'Benutzerdefiniert',
++    nominalVoltage: 'Nennspannung',
++    maxVoltage: 'Ladeschlussspannung',
++    minVoltage: 'Entladeschlussspannung',
++    capacityAh: 'Kapazität',
++    maxDischargeC: 'Max. Dauerentladung',
++    internalResistance: 'Innenwiderstand',
++    cellMass: 'Zellmasse',
++    topologyLegend: 'Topologie & Belastung',
++    series: 'Zellen in Reihe',
++    parallel: 'Stränge parallel',
++    loadPower: 'Dauerlast',
++    depthOfDischarge: 'Nutzbare Entladetiefe',
++    resultsLegend: 'Pack',
++    cellCount: 'Zellenzahl',
++    packNominal: 'Nennspannung',
++    packWindow: 'Spannungsfenster',
++    packCapacity: 'Kapazität',
++    packEnergy: 'Energie',
++    usableEnergy: 'Nutzbare Energie',
++    maxCurrent: 'Max. Dauerstrom',
++    maxPower: 'Max. Dauerleistung',
++    loadCurrent: 'Laststrom',
++    demandedC: 'Geforderte C-Rate',
++    headroom: 'Leistungsreserve',
++    runtime: 'Laufzeit bei Last',
++    packResistance: 'Packwiderstand',
++    resistiveLoss: 'I²R-Verlust bei Last',
++    voltageSag: 'Spannungseinbruch bei Last',
++    packMass: 'Zellmasse gesamt',
++    specificEnergy: 'Spezifische Energie (nur Zellen)',
++    warningsH: 'Auslegungshinweise',
++    wCRate: 'Die Last fordert mehr Strom, als die Zelle zulässt. Parallelstränge ergänzen, höher belastbare Zelle wählen oder Last reduzieren.',
++    w60v: 'Die maximale Packspannung überschreitet 60 V DC — oberhalb der üblichen Berührungsschutzgrenze. Isolation, Steckverbinder und Service-Trenneinrichtung ändern sich ab hier.',
++    w120v: 'Die maximale Packspannung überschreitet 120 V DC. Das ist Hochspannungsbereich: Verriegelungen, Isolationsüberwachung, Isolationsprüfung und Regeln für Elektrofachkräfte gelten.',
++    wStrings: 'Mehr als vier Parallelstränge. Zellstreuung und Absicherung je Strang brauchen ausdrückliche Betrachtung; ungesicherte Parallelstränge können in eine kurzgeschlossene Zelle rückspeisen.',
++    wHeadroom: 'Weniger als 25 % Leistungsreserve. Jede Transiente, jeder Kaltstart und jede Alterung schiebt dieses Pack über den Dauerwert.',
++    wIrLoss: 'Der ohmsche Verlust übersteigt 5 % der Lastleistung. Neben der Zellwahl auch Stromschienen und Verbinder prüfen; diese Wärme muss aus dem Pack heraus.',
++    noWarnings: 'Für diese Anordnung bei dieser Last wurden keine Hinweise ausgelöst.',
++    errInvalid: 'Eingaben prüfen: positive Werte, ganzzahlige S- und P-Zahlen, Entladeschluss ≤ Nenn ≤ Ladeschluss.',
++    downloadCsv: 'Packdatenblatt herunterladen (CSV)',
++    disclaimer:
++      'Nur Topologie und stationäre Belastung. Dies ist KEIN thermisches Modell, KEIN Alterungs- oder Kapazitätsverlustmodell und KEINE Fehlerfortpflanzungs- oder Thermal-Runaway-Analyse. Zellgrenzen hängen stark von Temperatur und Ladezustand ab; hier wird angenommen, dass die eingegebenen Werte über den gesamten Bereich gelten — das tun sie nicht. Kein Ersatz für Zelldatenblatt, BMS-Spezifikation oder Qualifizierung nach IEC 62133 / UN 38.3. Lithiumzellen versagen bei Missbrauch gefährlich — lassen Sie jede Packauslegung vor dem Bau von einer Fachkraft prüfen.',
++  },
++};
++
++const FAQS: Record<Lang, { q: string; a: string }[]> = {
++  en: [
++    { q: 'What does S and P actually change?', a: 'Series count sets voltage and nothing else: 16S of a 3.2 V cell is a 51.2 V nominal pack whose window runs from the cut-off to the charge voltage times sixteen. Parallel count sets capacity, current ceiling and how far the internal resistance falls. Energy is the product, so 16S1P and 8S2P of the same cell store identical energy at very different voltages and currents.' },
++    { q: 'Why flag 60 V and 120 V DC?', a: 'Because the engineering obligations change at those boundaries, not because the arithmetic does. Below roughly 60 V DC a pack is generally treated as touch-safe; above it, insulation, connector and service-disconnect requirements tighten. Above 120 V DC you are in high-voltage territory with interlocks, insulation monitoring and qualified-personnel rules. A pack that crosses a threshold by a few volts is worth knowing about at design time.' },
++    { q: 'Is the runtime figure realistic?', a: 'It is usable energy divided by load power, which is the optimistic bound. Real runtime is shorter: capacity falls with discharge rate and with temperature, ages downward over cycles, and the usable window narrows as the pack sags toward cut-off under load. Treat it as a ceiling, not a specification.' },
++    { q: 'Does it size the BMS?', a: 'No. It gives the numbers a BMS specification starts from — cell count and series positions to monitor, voltage window, continuous and peak current, and the resistive loss the thermal design has to remove. Balancing strategy, contactor sizing, fusing, isolation monitoring and fault response are engineering decisions this tool deliberately does not make for you.' },
++  ],
++  de: [
++    { q: 'Was ändern S und P tatsächlich?', a: 'Die Reihenzahl setzt allein die Spannung: 16S einer 3,2-V-Zelle ergibt ein 51,2-V-Pack, dessen Fenster vom Entlade- bis zum Ladeschluss mal sechzehn reicht. Die Parallelzahl setzt Kapazität, Stromgrenze und den Abfall des Innenwiderstands. Die Energie ist das Produkt — 16S1P und 8S2P derselben Zelle speichern gleich viel bei sehr unterschiedlicher Spannung und Strom.' },
++    { q: 'Warum die Marken 60 V und 120 V DC?', a: 'Weil sich dort die technischen Pflichten ändern, nicht die Rechnung. Unterhalb von etwa 60 V DC gilt ein Pack allgemein als berührungssicher; darüber verschärfen sich Anforderungen an Isolation, Steckverbinder und Service-Trennung. Über 120 V DC ist es Hochspannung mit Verriegelungen, Isolationsüberwachung und Fachkraftregeln. Ein Pack, das eine Schwelle um wenige Volt überschreitet, sollte man in der Auslegung kennen.' },
++    { q: 'Ist die Laufzeitangabe realistisch?', a: 'Sie ist nutzbare Energie geteilt durch Lastleistung — die optimistische Grenze. Real ist die Laufzeit kürzer: Die Kapazität sinkt mit Entladerate und Temperatur, altert über Zyklen und das nutzbare Fenster verengt sich, wenn das Pack unter Last zur Entladeschlussspannung absackt. Als Obergrenze behandeln, nicht als Spezifikation.' },
++    { q: 'Legt das Werkzeug das BMS aus?', a: 'Nein. Es liefert die Zahlen, mit denen eine BMS-Spezifikation beginnt — Zellenzahl und zu überwachende Reihenpositionen, Spannungsfenster, Dauer- und Spitzenstrom sowie den ohmschen Verlust, den die Kühlung abführen muss. Balancing-Strategie, Schützauslegung, Absicherung, Isolationsüberwachung und Fehlerreaktion sind Ingenieursentscheidungen, die dieses Werkzeug bewusst nicht für Sie trifft.' },
++  ],
++};
++
++const BODY: Record<Lang, { kicker: string; h1: string; lead: string; methodH2: string; method: string[]; faqH2: string; ctaH2: string; ctaBody: string; link: string }> = {
++  en: {
++    kicker: 'Free tool · Battery systems',
++    h1: 'Battery pack calculator',
++    lead: 'A cell and an S/P arrangement in — voltage window, energy, current and power ceilings, demanded C-rate, runtime and the design flags worth catching before anyone builds it.',
++    methodH2: 'What it computes',
++    method: [
++      'Series count sets the voltage window, parallel count sets capacity and the current ceiling, and pack resistance follows the arrangement directly — series multiplies it, parallel divides it. From those three the energy, the continuous power ceiling and the resistive loss at your load all fall out.',
++      'The load is then expressed as a C-rate on this specific pack and compared against the cell rating, because that comparison is where most first-pass pack designs fail. Power headroom below 1.25× is flagged too: transients, cold starts and aged capacity all eat into it.',
++      'The flags are the point of the tool. Crossing 60 V or 120 V DC changes what the design legally and practically has to include; more than four parallel strings raises fusing and back-feed questions; resistive loss above 5 % of load power is heat the thermal design has to remove.',
++    ],
++    faqH2: 'Questions',
++    ctaH2: 'Before you order cells',
++    ctaBody: 'Pack topology is cheap to change on a spreadsheet and expensive to change after tooling, harnesses and a BMS have been specified around it. Twenty minutes, no slides — bring the CSV.',
++    link: 'Servo motor sizing calculator →',
++  },
++  de: {
++    kicker: 'Kostenloses Werkzeug · Batteriesysteme',
++    h1: 'Batteriepack-Rechner',
++    lead: 'Zelle und S/P-Anordnung hinein — Spannungsfenster, Energie, Strom- und Leistungsgrenzen, geforderte C-Rate, Laufzeit und die Hinweise, die man kennen sollte, bevor gebaut wird.',
++    methodH2: 'Was berechnet wird',
++    method: [
++      'Die Reihenzahl setzt das Spannungsfenster, die Parallelzahl Kapazität und Stromgrenze, und der Packwiderstand folgt unmittelbar der Anordnung — Reihe multipliziert, parallel teilt. Daraus ergeben sich Energie, Dauerleistungsgrenze und der ohmsche Verlust bei Ihrer Last.',
++      'Die Last wird anschließend als C-Rate dieses konkreten Packs ausgedrückt und gegen die Zellangabe geprüft — an diesem Vergleich scheitern die meisten ersten Packentwürfe. Auch eine Leistungsreserve unter 1,25× wird markiert: Transienten, Kaltstarts und Alterung zehren daran.',
++      'Die Hinweise sind der eigentliche Zweck. Das Überschreiten von 60 V oder 120 V DC ändert, was die Auslegung rechtlich und praktisch enthalten muss; mehr als vier Parallelstränge werfen Fragen zu Absicherung und Rückspeisung auf; ohmsche Verluste über 5 % der Lastleistung sind Wärme, die abgeführt werden muss.',
++    ],
++    faqH2: 'Fragen',
++    ctaH2: 'Bevor Zellen bestellt werden',
++    ctaBody: 'Die Packtopologie lässt sich in der Tabelle billig ändern und nach Werkzeugen, Kabelbäumen und einer darauf spezifizierten BMS teuer. Zwanzig Minuten, keine Folien — bringen Sie die CSV mit.',
++    link: 'Servomotor-Auslegungsrechner →',
++  },
++};
++
++export default function BatteryPackPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = BODY[lang];
++  const faqs = FAQS[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <PackDesigner labels={LABELS[lang]} lang={lang} />
++
++          <div className="prose">
++            <h2>{copy.methodH2}</h2>
++            {copy.method.map((p) => <p key={p.slice(0, 40)}>{p}</p>)}
++            <h2>{copy.faqH2}</h2>
++            {faqs.map((f) => (<div key={f.q}><h3>{f.q}</h3><p>{f.a}</p></div>))}
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/tools/motor-sizing-calculator')}>{copy.link}</a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'SoftwareApplication',
++        '@id': `${SITE_URL}${PATH}#tool`, name: META[lang].title,
++        url: `${SITE_URL}${langHref(lang, PATH)}`,
++        applicationCategory: 'EngineeringApplication', operatingSystem: 'Web',
++        description: META[lang].description, author: { '@id': `${SITE_URL}/#person` },
++        isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
++      }} />
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'FAQPage', '@id': `${SITE_URL}${PATH}#faq`,
++        mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
++      }} />
++      <JsonLd data={breadcrumbSchema(lang, [
++        { name: 'Grimaldi Engineering', path: '/' },
++        { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
++        { name: copy.h1, path: PATH },
++      ])} />
++    </main>
++  );
++}
+diff --git a/app/[lang]/tools/motor-sizing-calculator/page.tsx b/app/[lang]/tools/motor-sizing-calculator/page.tsx
+new file mode 100644
+index 0000000..46d5e57
+--- /dev/null
++++ b/app/[lang]/tools/motor-sizing-calculator/page.tsx
+@@ -0,0 +1,220 @@
++import type { Metadata } from 'next';
++import AxisSizer, { type AxisLabels } from '@/components/AxisSizer';
++import BookCTA from '@/components/BookCTA';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { breadcrumbSchema } from '@/lib/schema';
++import { SITE_URL } from '@/lib/site';
++
++type PageProps = { params: { lang: string } };
++const PATH = '/tools/motor-sizing-calculator';
++
++const META = {
++  en: {
++    title: 'Servo Motor Sizing Calculator — Robot Joint & Rotary Axis Torque',
++    description:
++      'Free servo sizing calculator for a geared rotary axis: reflected inertia, inertia ratio, gravity torque, trapezoidal move profile, peak and RMS motor torque, speed and power. Runs in your browser.',
++  },
++  de: {
++    title: 'Servomotor-Auslegungsrechner — Drehmoment für Roboterachsen',
++    description:
++      'Kostenloser Auslegungsrechner für geregelte Drehachsen: reduziertes Trägheitsmoment, Trägheitsverhältnis, Gravitationsmoment, Trapezprofil, Spitzen- und Effektivmoment, Drehzahl und Leistung. Läuft im Browser.',
++  },
++} as const;
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: META[lang].title,
++    description: META[lang].description,
++    alternates: pageAlternates(lang, PATH),
++    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++  };
++}
++
++const LABELS: Record<Lang, AxisLabels> = {
++  en: {
++    loadLegend: 'Load at the joint',
++    payloadMass: 'Payload mass',
++    armLength: 'Arm length to payload',
++    armInertia: 'Arm inertia about the joint',
++    againstGravity: 'Axis lifts against gravity',
++    frictionTorque: 'Friction torque (output)',
++    driveLegend: 'Drive train',
++    gearRatio: 'Gear ratio',
++    efficiency: 'Gearbox efficiency',
++    rotorInertia: 'Motor rotor inertia',
++    moveLegend: 'Move profile',
++    moveAngle: 'Move angle',
++    moveTime: 'Move time',
++    dwellTime: 'Dwell between moves',
++    accelFraction: 'Accel fraction of move',
++    resultsLegend: 'Motor demand',
++    loadInertia: 'Load inertia (output)',
++    reflectedInertia: 'Reflected inertia',
++    inertiaRatio: 'Inertia ratio',
++    peakMotorRpm: 'Peak motor speed',
++    angularAcceleration: 'Output acceleration',
++    gravityTorque: 'Gravity torque (output)',
++    torqueAccel: 'Peak torque (accel)',
++    torqueConstant: 'Torque at constant speed',
++    torqueDecel: 'Torque (decel)',
++    torqueRms: 'RMS torque',
++    peakPower: 'Peak mechanical power',
++    cyclesPerHour: 'Moves per hour',
++    selectionH: 'What to look for on the datasheet',
++    selectionRms: 'Continuous (rated) torque above {v} N·m — the RMS figure is what heats the motor.',
++    selectionPeak: 'Peak/stall torque above {v} N·m, available at the speed below.',
++    selectionSpeed: 'Rated speed above {v} rpm, with peak torque still available there.',
++    flagInertiaHigh: 'Inertia ratio above 10:1 — tuning gets difficult and disturbance rejection suffers. Consider a higher gear ratio or a larger rotor.',
++    flagRegen: 'Deceleration torque is negative: the drive absorbs energy on every stop. Size the braking resistor or DC-link accordingly.',
++    errInvalid: 'Check the inputs: all values positive, efficiency between 0 and 1, accel fraction between 0 and 0.5.',
++    downloadCsv: 'Download sizing sheet (CSV)',
++    disclaimer:
++      'Rigid-body dynamics with a constant gearbox efficiency and a constant friction term. It does NOT model compliance, backlash, thermal derating, drive current limits, field weakening, cable and bearing losses, or duty-cycle temperature rise. It sizes a candidate motor; it does not qualify a drive. Confirm against the manufacturer speed–torque curve at your supply voltage.',
++  },
++  de: {
++    loadLegend: 'Last an der Achse',
++    payloadMass: 'Nutzlast',
++    armLength: 'Armlänge zur Nutzlast',
++    armInertia: 'Armträgheit um die Achse',
++    againstGravity: 'Achse hebt gegen die Schwerkraft',
++    frictionTorque: 'Reibmoment (Abtrieb)',
++    driveLegend: 'Antriebsstrang',
++    gearRatio: 'Übersetzung',
++    efficiency: 'Getriebewirkungsgrad',
++    rotorInertia: 'Rotorträgheit des Motors',
++    moveLegend: 'Bewegungsprofil',
++    moveAngle: 'Schwenkwinkel',
++    moveTime: 'Bewegungszeit',
++    dwellTime: 'Pause zwischen Bewegungen',
++    accelFraction: 'Beschleunigungsanteil',
++    resultsLegend: 'Motoranforderung',
++    loadInertia: 'Lastträgheit (Abtrieb)',
++    reflectedInertia: 'Reduzierte Trägheit',
++    inertiaRatio: 'Trägheitsverhältnis',
++    peakMotorRpm: 'Max. Motordrehzahl',
++    angularAcceleration: 'Winkelbeschleunigung',
++    gravityTorque: 'Gravitationsmoment (Abtrieb)',
++    torqueAccel: 'Spitzenmoment (Beschl.)',
++    torqueConstant: 'Moment bei konstanter Drehzahl',
++    torqueDecel: 'Moment (Verzögerung)',
++    torqueRms: 'Effektivmoment',
++    peakPower: 'Mechanische Spitzenleistung',
++    cyclesPerHour: 'Bewegungen pro Stunde',
++    selectionH: 'Worauf im Datenblatt zu achten ist',
++    selectionRms: 'Dauerdrehmoment über {v} N·m — der Effektivwert erwärmt den Motor.',
++    selectionPeak: 'Spitzen-/Stillstandsmoment über {v} N·m, verfügbar bei der Drehzahl unten.',
++    selectionSpeed: 'Nenndrehzahl über {v} min⁻¹, mit dort noch verfügbarem Spitzenmoment.',
++    flagInertiaHigh: 'Trägheitsverhältnis über 10:1 — die Regelung wird schwierig und die Störgrößenunterdrückung leidet. Höhere Übersetzung oder größerer Rotor erwägen.',
++    flagRegen: 'Das Verzögerungsmoment ist negativ: Der Antrieb nimmt bei jedem Stopp Energie auf. Bremswiderstand bzw. Zwischenkreis entsprechend auslegen.',
++    errInvalid: 'Eingaben prüfen: alle Werte positiv, Wirkungsgrad zwischen 0 und 1, Beschleunigungsanteil zwischen 0 und 0,5.',
++    downloadCsv: 'Auslegungsblatt herunterladen (CSV)',
++    disclaimer:
++      'Starrkörperdynamik mit konstantem Getriebewirkungsgrad und konstantem Reibterm. NICHT modelliert werden Nachgiebigkeit, Umkehrspiel, thermische Derating-Effekte, Stromgrenzen des Umrichters, Feldschwächung, Kabel- und Lagerverluste sowie die Erwärmung über den Arbeitszyklus. Es wird ein Motorkandidat ausgelegt, kein Antrieb qualifiziert. Gegen die Drehzahl-Drehmoment-Kennlinie des Herstellers bei Ihrer Versorgungsspannung prüfen.',
++  },
++};
++
++const FAQS: Record<Lang, { q: string; a: string }[]> = {
++  en: [
++    { q: 'Why does RMS torque matter more than peak torque?', a: 'Peak torque decides whether the axis can make the move at all; RMS torque decides whether the motor survives repeating it. Motor heating follows the square of current, and current follows torque, so the root-mean-square over the full cycle — including dwell, where a gravity-loaded axis still holds its load — is what must sit under the continuous rating.' },
++    { q: 'What is the inertia ratio and why flag 10:1?', a: 'It is reflected load inertia divided by rotor inertia. Because reflection divides by the square of the gear ratio, it moves fast: doubling the ratio quarters the reflected inertia. Above roughly 10:1 a stiff, well-damped loop gets hard to tune and disturbance rejection degrades. It is a design smell, not a hard limit — direct-drive axes live far above it deliberately.' },
++    { q: 'Why is deceleration torque sometimes negative?', a: 'Because the load is giving energy back. On a gravity-assisted stop the inertia term exceeds gravity and friction, the motor acts as a generator, and that energy has to go somewhere — a braking resistor, the DC link, or back to the supply. If the sign is negative here, that path needs sizing.' },
++    { q: 'What move profile is assumed?', a: 'A symmetric trapezoid: accelerate for a fixed fraction of the move, cruise, decelerate for the same fraction. The area under the velocity profile is checked to equal the commanded angle exactly, so the peak speed and acceleration are consistent with the move you asked for rather than approximated.' },
++  ],
++  de: [
++    { q: 'Warum zählt das Effektivmoment mehr als das Spitzenmoment?', a: 'Das Spitzenmoment entscheidet, ob die Bewegung überhaupt möglich ist; das Effektivmoment entscheidet, ob der Motor die Wiederholung übersteht. Die Erwärmung folgt dem Quadrat des Stroms und der Strom dem Moment — der quadratische Mittelwert über den gesamten Zyklus, inklusive Pause, in der eine schwerkraftbelastete Achse ihre Last weiter hält, muss unter dem Dauerwert liegen.' },
++    { q: 'Was ist das Trägheitsverhältnis, und warum die Marke 10:1?', a: 'Es ist die reduzierte Lastträgheit geteilt durch die Rotorträgheit. Da die Reduktion mit dem Quadrat der Übersetzung erfolgt, ändert es sich schnell: doppelte Übersetzung, ein Viertel der reduzierten Trägheit. Oberhalb von etwa 10:1 wird ein steifer, gut gedämpfter Regelkreis schwer einstellbar. Das ist ein Warnzeichen, keine harte Grenze — Direktantriebe liegen bewusst weit darüber.' },
++    { q: 'Warum ist das Verzögerungsmoment manchmal negativ?', a: 'Weil die Last Energie zurückgibt. Übersteigt der Trägheitsterm Schwerkraft und Reibung, arbeitet der Motor als Generator, und diese Energie muss irgendwohin — Bremswiderstand, Zwischenkreis oder zurück ins Netz. Ist das Vorzeichen negativ, muss dieser Pfad ausgelegt werden.' },
++    { q: 'Welches Bewegungsprofil wird angenommen?', a: 'Ein symmetrisches Trapez: Beschleunigen über einen festen Anteil der Bewegung, konstante Fahrt, Verzögern über denselben Anteil. Die Fläche unter dem Geschwindigkeitsprofil wird exakt gegen den kommandierten Winkel geprüft, sodass Spitzendrehzahl und Beschleunigung zur gewünschten Bewegung passen und nicht genähert sind.' },
++  ],
++};
++
++const BODY: Record<Lang, { kicker: string; h1: string; lead: string; methodH2: string; method: string[]; faqH2: string; ctaH2: string; ctaBody: string; link: string }> = {
++  en: {
++    kicker: 'Free tool · Actuators',
++    h1: 'Servo motor sizing for a rotary axis',
++    lead: 'Payload, arm, gearbox and move time in — reflected inertia, peak and RMS torque, speed and power out. The calculation that decides whether a robot joint works before anyone buys a motor.',
++    methodH2: 'What it computes',
++    method: [
++      'Load inertia about the joint is the payload as a point mass at radius r plus the arm structure. Reflecting it through the gearbox divides by the square of the ratio, which is why gear selection dominates this problem: doubling the ratio quarters the reflected inertia but halves the available output speed.',
++      'The move is a symmetric trapezoid. Peak speed and angular acceleration follow from the commanded angle and time, and the area under the velocity profile is checked against the commanded angle exactly rather than approximated.',
++      'Torque is then evaluated at three points — accelerating, cruising, decelerating — with gravity and friction reflected through gearbox efficiency, and the motor rotor accelerated at its own multiplied rate. The RMS over the full cycle, dwell included, is what you compare against a continuous rating.',
++    ],
++    faqH2: 'Questions',
++    ctaH2: 'Sizing a real cell',
++    ctaBody: 'If the inertia ratio is fighting you, or the duty cycle puts RMS torque uncomfortably close to the continuous rating, the fix is usually in the gearbox or the profile rather than a bigger motor. Twenty minutes, no slides — bring the CSV.',
++    link: 'Battery pack calculator →',
++  },
++  de: {
++    kicker: 'Kostenloses Werkzeug · Aktorik',
++    h1: 'Servomotor-Auslegung für eine Drehachse',
++    lead: 'Nutzlast, Arm, Getriebe und Bewegungszeit hinein — reduzierte Trägheit, Spitzen- und Effektivmoment, Drehzahl und Leistung heraus. Die Rechnung, die über eine Roboterachse entscheidet, bevor ein Motor gekauft wird.',
++    methodH2: 'Was berechnet wird',
++    method: [
++      'Die Lastträgheit um die Achse ist die Nutzlast als Punktmasse im Radius r plus die Armstruktur. Die Reduktion über das Getriebe teilt durch das Quadrat der Übersetzung — deshalb dominiert die Getriebewahl dieses Problem: doppelte Übersetzung, ein Viertel der reduzierten Trägheit, aber nur die halbe Abtriebsdrehzahl.',
++      'Die Bewegung ist ein symmetrisches Trapez. Spitzendrehzahl und Winkelbeschleunigung folgen aus kommandiertem Winkel und Zeit, und die Fläche unter dem Geschwindigkeitsprofil wird exakt gegen den Winkel geprüft, nicht genähert.',
++      'Das Drehmoment wird an drei Punkten ausgewertet — Beschleunigen, konstante Fahrt, Verzögern — mit über den Getriebewirkungsgrad reduzierter Schwerkraft und Reibung und dem mit erhöhter Rate beschleunigten Rotor. Der Effektivwert über den gesamten Zyklus samt Pause ist der Vergleichswert zum Dauerdrehmoment.',
++    ],
++    faqH2: 'Fragen',
++    ctaH2: 'Eine echte Zelle auslegen',
++    ctaBody: 'Wenn das Trägheitsverhältnis gegen Sie arbeitet oder der Arbeitszyklus das Effektivmoment nahe an den Dauerwert bringt, liegt die Lösung meist im Getriebe oder im Profil, nicht in einem größeren Motor. Zwanzig Minuten, keine Folien — bringen Sie die CSV mit.',
++    link: 'Batteriepack-Rechner →',
++  },
++};
++
++export default function MotorSizingPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = BODY[lang];
++  const faqs = FAQS[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <AxisSizer labels={LABELS[lang]} lang={lang} />
++
++          <div className="prose">
++            <h2>{copy.methodH2}</h2>
++            {copy.method.map((p) => <p key={p.slice(0, 40)}>{p}</p>)}
++            <h2>{copy.faqH2}</h2>
++            {faqs.map((f) => (<div key={f.q}><h3>{f.q}</h3><p>{f.a}</p></div>))}
++            <h2>{copy.ctaH2}</h2>
++            <p>{copy.ctaBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/tools/battery-pack-calculator')}>{copy.link}</a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'SoftwareApplication',
++        '@id': `${SITE_URL}${PATH}#tool`, name: META[lang].title,
++        url: `${SITE_URL}${langHref(lang, PATH)}`,
++        applicationCategory: 'EngineeringApplication', operatingSystem: 'Web',
++        description: META[lang].description, author: { '@id': `${SITE_URL}/#person` },
++        isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
++      }} />
++      <JsonLd data={{
++        '@context': 'https://schema.org', '@type': 'FAQPage', '@id': `${SITE_URL}${PATH}#faq`,
++        mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
++      }} />
++      <JsonLd data={breadcrumbSchema(lang, [
++        { name: 'Grimaldi Engineering', path: '/' },
++        { name: lang === 'de' ? 'Werkzeuge' : 'Tools', path: '/tools' },
++        { name: copy.h1, path: PATH },
++      ])} />
++    </main>
++  );
++}
+diff --git a/app/[lang]/tools/page.tsx b/app/[lang]/tools/page.tsx
+index 48c336a..2411f67 100644
+--- a/app/[lang]/tools/page.tsx
++++ b/app/[lang]/tools/page.tsx
+@@ -37,6 +37,18 @@ const COPY = {
+         name: 'Case size optimizer',
+         body: 'Sweep every carton size you could order and rank them by pallet cube utilisation — with the gain over your current case in percentage points.',
+       },
++      {
++        path: '/tools/motor-sizing-calculator',
++        tag: 'Actuators',
++        name: 'Servo motor sizing calculator',
++        body: 'Rotary axis and robot joint sizing: reflected inertia, inertia ratio, gravity torque, peak and RMS motor torque, speed and power over a real duty cycle.',
++      },
++      {
++        path: '/tools/battery-pack-calculator',
++        tag: 'Battery systems',
++        name: 'Battery pack calculator',
++        body: 'S/P topology, voltage window, energy, C-rate headroom, runtime, resistive loss — with the design flags that catch a pack before it is built.',
++      },
+     ],
+     referenceH2: 'Reference',
+     reference: [
+@@ -71,6 +83,18 @@ const COPY = {
+         name: 'Kartongrößen-Optimierer',
+         body: 'Jedes bestellbare Kartonmaß durchrechnen und nach Palettenraumnutzung sortieren — mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten.',
+       },
++      {
++        path: '/tools/motor-sizing-calculator',
++        tag: 'Aktorik',
++        name: 'Servomotor-Auslegungsrechner',
++        body: 'Auslegung von Drehachsen und Robotergelenken: reduzierte Trägheit, Trägheitsverhältnis, Gravitationsmoment, Spitzen- und Effektivmoment, Drehzahl und Leistung über einen realen Arbeitszyklus.',
++      },
++      {
++        path: '/tools/battery-pack-calculator',
++        tag: 'Batteriesysteme',
++        name: 'Batteriepack-Rechner',
++        body: 'S/P-Topologie, Spannungsfenster, Energie, C-Raten-Reserve, Laufzeit, ohmsche Verluste — mit den Hinweisen, die ein Pack vor dem Bau abfangen.',
++      },
+     ],
+     referenceH2: 'Referenz',
+     reference: [
+diff --git a/app/globals.css b/app/globals.css
+index 225300d..0ce68ee 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -327,3 +327,14 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
+ .tools-ref-h2 { margin-top: 3rem; }
+ .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+ @media (max-width: 980px) { .calc-inputs-3 { grid-template-columns: 1fr; } }
++
++/* ── v10: engineering calculators ───────────────────────────────────── */
++.calc-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0 1.5rem; margin: 0; }
++.calc-flags { margin-top: 1.2rem; }
++.calc-flags h4 { margin: 0 0 .5rem; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
++.calc-flag { margin: 0 0 .5rem; font-size: .85rem; line-height: 1.55; color: var(--text-2); border-left: 3px solid var(--border-strong); padding-left: .8rem; }
++.calc-flag-warn { border-left-color: var(--trace-3); color: var(--text); }
++.calc-flag-ok { border-left-color: var(--phosphor); }
++.calc-selection { margin-top: 1.3rem; border-top: 1px solid var(--border); padding-top: 1rem; }
++.calc-selection h4 { margin: 0 0 .5rem; font-size: .82rem; color: var(--phosphor); }
++.calc-selection ul { margin: 0; padding-left: 1.1rem; color: var(--text-2); font-size: .86rem; line-height: 1.7; }
+diff --git a/app/sitemap.ts b/app/sitemap.ts
+index 82b9ff5..633520e 100644
+--- a/app/sitemap.ts
++++ b/app/sitemap.ts
+@@ -15,6 +15,8 @@ function logicalPaths(): { path: string; priority: number }[] {
+     { path: '/tools/pallet-pattern-calculator', priority: 0.9 },
+     { path: '/tools/truck-load-calculator', priority: 0.9 },
+     { path: '/tools/case-size-optimizer', priority: 0.9 },
++    { path: '/tools/motor-sizing-calculator', priority: 0.9 },
++    { path: '/tools/battery-pack-calculator', priority: 0.9 },
+     { path: '/reference/pallet-sizes', priority: 0.8 },
+     { path: '/reference/container-dimensions', priority: 0.8 },
+     { path: '/lab', priority: 0.7 },
+diff --git a/components/AxisSizer.tsx b/components/AxisSizer.tsx
+new file mode 100644
+index 0000000..9debf85
+--- /dev/null
++++ b/components/AxisSizer.tsx
+@@ -0,0 +1,204 @@
++'use client';
++
++/** Rotary axis / joint sizing island. All maths client-side. */
++
++import { useMemo, useState } from 'react';
++import { sizeRotaryAxis, type AxisInput } from '@/lib/machines';
++
++export type AxisLabels = {
++  loadLegend: string;
++  payloadMass: string;
++  armLength: string;
++  armInertia: string;
++  againstGravity: string;
++  frictionTorque: string;
++  driveLegend: string;
++  gearRatio: string;
++  efficiency: string;
++  rotorInertia: string;
++  moveLegend: string;
++  moveAngle: string;
++  moveTime: string;
++  dwellTime: string;
++  accelFraction: string;
++  resultsLegend: string;
++  loadInertia: string;
++  reflectedInertia: string;
++  inertiaRatio: string;
++  peakMotorRpm: string;
++  angularAcceleration: string;
++  gravityTorque: string;
++  torqueAccel: string;
++  torqueConstant: string;
++  torqueDecel: string;
++  torqueRms: string;
++  peakPower: string;
++  cyclesPerHour: string;
++  selectionH: string;
++  selectionRms: string;
++  selectionPeak: string;
++  selectionSpeed: string;
++  flagInertiaHigh: string;
++  flagRegen: string;
++  errInvalid: string;
++  downloadCsv: string;
++  disclaimer: string;
++};
++
++export default function AxisSizer({ labels, lang }: { labels: AxisLabels; lang: 'en' | 'de' }) {
++  const [payloadMass, setPayloadMass] = useState(25);
++  const [armLength, setArmLength] = useState(1.2);
++  const [armInertia, setArmInertia] = useState(8);
++  const [againstGravity, setAgainstGravity] = useState(true);
++  const [frictionTorque, setFrictionTorque] = useState(5);
++  const [gearRatio, setGearRatio] = useState(50);
++  const [efficiency, setEfficiency] = useState(0.9);
++  const [rotorInertia, setRotorInertia] = useState(0.00035);
++  const [moveAngleDeg, setMoveAngleDeg] = useState(90);
++  const [moveTime, setMoveTime] = useState(1.2);
++  const [dwellTime, setDwellTime] = useState(0.8);
++  const [accelFraction, setAccelFraction] = useState(0.33);
++
++  const nf = useMemo(() => new Intl.NumberFormat(lang, { maximumFractionDigits: 2 }), [lang]);
++
++  const input: AxisInput = {
++    payloadMass, armLength, armInertia, gearRatio, efficiency, rotorInertia,
++    moveAngle: (moveAngleDeg * Math.PI) / 180,
++    moveTime, dwellTime, frictionTorque, againstGravity, accelFraction,
++  };
++
++  const r = useMemo(() => sizeRotaryAxis(input), [
++    payloadMass, armLength, armInertia, gearRatio, efficiency, rotorInertia,
++    moveAngleDeg, moveTime, dwellTime, frictionTorque, againstGravity, accelFraction,
++  ]);
++
++  function downloadCsv() {
++    const rows = [
++      '# Grimaldi Engineering - rotary axis sizing (rigid-body, geometry + inertia only)',
++      '# NOT a drive qualification: no thermal derating, compliance, backlash or current limits.',
++      `# payload_kg,${payloadMass},arm_m,${armLength},arm_inertia_kgm2,${armInertia},gravity,${againstGravity}`,
++      `# gear_ratio,${gearRatio},efficiency,${efficiency},rotor_inertia_kgm2,${rotorInertia}`,
++      `# move_deg,${moveAngleDeg},move_s,${moveTime},dwell_s,${dwellTime},accel_fraction,${accelFraction}`,
++      'quantity,value,unit',
++      `load_inertia,${r.loadInertia.toFixed(4)},kg*m2`,
++      `reflected_inertia,${r.reflectedInertia.toExponential(4)},kg*m2`,
++      `inertia_ratio,${r.inertiaRatio.toFixed(2)},:1`,
++      `peak_motor_speed,${r.peakMotorRpm.toFixed(1)},rpm`,
++      `gravity_torque_output,${r.gravityTorque.toFixed(2)},Nm`,
++      `motor_torque_accel,${r.motorTorqueAccel.toFixed(3)},Nm`,
++      `motor_torque_constant,${r.motorTorqueConstant.toFixed(3)},Nm`,
++      `motor_torque_decel,${r.motorTorqueDecel.toFixed(3)},Nm`,
++      `motor_torque_rms,${r.motorTorqueRms.toFixed(3)},Nm`,
++      `peak_power,${r.peakPower.toFixed(1)},W`,
++      `cycles_per_hour,${r.cyclesPerHour.toFixed(0)},1/h`,
++    ].join('\n');
++    const blob = new Blob([rows], { type: 'text/csv;charset=utf-8' });
++    const url = globalThis.URL.createObjectURL(blob);
++    const a = document.createElement('a');
++    a.href = url;
++    a.download = `axis-sizing-${payloadMass}kg-${armLength}m.csv`;
++    document.body.appendChild(a); a.click(); document.body.removeChild(a);
++    globalThis.URL.revokeObjectURL(url);
++  }
++
++  return (
++    <div className="calc">
++      <div className="calc-inputs calc-inputs-3">
++        <fieldset>
++          <legend>{labels.loadLegend}</legend>
++          <Num label={labels.payloadMass} value={payloadMass} onChange={setPayloadMass} unit="kg" step={0.5} />
++          <Num label={labels.armLength} value={armLength} onChange={setArmLength} unit="m" step={0.05} />
++          <Num label={labels.armInertia} value={armInertia} onChange={setArmInertia} unit="kg·m²" step={0.1} />
++          <Num label={labels.frictionTorque} value={frictionTorque} onChange={setFrictionTorque} unit="N·m" step={0.5} />
++          <label className="calc-field calc-field-wide calc-check">
++            <input type="checkbox" checked={againstGravity} onChange={(e) => setAgainstGravity(e.target.checked)} />
++            <span>{labels.againstGravity}</span>
++          </label>
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.driveLegend}</legend>
++          <Num label={labels.gearRatio} value={gearRatio} onChange={setGearRatio} unit=":1" step={1} />
++          <Num label={labels.efficiency} value={efficiency} onChange={setEfficiency} unit="" step={0.01} />
++          <Num label={labels.rotorInertia} value={rotorInertia} onChange={setRotorInertia} unit="kg·m²" step={0.00001} />
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.moveLegend}</legend>
++          <Num label={labels.moveAngle} value={moveAngleDeg} onChange={setMoveAngleDeg} unit="°" step={5} />
++          <Num label={labels.moveTime} value={moveTime} onChange={setMoveTime} unit="s" step={0.1} />
++          <Num label={labels.dwellTime} value={dwellTime} onChange={setDwellTime} unit="s" step={0.1} />
++          <Num label={labels.accelFraction} value={accelFraction} onChange={setAccelFraction} unit="" step={0.01} />
++        </fieldset>
++      </div>
++
++      <div className="calc-result-block">
++        <h3>{labels.resultsLegend}</h3>
++        {!r.ok ? (
++          <p className="calc-error" role="alert">{labels.errInvalid}</p>
++        ) : (
++          <>
++            <div className="calc-stat-grid">
++              <Stat label={labels.torqueRms} value={`${nf.format(r.motorTorqueRms)} N·m`} strong />
++              <Stat label={labels.torqueAccel} value={`${nf.format(r.motorTorqueAccel)} N·m`} strong />
++              <Stat label={labels.peakMotorRpm} value={`${nf.format(r.peakMotorRpm)} rpm`} strong />
++              <Stat label={labels.peakPower} value={`${nf.format(r.peakPower / 1000)} kW`} />
++              <Stat label={labels.loadInertia} value={`${nf.format(r.loadInertia)} kg·m²`} />
++              <Stat label={labels.reflectedInertia} value={`${r.reflectedInertia.toExponential(2)} kg·m²`} />
++              <Stat label={labels.inertiaRatio} value={`${nf.format(r.inertiaRatio)} : 1`} />
++              <Stat label={labels.gravityTorque} value={`${nf.format(r.gravityTorque)} N·m`} />
++              <Stat label={labels.angularAcceleration} value={`${nf.format(r.angularAcceleration)} rad/s²`} />
++              <Stat label={labels.torqueConstant} value={`${nf.format(r.motorTorqueConstant)} N·m`} />
++              <Stat label={labels.torqueDecel} value={`${nf.format(r.motorTorqueDecel)} N·m`} />
++              <Stat label={labels.cyclesPerHour} value={nf.format(r.cyclesPerHour)} />
++            </div>
++
++            <div className="calc-flags">
++              {r.inertiaRatio > 10 && <p className="calc-flag calc-flag-warn">{labels.flagInertiaHigh}</p>}
++              {r.motorTorqueDecel < 0 && <p className="calc-flag">{labels.flagRegen}</p>}
++            </div>
++
++            <div className="calc-selection">
++              <h4>{labels.selectionH}</h4>
++              <ul>
++                <li>{labels.selectionRms.replace('{v}', nf.format(r.motorTorqueRms))}</li>
++                <li>{labels.selectionPeak.replace('{v}', nf.format(r.motorTorqueAccel))}</li>
++                <li>{labels.selectionSpeed.replace('{v}', nf.format(r.peakMotorRpm))}</li>
++              </ul>
++            </div>
++
++            <button type="button" className="btn btn-line calc-download" onClick={downloadCsv}>
++              {labels.downloadCsv}
++            </button>
++          </>
++        )}
++      </div>
++
++      <p className="calc-disclaimer">{labels.disclaimer}</p>
++    </div>
++  );
++}
++
++function Num({ label, value, onChange, unit, step = 1 }: {
++  label: string; value: number; onChange: (v: number) => void; unit: string; step?: number;
++}) {
++  return (
++    <label className="calc-field">
++      <span>{label}</span>
++      <span className="calc-input-row">
++        <input type="number" inputMode="decimal" step={step} value={Number.isFinite(value) ? value : ''}
++               onChange={(e) => onChange(Number(e.target.value))} />
++        {unit ? <em>{unit}</em> : null}
++      </span>
++    </label>
++  );
++}
++
++function Stat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
++  return (
++    <div className={strong ? 'calc-stat calc-stat-strong' : 'calc-stat'}>
++      <dt>{label}</dt>
++      <dd>{value}</dd>
++    </div>
++  );
++}
+diff --git a/components/PackDesigner.tsx b/components/PackDesigner.tsx
+new file mode 100644
+index 0000000..26d41dc
+--- /dev/null
++++ b/components/PackDesigner.tsx
+@@ -0,0 +1,224 @@
++'use client';
++
++/** Battery pack topology island. All maths client-side, nothing transmitted. */
++
++import { useMemo, useState } from 'react';
++import { CELL_PRESETS, designPack, type Cell, type PackWarning } from '@/lib/battery';
++
++export type PackLabels = {
++  cellLegend: string;
++  preset: string;
++  custom: string;
++  nominalVoltage: string;
++  maxVoltage: string;
++  minVoltage: string;
++  capacityAh: string;
++  maxDischargeC: string;
++  internalResistance: string;
++  cellMass: string;
++  topologyLegend: string;
++  series: string;
++  parallel: string;
++  loadPower: string;
++  depthOfDischarge: string;
++  resultsLegend: string;
++  cellCount: string;
++  packNominal: string;
++  packWindow: string;
++  packCapacity: string;
++  packEnergy: string;
++  usableEnergy: string;
++  maxCurrent: string;
++  maxPower: string;
++  loadCurrent: string;
++  demandedC: string;
++  headroom: string;
++  runtime: string;
++  packResistance: string;
++  resistiveLoss: string;
++  voltageSag: string;
++  packMass: string;
++  specificEnergy: string;
++  warningsH: string;
++  wCRate: string;
++  w60v: string;
++  w120v: string;
++  wStrings: string;
++  wHeadroom: string;
++  wIrLoss: string;
++  noWarnings: string;
++  errInvalid: string;
++  downloadCsv: string;
++  disclaimer: string;
++};
++
++export default function PackDesigner({ labels, lang }: { labels: PackLabels; lang: 'en' | 'de' }) {
++  const [presetId, setPresetId] = useState(CELL_PRESETS[3].id);
++  const [cell, setCell] = useState<Cell>(CELL_PRESETS[3].cell);
++  const [series, setSeries] = useState(16);
++  const [parallel, setParallel] = useState(1);
++  const [loadPower, setLoadPower] = useState(2000);
++  const [dod, setDod] = useState(0.8);
++
++  const nf = useMemo(() => new Intl.NumberFormat(lang, { maximumFractionDigits: 2 }), [lang]);
++  const setField = (k: keyof Cell) => (v: number) => { setPresetId('custom'); setCell((c) => ({ ...c, [k]: v })); };
++
++  function applyPreset(id: string) {
++    setPresetId(id);
++    const p = CELL_PRESETS.find((x) => x.id === id);
++    if (p) setCell(p.cell);
++  }
++
++  const r = useMemo(
++    () => designPack({ cell, series, parallel, loadPower, depthOfDischarge: dod }),
++    [cell, series, parallel, loadPower, dod],
++  );
++
++  const warningText: Record<PackWarning, string> = {
++    'c-rate-exceeded': labels.wCRate,
++    'above-60v-dc': labels.w60v,
++    'above-120v-dc': labels.w120v,
++    'high-string-count': labels.wStrings,
++    'low-headroom': labels.wHeadroom,
++    'high-ir-loss': labels.wIrLoss,
++  };
++
++  function downloadCsv() {
++    const rows = [
++      '# Grimaldi Engineering - battery pack topology (steady-state duty only)',
++      '# NOT a thermal, ageing, fault-propagation or thermal-runaway analysis.',
++      '# NOT a substitute for the cell datasheet or IEC 62133 / UN 38.3 qualification.',
++      `# cell_V,${cell.nominalVoltage},max_V,${cell.maxVoltage},min_V,${cell.minVoltage},Ah,${cell.capacityAh},maxC,${cell.maxDischargeC},IR_ohm,${cell.internalResistance},mass_kg,${cell.mass}`,
++      `# topology,${series}S${parallel}P,load_W,${loadPower},DoD,${dod}`,
++      'quantity,value,unit',
++      `cell_count,${r.cellCount},`,
++      `pack_nominal,${r.nominalVoltage.toFixed(2)},V`,
++      `pack_min,${r.minVoltage.toFixed(2)},V`,
++      `pack_max,${r.maxVoltage.toFixed(2)},V`,
++      `capacity,${r.capacityAh.toFixed(2)},Ah`,
++      `energy,${r.energyWh.toFixed(1)},Wh`,
++      `usable_energy,${r.usableEnergyWh.toFixed(1)},Wh`,
++      `max_continuous_current,${r.maxContinuousCurrent.toFixed(1)},A`,
++      `max_continuous_power,${r.maxContinuousPower.toFixed(0)},W`,
++      `load_current,${r.loadCurrent.toFixed(2)},A`,
++      `demanded_c_rate,${r.demandedC.toFixed(3)},C`,
++      `power_headroom,${r.powerHeadroom.toFixed(2)},x`,
++      `runtime,${r.runtimeHours.toFixed(3)},h`,
++      `pack_resistance,${(r.packResistance * 1000).toFixed(3)},mOhm`,
++      `resistive_loss,${r.resistiveLossW.toFixed(1)},W`,
++      `voltage_sag,${r.voltageSag.toFixed(3)},V`,
++      `mass,${r.mass.toFixed(2)},kg`,
++      `specific_energy,${r.specificEnergy.toFixed(1)},Wh/kg`,
++      `warnings,"${r.warnings.join(' ')}",`,
++    ].join('\n');
++    const blob = new Blob([rows], { type: 'text/csv;charset=utf-8' });
++    const url = globalThis.URL.createObjectURL(blob);
++    const a = document.createElement('a');
++    a.href = url;
++    a.download = `pack-${series}S${parallel}P.csv`;
++    document.body.appendChild(a); a.click(); document.body.removeChild(a);
++    globalThis.URL.revokeObjectURL(url);
++  }
++
++  return (
++    <div className="calc">
++      <div className="calc-inputs">
++        <fieldset>
++          <legend>{labels.cellLegend}</legend>
++          <label className="calc-field calc-field-wide">
++            <span>{labels.preset}</span>
++            <select value={presetId} onChange={(e) => applyPreset(e.target.value)}>
++              {CELL_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
++              <option value="custom">{labels.custom}</option>
++            </select>
++          </label>
++          <Num label={labels.nominalVoltage} value={cell.nominalVoltage} onChange={setField('nominalVoltage')} unit="V" step={0.1} />
++          <Num label={labels.maxVoltage} value={cell.maxVoltage} onChange={setField('maxVoltage')} unit="V" step={0.05} />
++          <Num label={labels.minVoltage} value={cell.minVoltage} onChange={setField('minVoltage')} unit="V" step={0.05} />
++          <Num label={labels.capacityAh} value={cell.capacityAh} onChange={setField('capacityAh')} unit="Ah" step={0.5} />
++          <Num label={labels.maxDischargeC} value={cell.maxDischargeC} onChange={setField('maxDischargeC')} unit="C" step={0.5} />
++          <Num label={labels.internalResistance} value={cell.internalResistance} onChange={setField('internalResistance')} unit="Ω" step={0.0001} />
++          <Num label={labels.cellMass} value={cell.mass} onChange={setField('mass')} unit="kg" step={0.005} />
++        </fieldset>
++
++        <fieldset>
++          <legend>{labels.topologyLegend}</legend>
++          <Num label={labels.series} value={series} onChange={setSeries} unit="S" step={1} />
++          <Num label={labels.parallel} value={parallel} onChange={setParallel} unit="P" step={1} />
++          <Num label={labels.loadPower} value={loadPower} onChange={setLoadPower} unit="W" step={50} />
++          <Num label={labels.depthOfDischarge} value={dod} onChange={setDod} unit="" step={0.05} />
++        </fieldset>
++      </div>
++
++      <div className="calc-result-block">
++        <h3>{labels.resultsLegend}</h3>
++        {!r.ok ? (
++          <p className="calc-error" role="alert">{labels.errInvalid}</p>
++        ) : (
++          <>
++            <div className="calc-stat-grid">
++              <Stat label={labels.packNominal} value={`${nf.format(r.nominalVoltage)} V`} strong />
++              <Stat label={labels.packEnergy} value={`${nf.format(r.energyWh / 1000)} kWh`} strong />
++              <Stat label={labels.runtime} value={`${nf.format(r.runtimeHours)} h`} strong />
++              <Stat label={labels.packWindow} value={`${nf.format(r.minVoltage)} – ${nf.format(r.maxVoltage)} V`} />
++              <Stat label={labels.cellCount} value={nf.format(r.cellCount)} />
++              <Stat label={labels.packCapacity} value={`${nf.format(r.capacityAh)} Ah`} />
++              <Stat label={labels.usableEnergy} value={`${nf.format(r.usableEnergyWh)} Wh`} />
++              <Stat label={labels.maxCurrent} value={`${nf.format(r.maxContinuousCurrent)} A`} />
++              <Stat label={labels.maxPower} value={`${nf.format(r.maxContinuousPower / 1000)} kW`} />
++              <Stat label={labels.loadCurrent} value={`${nf.format(r.loadCurrent)} A`} />
++              <Stat label={labels.demandedC} value={`${nf.format(r.demandedC)} C`} />
++              <Stat label={labels.headroom} value={`${nf.format(r.powerHeadroom)} ×`} />
++              <Stat label={labels.packResistance} value={`${nf.format(r.packResistance * 1000)} mΩ`} />
++              <Stat label={labels.resistiveLoss} value={`${nf.format(r.resistiveLossW)} W`} />
++              <Stat label={labels.voltageSag} value={`${nf.format(r.voltageSag)} V`} />
++              <Stat label={labels.packMass} value={`${nf.format(r.mass)} kg`} />
++              <Stat label={labels.specificEnergy} value={`${nf.format(r.specificEnergy)} Wh/kg`} />
++            </div>
++
++            <div className="calc-flags">
++              <h4>{labels.warningsH}</h4>
++              {r.warnings.length === 0 ? (
++                <p className="calc-flag calc-flag-ok">{labels.noWarnings}</p>
++              ) : (
++                r.warnings.map((w) => (
++                  <p key={w} className="calc-flag calc-flag-warn">{warningText[w]}</p>
++                ))
++              )}
++            </div>
++
++            <button type="button" className="btn btn-line calc-download" onClick={downloadCsv}>
++              {labels.downloadCsv}
++            </button>
++          </>
++        )}
++      </div>
++
++      <p className="calc-disclaimer">{labels.disclaimer}</p>
++    </div>
++  );
++}
++
++function Num({ label, value, onChange, unit, step = 1 }: {
++  label: string; value: number; onChange: (v: number) => void; unit: string; step?: number;
++}) {
++  return (
++    <label className="calc-field">
++      <span>{label}</span>
++      <span className="calc-input-row">
++        <input type="number" inputMode="decimal" step={step} value={Number.isFinite(value) ? value : ''}
++               onChange={(e) => onChange(Number(e.target.value))} />
++        {unit ? <em>{unit}</em> : null}
++      </span>
++    </label>
++  );
++}
++
++function Stat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
++  return (
++    <div className={strong ? 'calc-stat calc-stat-strong' : 'calc-stat'}>
++      <dt>{label}</dt>
++      <dd>{value}</dd>
++    </div>
++  );
++}
+diff --git a/lib/battery.ts b/lib/battery.ts
+new file mode 100644
+index 0000000..bed7a34
+--- /dev/null
++++ b/lib/battery.ts
+@@ -0,0 +1,187 @@
++/**
++ * Battery pack topology and duty — the arithmetic behind a BMS spec.
++ *
++ * Given a cell and an S/P arrangement, this returns the pack's voltage
++ * window, energy, current and power ceilings, the C-rate the load
++ * actually demands, runtime at that load, and the flags an engineer
++ * needs before anyone builds it.
++ *
++ * The flags matter more than the numbers. A pack that "works" on paper
++ * at 4C on a 2C cell, or that quietly crosses the 60 V DC touch-safety
++ * boundary, is the kind of design that reaches a prototype before anyone
++ * notices. They are surfaced as codes, translated at the UI edge.
++ *
++ * HONESTY BOUNDARY: topology and steady-state duty only. This is NOT a
++ * thermal model, not a cell-ageing model, not a fault-propagation or
++ * thermal-runaway analysis, and not a substitute for the cell
++ * datasheet or for IEC 62133 / UN 38.3 qualification. Cell limits vary
++ * with temperature and state of charge; this assumes the ratings you
++ * enter hold across the whole operating envelope, which they do not.
++ */
++
++export type Cell = {
++  /** Nominal terminal voltage, V. */
++  nominalVoltage: number;
++  /** Maximum charge voltage, V. */
++  maxVoltage: number;
++  /** Discharge cut-off voltage, V. */
++  minVoltage: number;
++  /** Rated capacity, Ah. */
++  capacityAh: number;
++  /** Maximum continuous discharge rate, in multiples of capacity (C). */
++  maxDischargeC: number;
++  /** Internal resistance, ohms. */
++  internalResistance: number;
++  /** Mass, kg. */
++  mass: number;
++};
++
++export type PackInput = {
++  cell: Cell;
++  /** Cells in series. */
++  series: number;
++  /** Strings in parallel. */
++  parallel: number;
++  /** Continuous load power, W. */
++  loadPower: number;
++  /** Usable fraction of nominal capacity, 0..1. */
++  depthOfDischarge: number;
++};
++
++export type PackWarning =
++  | 'c-rate-exceeded'
++  | 'above-60v-dc'
++  | 'above-120v-dc'
++  | 'high-string-count'
++  | 'low-headroom'
++  | 'high-ir-loss';
++
++export type PackResult = {
++  ok: boolean;
++  reason?: 'invalid-input';
++  cellCount: number;
++  nominalVoltage: number;
++  maxVoltage: number;
++  minVoltage: number;
++  capacityAh: number;
++  energyWh: number;
++  usableEnergyWh: number;
++  /** Ceiling from the cell's own continuous rating, A. */
++  maxContinuousCurrent: number;
++  maxContinuousPower: number;
++  /** What the load actually pulls at nominal voltage, A. */
++  loadCurrent: number;
++  /** Load current expressed as a C-rate on this pack. */
++  demandedC: number;
++  /** maxContinuousPower / loadPower. */
++  powerHeadroom: number;
++  /** Runtime on usable energy at the stated load, hours. */
++  runtimeHours: number;
++  /** Pack internal resistance from the S/P arrangement, ohms. */
++  packResistance: number;
++  /** I²R loss at the load current, W. */
++  resistiveLossW: number;
++  /** Sag at the load current, V. */
++  voltageSag: number;
++  mass: number;
++  /** Wh per kg of cells only — no housing, BMS or busbars. */
++  specificEnergy: number;
++  warnings: PackWarning[];
++};
++
++export function designPack(input: PackInput): PackResult {
++  const { cell, series, parallel, loadPower, depthOfDischarge } = input;
++
++  const empty: PackResult = {
++    ok: false,
++    cellCount: 0, nominalVoltage: 0, maxVoltage: 0, minVoltage: 0,
++    capacityAh: 0, energyWh: 0, usableEnergyWh: 0,
++    maxContinuousCurrent: 0, maxContinuousPower: 0,
++    loadCurrent: 0, demandedC: 0, powerHeadroom: 0, runtimeHours: 0,
++    packResistance: 0, resistiveLossW: 0, voltageSag: 0,
++    mass: 0, specificEnergy: 0, warnings: [],
++  };
++
++  const positive = [
++    cell.nominalVoltage, cell.maxVoltage, cell.minVoltage,
++    cell.capacityAh, cell.maxDischargeC, cell.mass,
++    series, parallel, loadPower,
++  ].every((v) => Number.isFinite(v) && v > 0);
++  const sane =
++    Number.isFinite(cell.internalResistance) && cell.internalResistance >= 0 &&
++    depthOfDischarge > 0 && depthOfDischarge <= 1 &&
++    Number.isInteger(series) && Number.isInteger(parallel) &&
++    cell.maxVoltage >= cell.nominalVoltage && cell.nominalVoltage >= cell.minVoltage;
++  if (!positive || !sane) return { ...empty, reason: 'invalid-input' };
++
++  const cellCount = series * parallel;
++  const nominalVoltage = series * cell.nominalVoltage;
++  const maxVoltage = series * cell.maxVoltage;
++  const minVoltage = series * cell.minVoltage;
++  const capacityAh = parallel * cell.capacityAh;
++  const energyWh = nominalVoltage * capacityAh;
++  const usableEnergyWh = energyWh * depthOfDischarge;
++
++  const maxContinuousCurrent = parallel * cell.maxDischargeC * cell.capacityAh;
++  const maxContinuousPower = nominalVoltage * maxContinuousCurrent;
++
++  const loadCurrent = loadPower / nominalVoltage;
++  const demandedC = capacityAh > 0 ? loadCurrent / capacityAh : 0;
++  const powerHeadroom = loadPower > 0 ? maxContinuousPower / loadPower : 0;
++  const runtimeHours = loadPower > 0 ? usableEnergyWh / loadPower : 0;
++
++  // Series adds resistance, parallel divides it.
++  const packResistance = (cell.internalResistance * series) / parallel;
++  const resistiveLossW = loadCurrent ** 2 * packResistance;
++  const voltageSag = loadCurrent * packResistance;
++
++  const mass = cellCount * cell.mass;
++  const specificEnergy = mass > 0 ? energyWh / mass : 0;
++
++  const warnings: PackWarning[] = [];
++  if (demandedC > cell.maxDischargeC) warnings.push('c-rate-exceeded');
++  if (maxVoltage > 120) warnings.push('above-120v-dc');
++  else if (maxVoltage > 60) warnings.push('above-60v-dc');
++  if (parallel > 4) warnings.push('high-string-count');
++  if (powerHeadroom < 1.25 && powerHeadroom >= 1) warnings.push('low-headroom');
++  if (loadPower > 0 && resistiveLossW / loadPower > 0.05) warnings.push('high-ir-loss');
++
++  return {
++    ok: true,
++    cellCount, nominalVoltage, maxVoltage, minVoltage,
++    capacityAh, energyWh, usableEnergyWh,
++    maxContinuousCurrent, maxContinuousPower,
++    loadCurrent, demandedC, powerHeadroom, runtimeHours,
++    packResistance, resistiveLossW, voltageSag,
++    mass, specificEnergy, warnings,
++  };
++}
++
++/** Common cell chemistries as starting points, not recommendations. */
++export const CELL_PRESETS: { id: string; label: string; cell: Cell }[] = [
++  {
++    id: 'nmc-21700',
++    label: 'Li-ion NMC 21700 — 3.6 V, 5.0 Ah',
++    cell: { nominalVoltage: 3.6, maxVoltage: 4.2, minVoltage: 2.5, capacityAh: 5.0, maxDischargeC: 2, internalResistance: 0.016, mass: 0.070 },
++  },
++  {
++    id: 'nmc-18650',
++    label: 'Li-ion NMC 18650 — 3.6 V, 3.0 Ah',
++    cell: { nominalVoltage: 3.6, maxVoltage: 4.2, minVoltage: 2.5, capacityAh: 3.0, maxDischargeC: 2, internalResistance: 0.030, mass: 0.048 },
++  },
++  {
++    id: 'lfp-32700',
++    label: 'LiFePO₄ 32700 — 3.2 V, 6.0 Ah',
++    cell: { nominalVoltage: 3.2, maxVoltage: 3.65, minVoltage: 2.5, capacityAh: 6.0, maxDischargeC: 3, internalResistance: 0.014, mass: 0.145 },
++  },
++  {
++    id: 'lfp-prismatic',
++    label: 'LiFePO₄ prismatic — 3.2 V, 100 Ah',
++    cell: { nominalVoltage: 3.2, maxVoltage: 3.65, minVoltage: 2.5, capacityAh: 100, maxDischargeC: 1, internalResistance: 0.0006, mass: 1.95 },
++  },
++  {
++    id: 'lto',
++    label: 'LTO — 2.3 V, 30 Ah',
++    cell: { nominalVoltage: 2.3, maxVoltage: 2.8, minVoltage: 1.5, capacityAh: 30, maxDischargeC: 6, internalResistance: 0.0011, mass: 0.72 },
++  },
++];
+diff --git a/lib/dict.ts b/lib/dict.ts
+index 059bba1..226cac0 100644
+--- a/lib/dict.ts
++++ b/lib/dict.ts
+@@ -98,23 +98,23 @@ export interface Dict {
+ }
+ 
+ const en: Dict = {
+-  brandTag: 'Hardware • Electrical Engineering',
++  brandTag: 'Machines • Batteries • Power Electronics',
+   navForge: 'Forge Line',
+   navLab: 'Lab',
+   navDisciplines: 'Disciplines',
+   navBook: 'Book a bench review',
+   navTools: 'Tools',
+   calcCardTag: 'Free tools',
+-  calcCardTitle: 'Free palletizing & logistics calculators',
+-  calcCardBody: 'Pallet layer patterns and truck/container load plans. Cases per layer, pallets per vehicle, cube and payload utilisation — computed in your browser, CSV export, no sign-up.',
++  calcCardTitle: 'Free engineering calculators',
++  calcCardBody: 'Servo axis sizing, battery pack topology, pallet patterns and vehicle load plans. Torque, C-rate, cube and payload — computed in your browser, CSV export, no sign-up.',
+   langLabel: 'Language',
+ 
+   homeKicker: 'Grimaldi Engineering · Frankfurt',
+-  homeH1: 'Automation software for the trades. Engineering you can verify.',
++  homeH1: 'Machines, batteries and the software that drives them.',
+   homeLead:
+-    'The Forge Line ships automation products for palletizing, flooring, painting and drying — code public, status stated plainly. Underneath: high-voltage, embedded and power-electronics work. Build logs ship with instrument captures; the first are in preparation.',
++    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. On top of that layer sits the Forge Line: automation products for the trades, code public, status stated plainly.',
+   ctaBook: 'Book a 20-minute bench review — €0',
+-  ctaForge: 'See the Forge Line',
++  ctaForge: 'See the engineering tools',
+   icpKicker: 'Start here',
+   icpTitle: 'Three doors, one bench',
+   icpIntro: 'Pick the door that matches your problem. Each leads to its own page — no mixed pitch.',
+@@ -128,10 +128,10 @@ const en: Dict = {
+   icpB_body:
+     'FloorForge AI is automation tooling for the flooring trade — public repository, in active development, no production deployment yet.',
+   icpB_cta: 'FloorForge AI',
+-  icpC_tag: 'Grid / OT advisory',
+-  icpC_title: 'You need an HV / OT engineer',
++  icpC_tag: 'Machines, batteries & grid',
++  icpC_title: 'You need a machines or battery engineer',
+   icpC_body:
+-    'Advisory sessions and retainers on high-voltage systems, grid physics and OT digitalisation. Public content stays generic — no operator internals.',
++    'Actuator and drive sizing, electrical machine selection across DC, async and sync, battery pack architecture and BMS specification, high voltage and grid physics. Public content stays generic — no operator internals.',
+   icpC_cta: 'See advisory terms',
+   forgeKicker: 'Trades 2.0 · The Forge Line',
+   forgeTitle: 'One trade, one product at a time',
+@@ -143,9 +143,9 @@ const en: Dict = {
+     'A three-phase scope driving an actual frequency-droop integrator: Δf = −f·0.04·ΔP, RoCoF bounded by inertia. The readouts come out of the model, not a canned animation.',
+   labCta: 'Open the droop instrument',
+   discKicker: 'Disciplines',
+-  discTitle: 'Three tracks of physical engineering',
++  discTitle: 'Five tracks of physical engineering',
+   discIntro:
+-    'High voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that.',
++    'Electrical machines and actuators, battery systems and management, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
+   open: 'Open →',
+ 
+   statusShipped: 'Shipped',
+@@ -173,13 +173,13 @@ const en: Dict = {
+   bookBring: 'What to bring: a cell layout, a scope trace, a SKU mix, or a one-paragraph problem statement.',
+   offersTitle: 'Working terms',
+   offerSession: 'Deep-dive session — €280',
+-  offerSessionBody: '90 minutes on your specific problem: palletizing cell design, HV/OT questions, architecture review. Written summary included.',
++  offerSessionBody: '90 minutes on your specific problem: axis and drive sizing, machine selection, battery pack and BMS architecture, palletizing cell design, HV questions. Written summary included.',
+   offerRetainer: 'Advisory retainer — €3,200/mo',
+-  offerRetainerBody: 'Ongoing engineering advisory: weekly call, async review, priority access. Grid/OT scope stays on public, generic ground.',
++  offerRetainerBody: 'Ongoing engineering advisory across drives, machines, battery systems and grid: weekly call, async review, priority access. Scope stays on public, generic ground.',
+   offerIntegration: 'Forge integration — custom quote',
+   offerIntegrationBody: 'Palletizer OS or Forge tooling adapted to your line. Scoped after a bench review; no integration is sold before the fit is proven.',
+ 
+-  footAbout: 'The hardware and product surface of the Grimaldi network. Operated from Frankfurt am Main.',
++  footAbout: 'Electrical machines, battery systems and automation software. The hardware and product surface of the Grimaldi network, operated from Frankfurt am Main.',
+   footNet: 'The Grimaldi network',
+   footLegal: 'Legal',
+   footDisambiguation:
+@@ -193,23 +193,23 @@ const en: Dict = {
+ };
+ 
+ const de: Dict = {
+-  brandTag: 'Hardware • Elektrotechnik',
++  brandTag: 'Maschinen • Batterien • Leistungselektronik',
+   navForge: 'Forge-Linie',
+   navLab: 'Labor',
+   navDisciplines: 'Disziplinen',
+   navBook: 'Bench-Review buchen',
+   navTools: 'Werkzeuge',
+   calcCardTag: 'Kostenlose Werkzeuge',
+-  calcCardTitle: 'Kostenlose Palettier- & Logistikrechner',
+-  calcCardBody: 'Paletten-Lagenmuster und Lkw-/Container-Ladepläne. Kartons pro Lage, Paletten pro Fahrzeug, Raum- und Nutzlastauslastung — im Browser berechnet, CSV-Export, ohne Anmeldung.',
++  calcCardTitle: 'Kostenlose Ingenieur-Rechner',
++  calcCardBody: 'Servoachsen-Auslegung, Batteriepack-Topologie, Palettenmuster und Fahrzeug-Ladepläne. Drehmoment, C-Rate, Raum- und Nutzlast — im Browser berechnet, CSV-Export, ohne Anmeldung.',
+   langLabel: 'Sprache',
+ 
+   homeKicker: 'Grimaldi Engineering · Frankfurt',
+-  homeH1: 'Automatisierungssoftware für die Gewerke. Ingenieursarbeit zum Nachprüfen.',
++  homeH1: 'Maschinen, Batterien und die Software, die sie antreibt.',
+   homeLead:
+-    'Die Forge-Linie liefert Automatisierungsprodukte für Palettieren, Bodenlegen, Malen und Trocknen — Code öffentlich, Status klar benannt. Darunter: Hochspannungs-, Embedded- und Leistungselektronik-Arbeit. Baujournale erscheinen mit Instrumenten-Messungen; die ersten sind in Vorbereitung.',
++    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Darüber liegt die Forge-Linie: Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
+   ctaBook: '20-Minuten-Bench-Review buchen — 0 €',
+-  ctaForge: 'Zur Forge-Linie',
++  ctaForge: 'Zu den Ingenieur-Werkzeugen',
+   icpKicker: 'Hier starten',
+   icpTitle: 'Drei Türen, eine Werkbank',
+   icpIntro: 'Wählen Sie die Tür, die zu Ihrem Problem passt. Jede führt auf eine eigene Seite — kein vermischter Pitch.',
+@@ -223,10 +223,10 @@ const de: Dict = {
+   icpB_body:
+     'FloorForge AI ist Automatisierungs-Tooling für das Bodenleger-Gewerk — öffentliches Repository, in aktiver Entwicklung, noch kein Produktiveinsatz.',
+   icpB_cta: 'FloorForge AI',
+-  icpC_tag: 'Netz- / OT-Beratung',
+-  icpC_title: 'Sie brauchen einen HV-/OT-Ingenieur',
++  icpC_tag: 'Maschinen, Batterien & Netz',
++  icpC_title: 'Sie brauchen einen Maschinen- oder Batterie-Ingenieur',
+   icpC_body:
+-    'Beratungssessions und Retainer zu Hochspannungssystemen, Netzphysik und OT-Digitalisierung. Öffentliche Inhalte bleiben generisch — keine Betreiber-Interna.',
++    'Auslegung von Aktorik und Antrieben, Maschinenauswahl über Gleichstrom, Asynchron und Synchron, Batteriepack-Architektur und BMS-Spezifikation, Hochspannung und Netzphysik. Öffentliche Inhalte bleiben generisch — keine Betreiber-Interna.',
+   icpC_cta: 'Konditionen ansehen',
+   forgeKicker: 'Gewerke 2.0 · Die Forge-Linie',
+   forgeTitle: 'Ein Gewerk, ein Produkt nach dem anderen',
+@@ -238,9 +238,9 @@ const de: Dict = {
+     'Ein Drei-Phasen-Oszilloskop mit echtem Frequenz-Statik-Integrator: Δf = −f·0,04·ΔP, RoCoF durch Trägheit begrenzt. Die Anzeigen kommen aus dem Modell, nicht aus einer Animation.',
+   labCta: 'Statik-Instrument öffnen',
+   discKicker: 'Disziplinen',
+-  discTitle: 'Drei Stränge physischer Ingenieursarbeit',
++  discTitle: 'Fünf Stränge physischer Ingenieursarbeit',
+   discIntro:
+-    'Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das.',
++    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
+   open: 'Öffnen →',
+ 
+   statusShipped: 'Veröffentlicht',
+@@ -268,13 +268,13 @@ const de: Dict = {
+   bookBring: 'Mitbringen: ein Zellen-Layout, eine Scope-Aufnahme, ein SKU-Mix oder eine Problemstellung in einem Absatz.',
+   offersTitle: 'Konditionen',
+   offerSession: 'Deep-Dive-Session — 280 €',
+-  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Palettierzellen-Design, HV-/OT-Fragen, Architektur-Review. Schriftliche Zusammenfassung inklusive.',
++  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Achsen- und Antriebsauslegung, Maschinenauswahl, Batteriepack- und BMS-Architektur, Palettierzellen-Design, HV-Fragen. Schriftliche Zusammenfassung inklusive.',
+   offerRetainer: 'Advisory-Retainer — 3.200 €/Monat',
+-  offerRetainerBody: 'Laufende Ingenieursberatung: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Netz-/OT-Themen bleiben auf öffentlichem, generischem Terrain.',
++  offerRetainerBody: 'Laufende Ingenieursberatung zu Antrieben, Maschinen, Batteriesystemen und Netz: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Die Themen bleiben auf öffentlichem, generischem Terrain.',
+   offerIntegration: 'Forge-Integration — individuelles Angebot',
+   offerIntegrationBody: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie. Scoping nach einem Bench-Review; keine Integration wird verkauft, bevor der Fit belegt ist.',
+ 
+-  footAbout: 'Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks. Betrieben aus Frankfurt am Main.',
++  footAbout: 'Elektrische Maschinen, Batteriesysteme und Automatisierungssoftware. Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks, betrieben aus Frankfurt am Main.',
+   footNet: 'Das Grimaldi-Netzwerk',
+   footLegal: 'Rechtliches',
+   footDisambiguation:
+diff --git a/lib/disciplines.ts b/lib/disciplines.ts
+index 1fd2955..2d1357b 100644
+--- a/lib/disciplines.ts
++++ b/lib/disciplines.ts
+@@ -17,6 +17,10 @@ export type Discipline = {
+   metaDescription: Localized;
+   body: Localized[];
+   boundary?: Localized;
++  /** Render the synchronous-speed reference table on this page. */
++  syncTable?: boolean;
++  /** Optional link to a tool that demonstrates this discipline. */
++  tool?: { path: string; label: Localized };
+ };
+ 
+ export const disciplines: Discipline[] = [
+@@ -47,6 +51,69 @@ export const disciplines: Discipline[] = [
+       de: 'Grenze: Nichts, was hier erscheint, beschreibt Systeme von Bahnbetreibern, KRITIS-Konfigurationen oder Arbeitgeber-Interna. Öffentliche HV-Inhalte auf dieser Seite sind generische Ingenieursarbeit oder ausdrücklich freigegebenes Material.',
+     },
+   },
++  {
++    slug: 'machines-actuators',
++    tag: { en: 'Machines & Actuators', de: 'Maschinen & Aktorik' },
++    title: { en: 'Electrical machines and actuators', de: 'Elektrische Maschinen und Aktorik' },
++    metaTitle: {
++      en: 'Electrical Machines & Actuators — DC, AC, Async and Sync',
++      de: 'Elektrische Maschinen & Aktorik — DC, AC, Asynchron und Synchron',
++    },
++    metaDescription: {
++      en: 'Rotors, motors and joints: DC and AC machines, asynchronous and synchronous, servo axis sizing, gearing and reflected inertia. With a free rotary-axis sizing calculator and the governing relations.',
++      de: 'Rotoren, Motoren und Gelenke: Gleich- und Wechselstrommaschinen, asynchron und synchron, Servoachsen-Auslegung, Getriebe und reduzierte Trägheit. Mit kostenlosem Achsen-Auslegungsrechner und den maßgebenden Beziehungen.',
++    },
++    body: [
++      {
++        en: 'The actuator is where every automation claim finally has to be true. A palletizing cell is a set of joints; each joint is a motor, a gearbox and a control loop, and the whole cell is only as capable as the worst-sized axis in it. This track covers the machines that do that work — brushed and brushless DC, asynchronous (induction) and synchronous AC machines, and the permanent-magnet servo machines that dominate jointed automation.',
++        de: 'Am Aktor muss sich jede Automatisierungsbehauptung schließlich bewähren. Eine Palettierzelle ist eine Menge von Gelenken; jedes Gelenk ist Motor, Getriebe und Regelkreis, und die Zelle ist nur so leistungsfähig wie ihre am schlechtesten ausgelegte Achse. Dieser Strang behandelt die Maschinen, die diese Arbeit leisten — bürstenbehaftete und bürstenlose Gleichstrommaschinen, Asynchron- und Synchronmaschinen sowie die Permanentmagnet-Servomaschinen, die die Gelenkautomatisierung dominieren.',
++      },
++      {
++        en: 'The selection question is rarely "which motor is strongest". It is whether the reflected inertia lets the loop stay stable, whether RMS torque over the real duty cycle sits under the continuous rating, and where the deceleration energy goes. Gearing dominates all three, because reflection through a ratio divides inertia by its square.',
++        de: 'Die Auswahlfrage lautet selten „welcher Motor ist der stärkste“. Sie lautet, ob die reduzierte Trägheit den Regelkreis stabil hält, ob das Effektivmoment über den realen Arbeitszyklus unter dem Dauerwert bleibt und wohin die Verzögerungsenergie geht. Das Getriebe dominiert alle drei, denn die Reduktion teilt die Trägheit durch das Quadrat der Übersetzung.',
++      },
++      {
++        en: 'For AC machines the starting arithmetic is the synchronous speed and the slip that separates a synchronous machine from an induction one. The table below is computed, not transcribed.',
++        de: 'Bei Wechselstrommaschinen beginnt die Rechnung mit der synchronen Drehzahl und dem Schlupf, der die Synchron- von der Asynchronmaschine trennt. Die Tabelle unten ist berechnet, nicht abgeschrieben.',
++      },
++    ],
++    syncTable: true,
++    tool: {
++      path: '/tools/motor-sizing-calculator',
++      label: { en: 'Open the rotary axis sizing calculator', de: 'Achsen-Auslegungsrechner öffnen' },
++    },
++  },
++  {
++    slug: 'battery-systems',
++    tag: { en: 'Battery Systems & BMS', de: 'Batteriesysteme & BMS' },
++    title: { en: 'Battery systems and management', de: 'Batteriesysteme und Batteriemanagement' },
++    metaTitle: {
++      en: 'Battery Systems & BMS — Pack Topology, C-Rate and Safety',
++      de: 'Batteriesysteme & BMS — Packtopologie, C-Rate und Sicherheit',
++    },
++    metaDescription: {
++      en: 'Battery pack architecture and management: S/P topology, voltage windows, C-rate limits, balancing, state estimation and the safety boundaries that decide a design. With a free pack calculator.',
++      de: 'Batteriepack-Architektur und -Management: S/P-Topologie, Spannungsfenster, C-Raten-Grenzen, Balancing, Zustandsschätzung und die Sicherheitsgrenzen, die eine Auslegung bestimmen. Mit kostenlosem Pack-Rechner.',
++    },
++    body: [
++      {
++        en: 'A battery pack is a series-parallel arrangement of cells that a management system has to keep inside a window it cannot leave without damage. The architecture question — how many in series, how many strings in parallel — sets voltage, current ceiling, resistance and, quietly, the entire safety classification of the machine it powers.',
++        de: 'Ein Batteriepack ist eine Reihen-Parallel-Anordnung von Zellen, die ein Managementsystem in einem Fenster halten muss, das ohne Schaden nicht verlassen werden darf. Die Architekturfrage — wie viele in Reihe, wie viele Stränge parallel — bestimmt Spannung, Stromgrenze, Widerstand und stillschweigend die gesamte Sicherheitsklassifizierung der Maschine, die davon lebt.',
++      },
++      {
++        en: 'The management system then carries the parts that arithmetic alone will not give you: cell monitoring and balancing, state of charge and state of health estimation, temperature-dependent current limits, contactor and fusing strategy, isolation monitoring above the touch-safe threshold, and a defined response to every fault it can detect. Most first-pass pack designs are not wrong about energy; they are wrong about C-rate, headroom or the voltage class they landed in.',
++        de: 'Das Managementsystem trägt dann die Teile, die reine Arithmetik nicht liefert: Zellüberwachung und Balancing, Schätzung von Ladezustand und Alterungszustand, temperaturabhängige Stromgrenzen, Schütz- und Absicherungsstrategie, Isolationsüberwachung oberhalb der Berührungsschutzgrenze und eine definierte Reaktion auf jeden erkennbaren Fehler. Die meisten ersten Packentwürfe irren nicht bei der Energie, sondern bei C-Rate, Reserve oder der Spannungsklasse, in der sie gelandet sind.',
++      },
++    ],
++    boundary: {
++      en: 'Boundary: public content here is generic engineering. Nothing published describes employer systems, operator installations or critical-infrastructure configurations. Nothing here is a safety qualification: lithium cells fail dangerously when abused, and any pack design belongs in front of a qualified engineer before it is built.',
++      de: 'Grenze: Die öffentlichen Inhalte hier sind generische Ingenieursarbeit. Nichts davon beschreibt Arbeitgebersysteme, Betreiberanlagen oder KRITIS-Konfigurationen. Nichts hier ist eine Sicherheitsqualifizierung: Lithiumzellen versagen bei Missbrauch gefährlich, und jede Packauslegung gehört vor dem Bau einer Fachkraft vorgelegt.',
++    },
++    tool: {
++      path: '/tools/battery-pack-calculator',
++      label: { en: 'Open the battery pack calculator', de: 'Batteriepack-Rechner öffnen' },
++    },
++  },
+   {
+     slug: 'embedded',
+     tag: { en: 'Embedded', de: 'Embedded' },
+diff --git a/lib/machines.ts b/lib/machines.ts
+new file mode 100644
+index 0000000..35ed451
+--- /dev/null
++++ b/lib/machines.ts
+@@ -0,0 +1,211 @@
++/**
++ * Electrical machines and actuators — the physics of the moving layer.
++ *
++ * Two things live here:
++ *
++ * 1. ROTARY AXIS SIZING. What a robot joint, a palletizer arm or any
++ *    geared servo axis actually demands of its motor: reflected inertia,
++ *    gravity torque, the trapezoidal move that dominates the duty cycle,
++ *    and the RMS torque that decides whether the motor survives it. This
++ *    is the calculation that decides whether a Forge Line cell works.
++ *
++ * 2. MACHINE RELATIONS. Synchronous speed, slip and rotor frequency for
++ *    AC machines — the arithmetic behind every async/sync selection.
++ *
++ * All SI: metres, kilograms, seconds, newton-metres, radians. Conversions
++ * to rpm and degrees happen at the UI edge, never in here.
++ *
++ * HONESTY BOUNDARY: this is rigid-body dynamics with a gearbox
++ * efficiency. It does not model friction beyond a stated constant,
++ * compliance, backlash, thermal derating, drive current limits or
++ * field weakening. It sizes a candidate; it does not qualify a drive.
++ */
++
++export const G = 9.80665;
++
++/* ── Rotary axis sizing ─────────────────────────────────────────────── */
++
++export type AxisInput = {
++  /** Payload mass at the end of the arm, kg. */
++  payloadMass: number;
++  /** Distance from the joint axis to the payload centre of mass, m. */
++  armLength: number;
++  /** Inertia of the arm structure itself about the joint, kg·m². */
++  armInertia: number;
++  /** Gear ratio i (motor revolutions per output revolution), > 1 reduces. */
++  gearRatio: number;
++  /** Gearbox efficiency, 0..1. */
++  efficiency: number;
++  /** Motor rotor inertia, kg·m². */
++  rotorInertia: number;
++  /** Move angle at the output, radians. */
++  moveAngle: number;
++  /** Move duration, s. */
++  moveTime: number;
++  /** Dwell between moves, s. */
++  dwellTime: number;
++  /** Constant friction torque at the output, N·m. */
++  frictionTorque: number;
++  /** True when the arm lifts against gravity (horizontal axis of rotation). */
++  againstGravity: boolean;
++  /** Fraction of the move spent accelerating (and again decelerating). */
++  accelFraction: number;
++};
++
++export type AxisResult = {
++  ok: boolean;
++  reason?: 'invalid-input' | 'impossible-profile';
++  /** Load inertia at the output, kg·m². */
++  loadInertia: number;
++  /** Load inertia reflected to the motor shaft, kg·m². */
++  reflectedInertia: number;
++  /** Reflected load inertia / rotor inertia. */
++  inertiaRatio: number;
++  /** Peak output angular velocity, rad/s. */
++  peakOutputSpeed: number;
++  /** Peak motor speed, rad/s. */
++  peakMotorSpeed: number;
++  /** Peak motor speed, rpm. */
++  peakMotorRpm: number;
++  /** Output angular acceleration, rad/s². */
++  angularAcceleration: number;
++  /** Worst-case gravity torque at the output, N·m. */
++  gravityTorque: number;
++  /** Motor torque during acceleration, N·m. */
++  motorTorqueAccel: number;
++  /** Motor torque at constant speed, N·m. */
++  motorTorqueConstant: number;
++  /** Motor torque during deceleration (may be negative = regenerative). */
++  motorTorqueDecel: number;
++  /** RMS motor torque over the whole cycle including dwell, N·m. */
++  motorTorqueRms: number;
++  /** Peak mechanical power at the motor, W. */
++  peakPower: number;
++  /** Total cycle time, s. */
++  cycleTime: number;
++  /** Moves per hour at this cycle. */
++  cyclesPerHour: number;
++};
++
++export function sizeRotaryAxis(input: AxisInput): AxisResult {
++  const empty: AxisResult = {
++    ok: false,
++    loadInertia: 0, reflectedInertia: 0, inertiaRatio: 0,
++    peakOutputSpeed: 0, peakMotorSpeed: 0, peakMotorRpm: 0,
++    angularAcceleration: 0, gravityTorque: 0,
++    motorTorqueAccel: 0, motorTorqueConstant: 0, motorTorqueDecel: 0,
++    motorTorqueRms: 0, peakPower: 0, cycleTime: 0, cyclesPerHour: 0,
++  };
++
++  const positive = [
++    input.payloadMass, input.armLength, input.gearRatio,
++    input.rotorInertia, input.moveAngle, input.moveTime,
++  ].every((v) => Number.isFinite(v) && v > 0);
++  const bounded =
++    Number.isFinite(input.armInertia) && input.armInertia >= 0 &&
++    Number.isFinite(input.dwellTime) && input.dwellTime >= 0 &&
++    Number.isFinite(input.frictionTorque) && input.frictionTorque >= 0 &&
++    input.efficiency > 0 && input.efficiency <= 1 &&
++    input.accelFraction > 0 && input.accelFraction < 0.5;
++  if (!positive || !bounded) return { ...empty, reason: 'invalid-input' };
++
++  // Load side.
++  const loadInertia = input.payloadMass * input.armLength ** 2 + input.armInertia;
++  const reflectedInertia = loadInertia / input.gearRatio ** 2;
++  const inertiaRatio = reflectedInertia / input.rotorInertia;
++
++  // Trapezoidal profile: accelerate for f·T, cruise, decelerate for f·T.
++  // Area under the velocity trapezoid must equal the move angle:
++  //   theta = w_max * T * (1 - f)
++  const f = input.accelFraction;
++  const accelTime = f * input.moveTime;
++  const cruiseTime = input.moveTime * (1 - 2 * f);
++  const peakOutputSpeed = input.moveAngle / (input.moveTime * (1 - f));
++  if (!Number.isFinite(peakOutputSpeed) || peakOutputSpeed <= 0) {
++    return { ...empty, reason: 'impossible-profile' };
++  }
++  const angularAcceleration = peakOutputSpeed / accelTime;
++
++  // Torques at the output.
++  const gravityTorque = input.againstGravity
++    ? input.payloadMass * G * input.armLength
++    : 0;
++  const inertialTorque = loadInertia * angularAcceleration;
++  const staticTorque = gravityTorque + input.frictionTorque;
++
++  // Reflect to the motor. Motor also accelerates its own rotor at i·alpha.
++  const motorAccelRate = angularAcceleration * input.gearRatio;
++  const rotorTorque = input.rotorInertia * motorAccelRate;
++  const reflect = (outputTorque: number) =>
++    outputTorque / (input.gearRatio * input.efficiency);
++
++  const motorTorqueAccel = rotorTorque + reflect(inertialTorque + staticTorque);
++  const motorTorqueConstant = reflect(staticTorque);
++  // Deceleration: inertia now helps, so the term is negative. Gravity and
++  // friction still act. A negative result means the drive must absorb energy.
++  const motorTorqueDecel = -rotorTorque + reflect(staticTorque - inertialTorque);
++
++  // RMS over accel + cruise + decel + dwell.
++  const cycleTime = input.moveTime + input.dwellTime;
++  const sumSquares =
++    motorTorqueAccel ** 2 * accelTime +
++    motorTorqueConstant ** 2 * Math.max(0, cruiseTime) +
++    motorTorqueDecel ** 2 * accelTime +
++    // During dwell a gravity-loaded axis still holds its load.
++    reflect(staticTorque) ** 2 * input.dwellTime;
++  const motorTorqueRms = Math.sqrt(sumSquares / cycleTime);
++
++  const peakMotorSpeed = peakOutputSpeed * input.gearRatio;
++
++  return {
++    ok: true,
++    loadInertia,
++    reflectedInertia,
++    inertiaRatio,
++    peakOutputSpeed,
++    peakMotorSpeed,
++    peakMotorRpm: (peakMotorSpeed * 60) / (2 * Math.PI),
++    angularAcceleration,
++    gravityTorque,
++    motorTorqueAccel,
++    motorTorqueConstant,
++    motorTorqueDecel,
++    motorTorqueRms,
++    peakPower: Math.abs(motorTorqueAccel) * peakMotorSpeed,
++    cycleTime,
++    cyclesPerHour: cycleTime > 0 ? 3600 / cycleTime : 0,
++  };
++}
++
++/* ── AC machine relations ───────────────────────────────────────────── */
++
++/** Synchronous speed in rpm: n_s = 120 f / p, with p the POLE count. */
++export function synchronousSpeedRpm(frequencyHz: number, poles: number): number {
++  if (poles <= 0) return 0;
++  return (120 * frequencyHz) / poles;
++}
++
++/** Slip s = (n_s − n) / n_s, dimensionless. */
++export function slip(synchronousRpm: number, rotorRpm: number): number {
++  if (synchronousRpm === 0) return 0;
++  return (synchronousRpm - rotorRpm) / synchronousRpm;
++}
++
++/** Rotor (slip) frequency f_r = s · f. */
++export function rotorFrequency(slipValue: number, frequencyHz: number): number {
++  return slipValue * frequencyHz;
++}
++
++/** Shaft torque from mechanical power and speed: T = P / ω. */
++export function torqueFromPower(powerW: number, rpm: number): number {
++  const omega = (rpm * 2 * Math.PI) / 60;
++  return omega === 0 ? 0 : powerW / omega;
++}
++
++/** Synchronous speed table for the common pole counts, at one frequency. */
++export function synchronousSpeedTable(frequencyHz: number): { poles: number; rpm: number }[] {
++  return [2, 4, 6, 8, 10, 12].map((poles) => ({
++    poles,
++    rpm: synchronousSpeedRpm(frequencyHz, poles),
++  }));
++}
+diff --git a/lib/schema.ts b/lib/schema.ts
+index f20f47a..bdf309d 100644
+--- a/lib/schema.ts
++++ b/lib/schema.ts
+@@ -19,7 +19,7 @@ export function personSchema(): JsonLdObject {
+     name: PERSON_NAME,
+     alternateName: 'Vincenzo Grimaldi',
+     url: `${SITE_URL}/`,
+-    jobTitle: 'High-Voltage & Cyber-Physical Systems Engineer',
++    jobTitle: 'Electrical Machines, Battery Systems & High-Voltage Engineer',
+     workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
+     sameAs: [...SAME_AS],
+   };
+@@ -50,10 +50,15 @@ export function professionalServiceSchema(): JsonLdObject {
+       { '@type': 'AdministrativeArea', name: 'European Union' },
+     ],
+     knowsAbout: [
+-      'palletizing automation',
+-      'high-voltage engineering',
++      'electrical machines',
++      'actuators and servo drives',
++      'asynchronous and synchronous machines',
++      'battery management systems',
++      'battery pack architecture',
+       'power electronics',
++      'high-voltage engineering',
+       'embedded control',
++      'palletizing automation',
+       'grid physics',
+     ],
+   };
+-- 
+2.43.0
+
