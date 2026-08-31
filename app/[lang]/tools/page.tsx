@@ -49,6 +49,12 @@ const COPY = {
         name: 'Battery pack calculator',
         body: 'S/P topology, voltage window, energy, C-rate headroom, runtime, resistive loss — with the design flags that catch a pack before it is built.',
       },
+      {
+        path: '/tools/control-loop-calculator',
+        tag: 'Control & integration',
+        name: 'Control loop & fieldbus budget',
+        body: 'Dead time, achievable closed-loop bandwidth for a phase budget, bus frame time, utilisation and axes per cycle — the two budgets that decide whether software controls a machine or just talks to it.',
+      },
     ],
     referenceH2: 'Reference',
     reference: [
@@ -94,6 +100,12 @@ const COPY = {
         tag: 'Batteriesysteme',
         name: 'Batteriepack-Rechner',
         body: 'S/P-Topologie, Spannungsfenster, Energie, C-Raten-Reserve, Laufzeit, ohmsche Verluste — mit den Hinweisen, die ein Pack vor dem Bau abfangen.',
+      },
+      {
+        path: '/tools/control-loop-calculator',
+        tag: 'Regelung & Integration',
+        name: 'Regelkreis- & Feldbus-Budget',
+        body: 'Totzeit, erreichbare Regelbandbreite für ein Phasenbudget, Rahmenzeit, Busauslastung und Achsen pro Zyklus — die beiden Budgets, die entscheiden, ob Software eine Maschine regelt oder nur mit ihr spricht.',
       },
     ],
     referenceH2: 'Referenz',

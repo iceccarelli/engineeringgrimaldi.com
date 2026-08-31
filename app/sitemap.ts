@@ -17,6 +17,7 @@ function logicalPaths(): { path: string; priority: number }[] {
     { path: '/tools/case-size-optimizer', priority: 0.9 },
     { path: '/tools/motor-sizing-calculator', priority: 0.9 },
     { path: '/tools/battery-pack-calculator', priority: 0.9 },
+    { path: '/tools/control-loop-calculator', priority: 0.9 },
     { path: '/reference/pallet-sizes', priority: 0.8 },
     { path: '/reference/container-dimensions', priority: 0.8 },
     { path: '/lab', priority: 0.7 },

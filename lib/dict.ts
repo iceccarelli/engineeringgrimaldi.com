@@ -112,7 +112,7 @@ const en: Dict = {
   homeKicker: 'Grimaldi Engineering · Frankfurt',
   homeH1: 'Machines, batteries and the software that drives them.',
   homeLead:
-    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. On top of that layer sits the Forge Line: automation products for the trades, code public, status stated plainly.',
+    'Electrical machines and actuators — DC and AC, asynchronous and synchronous, rotors, joints and the gearing between them. Battery systems and management. High voltage, power electronics and embedded control. Between the software and the machine: deterministic control, motion and fieldbus integration. On top of it all sits the Forge Line — automation products for the trades, code public, status stated plainly.',
   ctaBook: 'Book a 20-minute bench review — €0',
   ctaForge: 'See the engineering tools',
   icpKicker: 'Start here',
@@ -143,9 +143,9 @@ const en: Dict = {
     'A three-phase scope driving an actual frequency-droop integrator: Δf = −f·0.04·ΔP, RoCoF bounded by inertia. The readouts come out of the model, not a canned animation.',
   labCta: 'Open the droop instrument',
   discKicker: 'Disciplines',
-  discTitle: 'Five tracks of physical engineering',
+  discTitle: 'Six tracks of physical engineering',
   discIntro:
-    'Electrical machines and actuators, battery systems and management, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
+    'Electrical machines and actuators, battery systems and management, machine control and software integration, high voltage, embedded control, power electronics. Each track gets complete build logs — schematic to measured result. Until the first log ships, the status below says exactly that, and the working calculators stand in as proof of the method.',
   open: 'Open →',
 
   statusShipped: 'Shipped',
@@ -207,7 +207,7 @@ const de: Dict = {
   homeKicker: 'Grimaldi Engineering · Frankfurt',
   homeH1: 'Maschinen, Batterien und die Software, die sie antreibt.',
   homeLead:
-    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Darüber liegt die Forge-Linie: Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
+    'Elektrische Maschinen und Aktorik — Gleich- und Wechselstrom, asynchron und synchron, Rotoren, Gelenke und das Getriebe dazwischen. Batteriesysteme und Batteriemanagement. Hochspannung, Leistungselektronik und Embedded-Regelung. Zwischen Software und Maschine: deterministische Regelung, Bewegungsführung und Feldbus-Integration. Darüber die Forge-Linie — Automatisierungsprodukte für die Gewerke, Code öffentlich, Status klar benannt.',
   ctaBook: '20-Minuten-Bench-Review buchen — 0 €',
   ctaForge: 'Zu den Ingenieur-Werkzeugen',
   icpKicker: 'Hier starten',
@@ -238,9 +238,9 @@ const de: Dict = {
     'Ein Drei-Phasen-Oszilloskop mit echtem Frequenz-Statik-Integrator: Δf = −f·0,04·ΔP, RoCoF durch Trägheit begrenzt. Die Anzeigen kommen aus dem Modell, nicht aus einer Animation.',
   labCta: 'Statik-Instrument öffnen',
   discKicker: 'Disziplinen',
-  discTitle: 'Fünf Stränge physischer Ingenieursarbeit',
+  discTitle: 'Sechs Stränge physischer Ingenieursarbeit',
   discIntro:
-    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
+    'Elektrische Maschinen und Aktorik, Batteriesysteme und -management, Maschinensteuerung und Software-Integration, Hochspannung, Embedded-Regelung, Leistungselektronik. Jeder Strang erhält vollständige Baujournale — vom Schaltplan bis zum gemessenen Ergebnis. Bis das erste Journal erscheint, steht unten genau das, und die funktionierenden Rechner belegen die Methode.',
   open: 'Öffnen →',
 
   statusShipped: 'Veröffentlicht',

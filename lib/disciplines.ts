@@ -84,6 +84,41 @@ export const disciplines: Discipline[] = [
     },
   },
   {
+    slug: 'control-integration',
+    tag: { en: 'Control & Integration', de: 'Regelung & Integration' },
+    title: { en: 'Machine control and software integration', de: 'Maschinensteuerung und Software-Integration' },
+    metaTitle: {
+      en: 'Machine Control & Software Integration — Determinism, Fieldbus, Agents',
+      de: 'Maschinensteuerung & Software-Integration — Determinismus, Feldbus, Agenten',
+    },
+    metaDescription: {
+      en: 'The software-to-hardware layer: deterministic control, motion profiles and kinematics, fieldbus timing, controller architecture, and where an AI agent may and may not sit. With a free loop and bus budget calculator.',
+      de: 'Die Schicht zwischen Software und Hardware: deterministische Regelung, Bewegungsprofile und Kinematik, Feldbus-Timing, Steuerungsarchitektur und wo ein KI-Agent sitzen darf und wo nicht. Mit kostenlosem Regelkreis- und Bus-Budgetrechner.',
+    },
+    body: [
+      {
+        en: 'Automation software is judged at one boundary: the moment a computed intention becomes torque in a real joint. Everything upstream — planning, scheduling, pattern generation, the vendor-neutral driver interface that lets one codebase drive different arms — only matters if that boundary holds its timing. This track is about the layer where software becomes machine behaviour.',
+        de: 'Automatisierungssoftware wird an einer Grenze gemessen: dem Moment, in dem eine berechnete Absicht zu Drehmoment in einem echten Gelenk wird. Alles davor — Planung, Ablaufsteuerung, Mustererzeugung, die herstellerneutrale Treiberschnittstelle, mit der eine Codebasis verschiedene Arme antreibt — zählt nur, wenn diese Grenze ihr Timing hält. Dieser Strang behandelt die Schicht, in der Software zu Maschinenverhalten wird.',
+      },
+      {
+        en: 'Concretely: deterministic execution and bounded worst-case timing rather than average throughput; motion profile generation with jerk limits, and the kinematics that turn a Cartesian target into coordinated joint trajectories; fieldbus cycle budgets that decide how many axes one controller can hold; state machines and interlocking that survive a power cycle mid-motion; and the diagnostics that make a stopped cell explainable instead of merely stopped.',
+        de: 'Konkret: deterministische Ausführung und begrenzte Worst-Case-Zeiten statt mittlerem Durchsatz; Bewegungsprofilerzeugung mit Ruckbegrenzung und die Kinematik, die ein kartesisches Ziel in koordinierte Gelenkbahnen übersetzt; Feldbus-Zyklusbudgets, die bestimmen, wie viele Achsen eine Steuerung hält; Zustandsautomaten und Verriegelungen, die einen Spannungsausfall mitten in der Bewegung überstehen; und die Diagnose, die eine stehende Zelle erklärbar macht statt nur stehend.',
+      },
+      {
+        en: 'Above that sits the layer this decade actually added: agentic software that reads a task, proposes a plan and drives tooling through a protocol interface rather than a bespoke integration. It is genuinely useful for interpretation, generation and explanation, and the Forge Line is built to accept it. What it is not is a participant in the control loop.',
+        de: 'Darüber liegt die Schicht, die dieses Jahrzehnt tatsächlich hinzugefügt hat: agentische Software, die eine Aufgabe liest, einen Plan vorschlägt und Werkzeuge über eine Protokollschnittstelle ansteuert statt über eine Sonderintegration. Für Interpretation, Erzeugung und Erklärung ist sie wirklich nützlich, und die Forge-Linie ist darauf ausgelegt, sie aufzunehmen. Was sie nicht ist: Teilnehmerin im Regelkreis.',
+      },
+    ],
+    boundary: {
+      en: 'Boundary — stated because the industry keeps blurring it: a language model or planning agent may interpret, propose, explain and generate. It may not close a cycle-time-critical loop, and it may never implement a safety function. Safety-rated stopping, speed and separation monitoring, interlocks and emergency stop belong on qualified hardware, designed and validated under their own standards. Nothing published on this site describes employer systems, operator installations or critical-infrastructure configurations.',
+      de: 'Grenze — ausgesprochen, weil die Branche sie beharrlich verwischt: Ein Sprachmodell oder planender Agent darf interpretieren, vorschlagen, erklären und erzeugen. Er darf keinen zykluszeitkritischen Regelkreis schließen und niemals eine Sicherheitsfunktion umsetzen. Sicherheitsgerichtetes Stillsetzen, Geschwindigkeits- und Abstandsüberwachung, Verriegelungen und Not-Halt gehören auf qualifizierte Hardware, ausgelegt und validiert nach eigenen Normen. Nichts auf dieser Seite beschreibt Arbeitgebersysteme, Betreiberanlagen oder KRITIS-Konfigurationen.',
+    },
+    tool: {
+      path: '/tools/control-loop-calculator',
+      label: { en: 'Open the loop & bus budget calculator', de: 'Regelkreis- & Bus-Budgetrechner öffnen' },
+    },
+  },
+  {
     slug: 'battery-systems',
     tag: { en: 'Battery Systems & BMS', de: 'Batteriesysteme & BMS' },
     title: { en: 'Battery systems and management', de: 'Batteriesysteme und Batteriemanagement' },
