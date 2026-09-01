@@ -1,0 +1,89 @@
+From 5144127405262dc0adadea40c695d01a1181700d Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Tue, 1 Sep 2026 17:11:59 +0000
+Subject: [PATCH] fix(copy): six calculators, not seven
+
+Live verification of the deployed site caught the site miscounting its own
+tools. The Tools section holds six calculators; the homepage, About and
+Pricing pages each claimed seven, in both languages. The seventh was the
+grid-droop instrument, which lives under Resources as a lab instrument and
+was never a calculator.
+
+Corrected in all six places. On a site whose argument is that every number
+is either computed or cited, a headline that miscounts its own inventory
+is the most expensive kind of error to leave standing.
+---
+ app/[lang]/about/page.tsx   | 4 ++--
+ app/[lang]/page.tsx         | 4 ++--
+ app/[lang]/pricing/page.tsx | 4 ++--
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/app/[lang]/about/page.tsx b/app/[lang]/about/page.tsx
+index b99536f..0f1c478 100644
+--- a/app/[lang]/about/page.tsx
++++ b/app/[lang]/about/page.tsx
+@@ -30,7 +30,7 @@ const COPY = {
+     lead: 'Grimaldi Engineering is the working surface of one engineer: Vincenzo Ceccarelli Grimaldi, based in Frankfurt am Main, working across electrical machines and actuators, battery systems, high voltage and power electronics, and the control software that connects them to real hardware.',
+     whatH2: 'What this site actually is',
+     what: [
+-      'A working surface, not a brochure. Seven calculators run real physics in your browser: rectangle packing for pallet and vehicle loading, rigid-body dynamics with gearbox reflection for axis sizing, series-parallel topology and duty for battery packs, and dead-time and phase-budget arithmetic for control loops. Each one was checked against hand calculations or textbook values before it was published, and each one names what it does not model.',
++      'A working surface, not a brochure. Six calculators run real physics in your browser: rectangle packing for pallet and vehicle loading, rigid-body dynamics with gearbox reflection for axis sizing, series-parallel topology and duty for battery packs, and dead-time and phase-budget arithmetic for control loops. Each one was checked against hand calculations or textbook values before it was published, and each one names what it does not model.',
+       'The reference tables cite their sources on the page. The container pallet counts are not copied from a chart — they are produced by the same solver that powers the load calculator, and a test asserts they match.',
+     ],
+     honestH2: 'What is not claimed',
+@@ -62,7 +62,7 @@ const COPY = {
+     lead: 'Grimaldi Engineering ist die Arbeitsfläche eines Ingenieurs: Vincenzo Ceccarelli Grimaldi, Frankfurt am Main, tätig in elektrischen Maschinen und Aktorik, Batteriesystemen, Hochspannung und Leistungselektronik sowie in der Regelungssoftware, die beides mit echter Hardware verbindet.',
+     whatH2: 'Was diese Seite tatsächlich ist',
+     what: [
+-      'Eine Arbeitsfläche, kein Prospekt. Sieben Rechner führen echte Physik im Browser aus: Rechteckpackung für Paletten- und Fahrzeugbeladung, Starrkörperdynamik mit Getriebereduktion für die Achsenauslegung, Reihen-Parallel-Topologie und Belastung für Batteriepacks sowie Totzeit- und Phasenbudget-Arithmetik für Regelkreise. Jeder wurde vor der Veröffentlichung gegen Handrechnungen oder Lehrbuchwerte geprüft, und jeder nennt, was er nicht modelliert.',
++      'Eine Arbeitsfläche, kein Prospekt. Sechs Rechner führen echte Physik im Browser aus: Rechteckpackung für Paletten- und Fahrzeugbeladung, Starrkörperdynamik mit Getriebereduktion für die Achsenauslegung, Reihen-Parallel-Topologie und Belastung für Batteriepacks sowie Totzeit- und Phasenbudget-Arithmetik für Regelkreise. Jeder wurde vor der Veröffentlichung gegen Handrechnungen oder Lehrbuchwerte geprüft, und jeder nennt, was er nicht modelliert.',
+       'Die Referenztabellen nennen ihre Quellen auf der Seite. Die Palettenzahlen je Container sind nicht abgeschrieben — sie stammen aus demselben Löser, der den Laderechner antreibt, und ein Test prüft die Übereinstimmung.',
+     ],
+     honestH2: 'Was nicht behauptet wird',
+diff --git a/app/[lang]/page.tsx b/app/[lang]/page.tsx
+index b2e2cf7..c45a769 100644
+--- a/app/[lang]/page.tsx
++++ b/app/[lang]/page.tsx
+@@ -25,7 +25,7 @@ const COPY = {
+   en: {
+     solutionsH2: 'Start from your problem',
+     solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
+-    toolsH2: 'Seven working calculators',
++    toolsH2: 'Six working calculators',
+     toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
+     productsH2: 'The Forge Line',
+     productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
+@@ -39,7 +39,7 @@ const COPY = {
+   de: {
+     solutionsH2: 'Bei Ihrem Problem beginnen',
+     solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
+-    toolsH2: 'Sieben funktionierende Rechner',
++    toolsH2: 'Sechs funktionierende Rechner',
+     toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
+     productsH2: 'Die Forge-Linie',
+     productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
+diff --git a/app/[lang]/pricing/page.tsx b/app/[lang]/pricing/page.tsx
+index fefaf2c..01008b2 100644
+--- a/app/[lang]/pricing/page.tsx
++++ b/app/[lang]/pricing/page.tsx
+@@ -14,7 +14,7 @@ const COPY = {
+     h1: 'Pricing',
+     lead: 'Stated openly, because being asked for a rate card is not a qualification step. The calculators and reference data on this site are free and stay free — no account, no email, no usage limit.',
+     freeH2: 'Free, permanently',
+-    freeBody: 'Seven calculators and the reference tables. Everything runs in your browser, exports to CSV, and asks for nothing. They exist because a working instrument argues better than a brochure.',
++    freeBody: 'Six calculators and the reference tables. Everything runs in your browser, exports to CSV, and asks for nothing. They exist because a working instrument argues better than a brochure.',
+     engagementsH2: 'Engagements',
+     notesH2: 'How it works',
+     notes: [
+@@ -37,7 +37,7 @@ const COPY = {
+     h1: 'Preise',
+     lead: 'Offen genannt, denn nach einem Satz zu fragen ist kein Qualifizierungsschritt. Die Rechner und Referenzdaten dieser Seite sind kostenlos und bleiben es — ohne Konto, ohne E-Mail, ohne Nutzungsgrenze.',
+     freeH2: 'Dauerhaft kostenlos',
+-    freeBody: 'Sieben Rechner und die Referenztabellen. Alles läuft im Browser, geht als CSV heraus und verlangt nichts. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
++    freeBody: 'Sechs Rechner und die Referenztabellen. Alles läuft im Browser, geht als CSV heraus und verlangt nichts. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
+     engagementsH2: 'Leistungen',
+     notesH2: 'Wie es abläuft',
+     notes: [
+-- 
+2.43.0
+
