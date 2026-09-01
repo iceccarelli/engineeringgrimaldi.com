@@ -30,7 +30,7 @@ const COPY = {
     lead: 'Grimaldi Engineering is the working surface of one engineer: Vincenzo Ceccarelli Grimaldi, based in Frankfurt am Main, working across electrical machines and actuators, battery systems, high voltage and power electronics, and the control software that connects them to real hardware.',
     whatH2: 'What this site actually is',
     what: [
-      'A working surface, not a brochure. Seven calculators run real physics in your browser: rectangle packing for pallet and vehicle loading, rigid-body dynamics with gearbox reflection for axis sizing, series-parallel topology and duty for battery packs, and dead-time and phase-budget arithmetic for control loops. Each one was checked against hand calculations or textbook values before it was published, and each one names what it does not model.',
+      'A working surface, not a brochure. Six calculators run real physics in your browser: rectangle packing for pallet and vehicle loading, rigid-body dynamics with gearbox reflection for axis sizing, series-parallel topology and duty for battery packs, and dead-time and phase-budget arithmetic for control loops. Each one was checked against hand calculations or textbook values before it was published, and each one names what it does not model.',
       'The reference tables cite their sources on the page. The container pallet counts are not copied from a chart — they are produced by the same solver that powers the load calculator, and a test asserts they match.',
     ],
     honestH2: 'What is not claimed',
@@ -62,7 +62,7 @@ const COPY = {
     lead: 'Grimaldi Engineering ist die Arbeitsfläche eines Ingenieurs: Vincenzo Ceccarelli Grimaldi, Frankfurt am Main, tätig in elektrischen Maschinen und Aktorik, Batteriesystemen, Hochspannung und Leistungselektronik sowie in der Regelungssoftware, die beides mit echter Hardware verbindet.',
     whatH2: 'Was diese Seite tatsächlich ist',
     what: [
-      'Eine Arbeitsfläche, kein Prospekt. Sieben Rechner führen echte Physik im Browser aus: Rechteckpackung für Paletten- und Fahrzeugbeladung, Starrkörperdynamik mit Getriebereduktion für die Achsenauslegung, Reihen-Parallel-Topologie und Belastung für Batteriepacks sowie Totzeit- und Phasenbudget-Arithmetik für Regelkreise. Jeder wurde vor der Veröffentlichung gegen Handrechnungen oder Lehrbuchwerte geprüft, und jeder nennt, was er nicht modelliert.',
+      'Eine Arbeitsfläche, kein Prospekt. Sechs Rechner führen echte Physik im Browser aus: Rechteckpackung für Paletten- und Fahrzeugbeladung, Starrkörperdynamik mit Getriebereduktion für die Achsenauslegung, Reihen-Parallel-Topologie und Belastung für Batteriepacks sowie Totzeit- und Phasenbudget-Arithmetik für Regelkreise. Jeder wurde vor der Veröffentlichung gegen Handrechnungen oder Lehrbuchwerte geprüft, und jeder nennt, was er nicht modelliert.',
       'Die Referenztabellen nennen ihre Quellen auf der Seite. Die Palettenzahlen je Container sind nicht abgeschrieben — sie stammen aus demselben Löser, der den Laderechner antreibt, und ein Test prüft die Übereinstimmung.',
     ],
     honestH2: 'Was nicht behauptet wird',

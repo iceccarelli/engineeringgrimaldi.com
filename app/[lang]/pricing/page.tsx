@@ -14,7 +14,7 @@ const COPY = {
     h1: 'Pricing',
     lead: 'Stated openly, because being asked for a rate card is not a qualification step. The calculators and reference data on this site are free and stay free — no account, no email, no usage limit.',
     freeH2: 'Free, permanently',
-    freeBody: 'Seven calculators and the reference tables. Everything runs in your browser, exports to CSV, and asks for nothing. They exist because a working instrument argues better than a brochure.',
+    freeBody: 'Six calculators and the reference tables. Everything runs in your browser, exports to CSV, and asks for nothing. They exist because a working instrument argues better than a brochure.',
     engagementsH2: 'Engagements',
     notesH2: 'How it works',
     notes: [
@@ -37,7 +37,7 @@ const COPY = {
     h1: 'Preise',
     lead: 'Offen genannt, denn nach einem Satz zu fragen ist kein Qualifizierungsschritt. Die Rechner und Referenzdaten dieser Seite sind kostenlos und bleiben es — ohne Konto, ohne E-Mail, ohne Nutzungsgrenze.',
     freeH2: 'Dauerhaft kostenlos',
-    freeBody: 'Sieben Rechner und die Referenztabellen. Alles läuft im Browser, geht als CSV heraus und verlangt nichts. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
+    freeBody: 'Sechs Rechner und die Referenztabellen. Alles läuft im Browser, geht als CSV heraus und verlangt nichts. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
     engagementsH2: 'Leistungen',
     notesH2: 'Wie es abläuft',
     notes: [

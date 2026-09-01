@@ -25,7 +25,7 @@ const COPY = {
   en: {
     solutionsH2: 'Start from your problem',
     solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
-    toolsH2: 'Seven working calculators',
+    toolsH2: 'Six working calculators',
     toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
     productsH2: 'The Forge Line',
     productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
@@ -39,7 +39,7 @@ const COPY = {
   de: {
     solutionsH2: 'Bei Ihrem Problem beginnen',
     solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
-    toolsH2: 'Sieben funktionierende Rechner',
+    toolsH2: 'Sechs funktionierende Rechner',
     toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
     productsH2: 'Die Forge-Linie',
     productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
