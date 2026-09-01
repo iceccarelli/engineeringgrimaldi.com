@@ -1,0 +1,896 @@
+From 73a9063800d3dbcb5b2273bd0e59f225370b346c Mon Sep 17 00:00:00 2001
+From: Vincenzo Ceccarelli Grimaldi <vince.ceccarelli@gmail.com>
+Date: Tue, 1 Sep 2026 16:33:47 +0000
+Subject: [PATCH] =?UTF-8?q?feat(v13):=20launch=20readiness=20=E2=80=94=20s?=
+ =?UTF-8?q?ocial=20cards,=20About,=20homepage=20on=20the=20IA?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Three gaps that would have cost the LinkedIn push.
+
+1. Every page shared one social card. A shared calculator previewed as
+   'The Forge Line', wasting the click on the platform that renders the
+   image before the title. /api/og now draws the page's own title at
+   1200x630 in the site palette, with length-adaptive type and truncation
+   rather than overflow; query text is drawn as text, never markup. Wired
+   into all tools, products, solutions, disciplines, pricing, about and
+   home, with matching twitter:image.
+
+2. No /about page. LinkedIn traffic arrives asking whether the person is
+   real; the site answered with schema no human reads. The page now says
+   what the site is, what is deliberately NOT claimed (no customers, no
+   case studies, three of four products repo-only, build logs pending),
+   the boundaries held on purpose, and five links that let a reader verify
+   any of it. Nothing unverifiable was invented; operator-only detail is
+   left as a marked TODO.
+
+3. The homepage still said 'three doors' and never mentioned Solutions or
+   Pricing — it predated the new architecture. It is now a directory of
+   the six sections in the order a visitor needs them, deriving from the
+   same registries as the navigation so it cannot drift again.
+
+Verified: OG endpoint returns a valid 1200x630 PNG, five sampled pages
+carry five distinct card URLs, /about resolves in both languages, the
+homepage links all six sections, 77/77 pages build.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TyfRUMoVXepxUnmXyYyR7r
+---
+ app/[lang]/about/page.tsx                     | 170 ++++++++++++++++++
+ app/[lang]/disciplines/[slug]/page.tsx        |   8 +
+ app/[lang]/forge/[slug]/page.tsx              |   3 +
+ app/[lang]/page.tsx                           | 153 ++++++++++------
+ app/[lang]/pricing/page.tsx                   |   3 +
+ app/[lang]/solutions/[slug]/page.tsx          |   3 +
+ .../tools/battery-pack-calculator/page.tsx    |   9 +-
+ app/[lang]/tools/case-size-optimizer/page.tsx |   3 +
+ .../tools/control-loop-calculator/page.tsx    |   9 +-
+ .../tools/motor-sizing-calculator/page.tsx    |   9 +-
+ .../tools/pallet-pattern-calculator/page.tsx  |   3 +
+ .../tools/truck-load-calculator/page.tsx      |   3 +
+ app/api/og/route.tsx                          |  73 ++++++++
+ app/globals.css                               |   3 +
+ app/sitemap.ts                                |   1 +
+ components/Chrome.tsx                         |   1 +
+ components/SiteFooter.tsx                     |   1 +
+ components/SiteHeader.tsx                     |   2 +
+ lib/dict.ts                                   |   3 +
+ lib/meta.ts                                   |  16 ++
+ 20 files changed, 421 insertions(+), 55 deletions(-)
+ create mode 100644 app/[lang]/about/page.tsx
+ create mode 100644 app/api/og/route.tsx
+ create mode 100644 lib/meta.ts
+
+diff --git a/app/[lang]/about/page.tsx b/app/[lang]/about/page.tsx
+new file mode 100644
+index 0000000..b99536f
+--- /dev/null
++++ b/app/[lang]/about/page.tsx
+@@ -0,0 +1,170 @@
++import type { Metadata } from 'next';
++import BookCTA from '@/components/BookCTA';
++import Breadcrumbs from '@/components/Breadcrumbs';
++import JsonLd from '@/components/JsonLd';
++import { getDict } from '@/lib/dict';
++import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
++import { personSchema } from '@/lib/schema';
++import { SAME_AS } from '@/lib/site';
++
++/**
++ * The page someone lands on from LinkedIn to answer one question: is this
++ * person real and worth twenty minutes?
++ *
++ * Every claim here is either verifiable by clicking a link on this page,
++ * or is stated as an intention rather than an achievement. Fields only the
++ * operator can supply are marked TODO in the source rather than filled
++ * with something plausible.
++ */
++
++type PageProps = { params: { lang: string } };
++
++const COPY = {
++  en: {
++    title: 'About — Vincenzo Ceccarelli Grimaldi',
++    description:
++      'Frankfurt-based engineer working on electrical machines, battery systems, high voltage and the software that controls them. What is published, what is claimed, and what is deliberately not.',
++    kicker: 'Grimaldi Engineering · Frankfurt am Main',
++    h1: 'About',
++    lead: 'Grimaldi Engineering is the working surface of one engineer: Vincenzo Ceccarelli Grimaldi, based in Frankfurt am Main, working across electrical machines and actuators, battery systems, high voltage and power electronics, and the control software that connects them to real hardware.',
++    whatH2: 'What this site actually is',
++    what: [
++      'A working surface, not a brochure. Seven calculators run real physics in your browser: rectangle packing for pallet and vehicle loading, rigid-body dynamics with gearbox reflection for axis sizing, series-parallel topology and duty for battery packs, and dead-time and phase-budget arithmetic for control loops. Each one was checked against hand calculations or textbook values before it was published, and each one names what it does not model.',
++      'The reference tables cite their sources on the page. The container pallet counts are not copied from a chart — they are produced by the same solver that powers the load calculator, and a test asserts they match.',
++    ],
++    honestH2: 'What is not claimed',
++    honest: [
++      'No customers are named, because none have agreed to be. No case studies, no logos, no testimonials, and no throughput numbers from installations that would have to be described to be credible.',
++      'Of the four Forge Line products, only Palletizer OS has a public repository and a live optimizer you can open. FloorForge, PaintForge and DryForge are public repositories in active development and are labelled exactly that on every page they appear.',
++      'The hardware build logs are in preparation. Until the first one ships with instrument captures, every discipline page says so rather than implying a body of published work that does not exist yet.',
++    ],
++    boundariesH2: 'Boundaries held on purpose',
++    boundaries: [
++      'Nothing on this site describes employer systems, operator installations or critical-infrastructure configurations. High-voltage content is generic engineering or explicitly cleared material. This is not a limitation to apologise for — it is the reason the content can be published at all.',
++      'No safety-function design is offered or implied. An AI agent may interpret, propose and explain; it may not close a cycle-time-critical loop and may never implement a safety function. Safety-rated stopping, monitoring and interlocks belong on qualified hardware under their own standards.',
++    ],
++    backgroundH2: 'Background',
++    background:
++      'High-voltage engineering work on German rail infrastructure, and a 2025 RWTH Aachen M.Sc. thesis whose interactive CIM–ThreMA cross-domain ontology simulator is publicly deployed and linked below. Further detail on roles and dates lives on LinkedIn rather than being restated here.',
++    linksH2: 'Verify any of it',
++    workH2: 'How to work together',
++    workBody:
++      'A twenty-minute bench review costs nothing and is the honest way to find out whether a problem is one I can help with. If it is not, you will hear that on the call rather than in a proposal.',
++    todo: 'Operator note: add a short line on years of practice and current focus if you want it here — this page deliberately contains no unverifiable claim.',
++  },
++  de: {
++    title: 'Über — Vincenzo Ceccarelli Grimaldi',
++    description:
++      'Ingenieur aus Frankfurt für elektrische Maschinen, Batteriesysteme, Hochspannung und die Software, die sie steuert. Was veröffentlicht ist, was behauptet wird und was bewusst nicht.',
++    kicker: 'Grimaldi Engineering · Frankfurt am Main',
++    h1: 'Über',
++    lead: 'Grimaldi Engineering ist die Arbeitsfläche eines Ingenieurs: Vincenzo Ceccarelli Grimaldi, Frankfurt am Main, tätig in elektrischen Maschinen und Aktorik, Batteriesystemen, Hochspannung und Leistungselektronik sowie in der Regelungssoftware, die beides mit echter Hardware verbindet.',
++    whatH2: 'Was diese Seite tatsächlich ist',
++    what: [
++      'Eine Arbeitsfläche, kein Prospekt. Sieben Rechner führen echte Physik im Browser aus: Rechteckpackung für Paletten- und Fahrzeugbeladung, Starrkörperdynamik mit Getriebereduktion für die Achsenauslegung, Reihen-Parallel-Topologie und Belastung für Batteriepacks sowie Totzeit- und Phasenbudget-Arithmetik für Regelkreise. Jeder wurde vor der Veröffentlichung gegen Handrechnungen oder Lehrbuchwerte geprüft, und jeder nennt, was er nicht modelliert.',
++      'Die Referenztabellen nennen ihre Quellen auf der Seite. Die Palettenzahlen je Container sind nicht abgeschrieben — sie stammen aus demselben Löser, der den Laderechner antreibt, und ein Test prüft die Übereinstimmung.',
++    ],
++    honestH2: 'Was nicht behauptet wird',
++    honest: [
++      'Es werden keine Kunden genannt, weil keiner zugestimmt hat. Keine Fallstudien, keine Logos, keine Referenzzitate und keine Durchsatzzahlen aus Anlagen, die man beschreiben müsste, um glaubwürdig zu sein.',
++      'Von den vier Forge-Produkten hat allein Palletizer OS ein öffentliches Repository und einen Optimierer, den Sie sofort öffnen können. FloorForge, PaintForge und DryForge sind öffentliche Repositories in aktiver Entwicklung — und genau so sind sie auf jeder Seite gekennzeichnet.',
++      'Die Hardware-Baujournale sind in Vorbereitung. Bis das erste mit Instrumenten-Messungen erscheint, sagt jede Disziplinseite genau das, statt ein Werk zu suggerieren, das es noch nicht gibt.',
++    ],
++    boundariesH2: 'Bewusst gehaltene Grenzen',
++    boundaries: [
++      'Nichts auf dieser Seite beschreibt Arbeitgebersysteme, Betreiberanlagen oder KRITIS-Konfigurationen. Hochspannungsinhalte sind generische Ingenieursarbeit oder ausdrücklich freigegebenes Material. Das ist keine Einschränkung, für die man sich entschuldigt — es ist der Grund, warum die Inhalte überhaupt veröffentlicht werden können.',
++      'Es wird keine Auslegung von Sicherheitsfunktionen angeboten oder suggeriert. Ein KI-Agent darf interpretieren, vorschlagen und erklären; er darf keinen zykluszeitkritischen Regelkreis schließen und niemals eine Sicherheitsfunktion umsetzen. Sicherheitsgerichtetes Stillsetzen, Überwachung und Verriegelungen gehören auf qualifizierte Hardware nach eigenen Normen.',
++    ],
++    backgroundH2: 'Hintergrund',
++    background:
++      'Hochspannungstechnik an deutscher Bahninfrastruktur sowie eine RWTH-Aachen-Masterarbeit von 2025, deren interaktiver CIM–ThreMA-Ontologie-Simulator öffentlich deployt und unten verlinkt ist. Weitere Angaben zu Rollen und Zeiträumen stehen auf LinkedIn statt hier wiederholt zu werden.',
++    linksH2: 'Alles nachprüfbar',
++    workH2: 'Zusammenarbeit',
++    workBody:
++      'Ein zwanzigminütiges Bench-Review kostet nichts und ist der ehrliche Weg herauszufinden, ob ich bei einem Problem helfen kann. Wenn nicht, hören Sie das im Gespräch und nicht in einem Angebot.',
++    todo: 'Hinweis für den Betreiber: Ergänzen Sie hier bei Bedarf eine Zeile zu Praxisjahren und aktuellem Fokus — diese Seite enthält bewusst keine nicht überprüfbare Aussage.',
++  },
++} as const;
++
++const LINKS: { label: string; url: string }[] = [
++  { label: 'GitHub — iceccarelli', url: 'https://github.com/iceccarelli' },
++  { label: 'LinkedIn', url: 'https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0' },
++  { label: 'igrimaldi.engineering — software & AI portfolio', url: 'https://igrimaldi.engineering/' },
++  { label: 'CIM–ThreMA thesis simulator', url: 'https://physics-informed.vercel.app/' },
++  { label: 'grimaldi.ca — personal', url: 'https://grimaldi.ca/' },
++];
++
++export function generateMetadata({ params }: PageProps): Metadata {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  return {
++    title: COPY[lang].title,
++    description: COPY[lang].description,
++    alternates: pageAlternates(lang, '/about'),
++    openGraph: {
++      title: COPY[lang].title,
++      description: COPY[lang].description,
++      type: 'profile',
++      images: ogImages('Vincenzo Ceccarelli Grimaldi', COPY[lang].kicker),
++    },
++    twitter: { card: 'summary_large_image', images: ogImages('Vincenzo Ceccarelli Grimaldi', COPY[lang].kicker) },
++  };
++}
++
++export default function AboutPage({ params }: PageProps) {
++  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
++  const t = getDict(lang);
++  const copy = COPY[lang];
++
++  return (
++    <main>
++      <div className="sheet sheet-top">
++        <div className="section">
++          <Breadcrumbs lang={lang} crumbs={[
++            { name: 'Grimaldi Engineering', path: '/' },
++            { name: copy.h1, path: '/about' },
++          ]} />
++          <span className="kicker">{copy.kicker}</span>
++          <h1>{copy.h1}</h1>
++          <p className="intro">{copy.lead}</p>
++
++          <div className="prose">
++            <h2>{copy.whatH2}</h2>
++            {copy.what.map((p) => <p key={p.slice(0, 40)}>{p}</p>)}
++
++            <h2>{copy.honestH2}</h2>
++            {copy.honest.map((p) => <p key={p.slice(0, 40)}>{p}</p>)}
++
++            <h2>{copy.boundariesH2}</h2>
++            {copy.boundaries.map((p) => <p key={p.slice(0, 40)} className="boundary-note">{p}</p>)}
++
++            <h2>{copy.backgroundH2}</h2>
++            <p>{copy.background}</p>
++            {/* TODO(operator): optional line on years of practice / current focus. */}
++
++            <h2>{copy.linksH2}</h2>
++            <ul>
++              {LINKS.map((l) => (
++                <li key={l.url}><a href={l.url} rel="noopener noreferrer">{l.label}</a></li>
++              ))}
++            </ul>
++
++            <h2>{copy.workH2}</h2>
++            <p>{copy.workBody}</p>
++          </div>
++
++          <div className="cta-row">
++            <BookCTA label={t.ctaBook} />
++            <a className="btn btn-line" href={langHref(lang, '/pricing')}>
++              {lang === 'de' ? 'Preise ansehen →' : 'See pricing →'}
++            </a>
++          </div>
++
++          <p className="author-block">{t.authorLine}</p>
++        </div>
++      </div>
++
++      <JsonLd data={{ ...personSchema(), sameAs: [...SAME_AS] }} />
++    </main>
++  );
++}
+diff --git a/app/[lang]/disciplines/[slug]/page.tsx b/app/[lang]/disciplines/[slug]/page.tsx
+index a14cf51..760ab40 100644
+--- a/app/[lang]/disciplines/[slug]/page.tsx
++++ b/app/[lang]/disciplines/[slug]/page.tsx
+@@ -6,6 +6,7 @@ import { getDict } from '@/lib/dict';
+ import { disciplines, getDiscipline } from '@/lib/disciplines';
+ import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+ import { synchronousSpeedTable } from '@/lib/machines';
++import { ogImages } from '@/lib/meta';
+ import { breadcrumbSchema } from '@/lib/schema';
+ 
+ type PageProps = { params: { lang: string; slug: string } };
+@@ -22,6 +23,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
+     title: discipline.metaTitle[lang],
+     description: discipline.metaDescription[lang],
+     alternates: pageAlternates(lang, `/disciplines/${discipline.slug}`),
++    openGraph: {
++      title: `${discipline.metaTitle[lang]} | Grimaldi Engineering`,
++      description: discipline.metaDescription[lang],
++      type: 'website',
++      images: ogImages(discipline.title[lang], discipline.tag[lang]),
++    },
++    twitter: { card: 'summary_large_image', images: ogImages(discipline.title[lang], discipline.tag[lang]) },
+   };
+ }
+ 
+diff --git a/app/[lang]/forge/[slug]/page.tsx b/app/[lang]/forge/[slug]/page.tsx
+index 9fef671..8189937 100644
+--- a/app/[lang]/forge/[slug]/page.tsx
++++ b/app/[lang]/forge/[slug]/page.tsx
+@@ -5,6 +5,7 @@ import JsonLd from '@/components/JsonLd';
+ import { getDict } from '@/lib/dict';
+ import { forgeLine, getProduct } from '@/lib/forge';
+ import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from '@/lib/schema';
+ 
+ /**
+@@ -32,7 +33,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
+       title: `${product.metaTitle[lang]} | Grimaldi Engineering`,
+       description: product.metaDescription[lang],
+       type: 'website',
++      images: ogImages(product.name, product.trade[lang]),
+     },
++    twitter: { card: 'summary_large_image', images: ogImages(product.name, product.trade[lang]) },
+   };
+ }
+ 
+diff --git a/app/[lang]/page.tsx b/app/[lang]/page.tsx
+index 2d7e3d9..b2e2cf7 100644
+--- a/app/[lang]/page.tsx
++++ b/app/[lang]/page.tsx
+@@ -3,34 +3,75 @@ import BookCTA from '@/components/BookCTA';
+ import JsonLd from '@/components/JsonLd';
+ import WaitlistForm from '@/components/WaitlistForm';
+ import { getDict } from '@/lib/dict';
+-import { disciplines } from '@/lib/disciplines';
+ import { forgeLine } from '@/lib/forge';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
++import { NAV, findSection } from '@/lib/nav';
+ import { professionalServiceSchema } from '@/lib/schema';
++import { solutions } from '@/lib/solutions';
+ 
+ /**
+- * The homepage is a SWITCHBOARD, not a manifesto: three ICP doors,
+- * the Forge Line, the lab, the disciplines, one waitlist. Primary CTA
+- * is the bench-review booking — never a mailto, never the toy first.
++ * The landing page is a directory, not a manifesto. It mirrors the six
++ * top-level sections in the order a visitor needs them: who this is for
++ * (Solutions), what proves it (Tools), what is sold (Products), what
++ * backs it (Capabilities), what it costs (Pricing), what to read
++ * (Resources). Everything derives from the same registries as the nav,
++ * so the homepage cannot drift from the architecture around it.
+  */
+ 
+ type PageProps = { params: { lang: string } };
+ 
++const COPY = {
++  en: {
++    solutionsH2: 'Start from your problem',
++    solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
++    toolsH2: 'Seven working calculators',
++    toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
++    productsH2: 'The Forge Line',
++    productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
++    capabilitiesH2: 'What backs it',
++    capabilitiesLead: 'Six engineering tracks, each stating its scope, its boundary and what has actually been published.',
++    pricingH2: 'What it costs',
++    pricingLead: 'Bench review €0. Session €280. Retainer €3,200 a month. Integration by quote after the fit is proven. Calculators stay free.',
++    pricingCta: 'See pricing',
++    seeAll: 'See all',
++  },
++  de: {
++    solutionsH2: 'Bei Ihrem Problem beginnen',
++    solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
++    toolsH2: 'Sieben funktionierende Rechner',
++    toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
++    productsH2: 'Die Forge-Linie',
++    productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
++    capabilitiesH2: 'Was dahintersteht',
++    capabilitiesLead: 'Sechs Ingenieursstränge, jeder mit Umfang, Grenze und dem, was tatsächlich veröffentlicht ist.',
++    pricingH2: 'Was es kostet',
++    pricingLead: 'Bench-Review 0 €. Session 280 €. Retainer 3.200 € im Monat. Integration nach Angebot, sobald der Fit belegt ist. Rechner bleiben kostenlos.',
++    pricingCta: 'Preise ansehen',
++    seeAll: 'Alle ansehen',
++  },
++} as const;
++
+ export function generateMetadata({ params }: PageProps): Metadata {
+   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+-  return { alternates: pageAlternates(lang, '/') };
++  const t = getDict(lang);
++  return {
++    alternates: pageAlternates(lang, '/'),
++    openGraph: { images: ogImages(t.homeH1) },
++    twitter: { card: 'summary_large_image', images: ogImages(t.homeH1) },
++  };
+ }
+ 
+ export default function Home({ params }: PageProps) {
+   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+   const t = getDict(lang);
++  const copy = COPY[lang];
+   const href = (path: string) => langHref(lang, path);
+ 
+-  const icps = [
+-    { tag: t.icpA_tag, title: t.icpA_title, body: t.icpA_body, cta: t.icpA_cta, href: href('/forge/palletizer') },
+-    { tag: t.icpB_tag, title: t.icpB_title, body: t.icpB_body, cta: t.icpB_cta, href: href('/forge/floorforge') },
+-    { tag: t.icpC_tag, title: t.icpC_title, body: t.icpC_body, cta: t.icpC_cta, href: href('/book') },
+-  ];
++  const tools = findSection('tools');
++  const capabilities = findSection('capabilities');
++  const toolItems = tools ? tools.groups.flatMap((g) => g.items) : [];
++  const capabilityItems = capabilities ? capabilities.groups.flatMap((g) => g.items) : [];
+ 
+   return (
+     <main>
+@@ -42,45 +83,51 @@ export default function Home({ params }: PageProps) {
+             <p className="lead">{t.homeLead}</p>
+             <div className="cta-row">
+               <BookCTA label={t.ctaBook} />
+-              <a className="btn btn-line" href={href('/forge')}>{t.ctaForge}</a>
++              <a className="btn btn-line" href={href('/tools')}>{t.ctaForge}</a>
+             </div>
+           </div>
+         </div>
+       </section>
+ 
+       <div className="sheet">
+-        {/* SWITCHBOARD — three ICP doors */}
+-        <div className="section" id="start">
+-          <span className="kicker">{t.icpKicker}</span>
+-          <h2>{t.icpTitle}</h2>
+-          <p className="intro">{t.icpIntro}</p>
++        {/* 1 — SOLUTIONS: who this is for */}
++        <div className="section" id="solutions">
++          <span className="kicker">{NAV[1].label[lang]}</span>
++          <h2>{copy.solutionsH2}</h2>
++          <p className="intro">{copy.solutionsLead}</p>
+           <div className="grid">
+-            {icps.map((icp) => (
+-              <a className="card card-link" key={icp.href + icp.tag} href={icp.href}>
+-                <span className="tag">{icp.tag}</span>
+-                <h3>{icp.title}</h3>
+-                <p>{icp.body}</p>
+-                <span className="cta">{icp.cta} →</span>
++            {solutions.map((s) => (
++              <a className="card card-link" key={s.slug} href={href(`/solutions/${s.slug}`)}>
++                <h3>{s.label[lang]}</h3>
++                <p>{s.audience[lang]}</p>
++                <span className="cta">{t.open}</span>
+               </a>
+             ))}
+           </div>
+         </div>
+ 
+-        {/* FREE TOOL — the demand asset for ICP A */}
+-        <div className="section" id="tool">
+-          <a className="tool-band" href={href('/tools')}>
+-            <span className="tag">{t.calcCardTag}</span>
+-            <h3>{t.calcCardTitle}</h3>
+-            <p>{t.calcCardBody}</p>
+-            <span className="cta">{t.open}</span>
+-          </a>
++        {/* 2 — TOOLS: what proves it */}
++        <div className="section" id="tools">
++          <span className="kicker">{t.calcCardTag}</span>
++          <h2>{copy.toolsH2}</h2>
++          <p className="intro">{copy.toolsLead}</p>
++          <div className="grid grid-4">
++            {toolItems.map((item) => (
++              <a className="card card-link" key={item.path} href={href(item.path)}>
++                <h3>{item.label[lang]}</h3>
++                <p>{item.blurb[lang]}</p>
++                <span className="cta">{t.open}</span>
++              </a>
++            ))}
++          </div>
++          <p className="home-more"><a href={href('/tools')}>{copy.seeAll} →</a></p>
+         </div>
+ 
+-        {/* FORGE LINE */}
++        {/* 3 — PRODUCTS */}
+         <div className="section" id="forge">
+           <span className="kicker">{t.forgeKicker}</span>
+-          <h2>{t.forgeTitle}</h2>
+-          <p className="intro">{t.forgeIntro}</p>
++          <h2>{copy.productsH2}</h2>
++          <p className="intro">{copy.productsLead}</p>
+           <div className="grid grid-4">
+             {forgeLine.map((product) => (
+               <a className="card card-link" key={product.slug} href={href(`/forge/${product.slug}`)}>
+@@ -96,32 +143,34 @@ export default function Home({ params }: PageProps) {
+           </div>
+         </div>
+ 
+-        {/* LAB */}
+-        <div className="section" id="lab">
+-          <span className="kicker">{t.labKicker}</span>
+-          <h2>{t.labTitle}</h2>
+-          <p className="intro">{t.labIntro}</p>
+-          <a className="btn btn-line" href={href('/lab/grid-droop')}>{t.labCta}</a>
+-        </div>
+-
+-        {/* DISCIPLINES */}
+-        <div className="section" id="disciplines">
+-          <span className="kicker">{t.discKicker}</span>
+-          <h2>{t.discTitle}</h2>
+-          <p className="intro">{t.discIntro}</p>
++        {/* 4 — CAPABILITIES */}
++        <div className="section" id="capabilities">
++          <span className="kicker">{NAV[3].label[lang]}</span>
++          <h2>{copy.capabilitiesH2}</h2>
++          <p className="intro">{copy.capabilitiesLead}</p>
+           <div className="grid">
+-            {disciplines.map((d) => (
+-              <a className="card card-link" key={d.slug} href={href(`/disciplines/${d.slug}`)}>
+-                <span className="tag">{d.tag[lang]}</span>
+-                <h3>{d.title[lang]}</h3>
+-                <p>{d.body[0][lang]}</p>
++            {capabilityItems.map((item) => (
++              <a className="card card-link" key={item.path} href={href(item.path)}>
++                <h3>{item.label[lang]}</h3>
++                <p>{item.blurb[lang]}</p>
+                 <span className="status"><span className="dot dot-dev" /> {t.statusLogPrep}</span>
+               </a>
+             ))}
+           </div>
+         </div>
+ 
+-        {/* WAITLIST */}
++        {/* 5 — PRICING */}
++        <div className="section" id="pricing">
++          <div className="banner">
++            <div>
++              <h2>{copy.pricingH2}</h2>
++              <p>{copy.pricingLead}</p>
++            </div>
++            <a className="btn btn-glow" href={href('/pricing')}>{copy.pricingCta}</a>
++          </div>
++        </div>
++
++        {/* 6 — WAITLIST */}
+         <div className="section" id="waitlist">
+           <div className="banner banner-stack">
+             <div>
+diff --git a/app/[lang]/pricing/page.tsx b/app/[lang]/pricing/page.tsx
+index 51e47c9..fefaf2c 100644
+--- a/app/[lang]/pricing/page.tsx
++++ b/app/[lang]/pricing/page.tsx
+@@ -3,6 +3,7 @@ import BookCTA from '@/components/BookCTA';
+ import Breadcrumbs from '@/components/Breadcrumbs';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ 
+ type PageProps = { params: { lang: string } };
+ 
+@@ -61,6 +62,8 @@ export function generateMetadata({ params }: PageProps): Metadata {
+     title: COPY[lang].title,
+     description: COPY[lang].description,
+     alternates: pageAlternates(lang, '/pricing'),
++    openGraph: { title: COPY[lang].title, description: COPY[lang].description, type: 'website', images: ogImages(COPY[lang].h1) },
++    twitter: { card: 'summary_large_image', images: ogImages(COPY[lang].h1) },
+   };
+ }
+ 
+diff --git a/app/[lang]/solutions/[slug]/page.tsx b/app/[lang]/solutions/[slug]/page.tsx
+index 0b71bac..066e036 100644
+--- a/app/[lang]/solutions/[slug]/page.tsx
++++ b/app/[lang]/solutions/[slug]/page.tsx
+@@ -4,6 +4,7 @@ import BookCTA from '@/components/BookCTA';
+ import Breadcrumbs from '@/components/Breadcrumbs';
+ import { getDict } from '@/lib/dict';
+ import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { getSolution, solutions } from '@/lib/solutions';
+ 
+ type PageProps = { params: { lang: string; slug: string } };
+@@ -24,7 +25,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
+       title: `${solution.metaTitle[lang]} | Grimaldi Engineering`,
+       description: solution.metaDescription[lang],
+       type: 'website',
++      images: ogImages(solution.label[lang], solution.audience[lang]),
+     },
++    twitter: { card: 'summary_large_image', images: ogImages(solution.label[lang], solution.audience[lang]) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/battery-pack-calculator/page.tsx b/app/[lang]/tools/battery-pack-calculator/page.tsx
+index c9a8366..5350b65 100644
+--- a/app/[lang]/tools/battery-pack-calculator/page.tsx
++++ b/app/[lang]/tools/battery-pack-calculator/page.tsx
+@@ -5,6 +5,7 @@ import JsonLd from '@/components/JsonLd';
+ import PackDesigner, { type PackLabels } from '@/components/PackDesigner';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ type PageProps = { params: { lang: string } };
+@@ -29,7 +30,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
+     title: META[lang].title,
+     description: META[lang].description,
+     alternates: pageAlternates(lang, PATH),
+-    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++    openGraph: {
++      title: `${META[lang].title} | Grimaldi Engineering`,
++      description: META[lang].description,
++      type: 'website',
++      images: ogImages(META[lang].title),
++    },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/case-size-optimizer/page.tsx b/app/[lang]/tools/case-size-optimizer/page.tsx
+index f116f15..30537c7 100644
+--- a/app/[lang]/tools/case-size-optimizer/page.tsx
++++ b/app/[lang]/tools/case-size-optimizer/page.tsx
+@@ -5,6 +5,7 @@ import CaseOptimizer, { type OptimizerLabels } from '@/components/CaseOptimizer'
+ import JsonLd from '@/components/JsonLd';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ /**
+@@ -41,7 +42,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
+       title: `${META[lang].title} | Grimaldi Engineering`,
+       description: META[lang].description,
+       type: 'website',
++      images: ogImages(META[lang].title),
+     },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/control-loop-calculator/page.tsx b/app/[lang]/tools/control-loop-calculator/page.tsx
+index 9a24fc2..90dce08 100644
+--- a/app/[lang]/tools/control-loop-calculator/page.tsx
++++ b/app/[lang]/tools/control-loop-calculator/page.tsx
+@@ -5,6 +5,7 @@ import ControlBudget, { type ControlLabels } from '@/components/ControlBudget';
+ import JsonLd from '@/components/JsonLd';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ type PageProps = { params: { lang: string } };
+@@ -29,7 +30,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
+     title: META[lang].title,
+     description: META[lang].description,
+     alternates: pageAlternates(lang, PATH),
+-    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++    openGraph: {
++      title: `${META[lang].title} | Grimaldi Engineering`,
++      description: META[lang].description,
++      type: 'website',
++      images: ogImages(META[lang].title),
++    },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/motor-sizing-calculator/page.tsx b/app/[lang]/tools/motor-sizing-calculator/page.tsx
+index ddb003b..d475eca 100644
+--- a/app/[lang]/tools/motor-sizing-calculator/page.tsx
++++ b/app/[lang]/tools/motor-sizing-calculator/page.tsx
+@@ -5,6 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
+ import JsonLd from '@/components/JsonLd';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ type PageProps = { params: { lang: string } };
+@@ -29,7 +30,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
+     title: META[lang].title,
+     description: META[lang].description,
+     alternates: pageAlternates(lang, PATH),
+-    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
++    openGraph: {
++      title: `${META[lang].title} | Grimaldi Engineering`,
++      description: META[lang].description,
++      type: 'website',
++      images: ogImages(META[lang].title),
++    },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/pallet-pattern-calculator/page.tsx b/app/[lang]/tools/pallet-pattern-calculator/page.tsx
+index 77f2afe..92300ed 100644
+--- a/app/[lang]/tools/pallet-pattern-calculator/page.tsx
++++ b/app/[lang]/tools/pallet-pattern-calculator/page.tsx
+@@ -5,6 +5,7 @@ import JsonLd from '@/components/JsonLd';
+ import PatternCalculator, { type CalculatorLabels } from '@/components/PatternCalculator';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ /**
+@@ -44,7 +45,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
+       title: `${META[lang].title} | Grimaldi Engineering`,
+       description: META[lang].description,
+       type: 'website',
++      images: ogImages(META[lang].title),
+     },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/[lang]/tools/truck-load-calculator/page.tsx b/app/[lang]/tools/truck-load-calculator/page.tsx
+index 4505987..d9ddf8d 100644
+--- a/app/[lang]/tools/truck-load-calculator/page.tsx
++++ b/app/[lang]/tools/truck-load-calculator/page.tsx
+@@ -5,6 +5,7 @@ import JsonLd from '@/components/JsonLd';
+ import TruckLoadCalculator, { type LoadLabels } from '@/components/TruckLoadCalculator';
+ import { getDict } from '@/lib/dict';
+ import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
++import { ogImages } from '@/lib/meta';
+ import { SITE_URL } from '@/lib/site';
+ 
+ /**
+@@ -40,7 +41,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
+       title: `${META[lang].title} | Grimaldi Engineering`,
+       description: META[lang].description,
+       type: 'website',
++      images: ogImages(META[lang].title),
+     },
++    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
+   };
+ }
+ 
+diff --git a/app/api/og/route.tsx b/app/api/og/route.tsx
+new file mode 100644
+index 0000000..17154be
+--- /dev/null
++++ b/app/api/og/route.tsx
+@@ -0,0 +1,73 @@
++import { ImageResponse } from 'next/og';
++
++/**
++ * Per-page social card.
++ *
++ * LinkedIn, X and Slack all render the OG image before anyone reads the
++ * title, so a shared calculator that previews as "The Forge Line" wastes
++ * the click. This endpoint draws the actual page title at 1200×630 in
++ * the site's own palette. Query: ?t=<title>&k=<kicker>.
++ *
++ * Titles are truncated rather than allowed to overflow, and nothing from
++ * the query string is interpreted as markup — it is drawn as text.
++ */
++
++export const runtime = 'edge';
++
++const MAX_TITLE = 110;
++const MAX_KICKER = 60;
++
++export function GET(request: Request): ImageResponse {
++  const { searchParams } = new URL(request.url);
++  const rawTitle = searchParams.get('t') ?? 'Grimaldi Engineering';
++  const rawKicker = searchParams.get('k') ?? 'Grimaldi Engineering · Frankfurt';
++
++  const title = rawTitle.slice(0, MAX_TITLE);
++  const kicker = rawKicker.slice(0, MAX_KICKER);
++  const size = title.length > 70 ? 52 : title.length > 45 ? 62 : 72;
++
++  return new ImageResponse(
++    (
++      <div
++        style={{
++          width: '100%',
++          height: '100%',
++          display: 'flex',
++          flexDirection: 'column',
++          justifyContent: 'space-between',
++          padding: 72,
++          background: 'linear-gradient(160deg, #0a1018 0%, #070b10 70%)',
++          color: '#e8f0f6',
++          fontFamily: 'sans-serif',
++        }}
++      >
++        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
++          <div style={{ display: 'flex', width: 14, height: 44, background: '#3ef58f', borderRadius: 3 }} />
++          <div style={{ display: 'flex', fontSize: 26, letterSpacing: 3, textTransform: 'uppercase', color: '#3ef58f' }}>
++            {kicker}
++          </div>
++        </div>
++
++        <div style={{ display: 'flex', fontSize: size, fontWeight: 700, lineHeight: 1.12, maxWidth: 1000 }}>
++          {title}
++        </div>
++
++        <div
++          style={{
++            display: 'flex',
++            justifyContent: 'space-between',
++            alignItems: 'center',
++            fontSize: 25,
++            color: '#6e8093',
++            borderTop: '1px solid #1d2938',
++            paddingTop: 24,
++          }}
++        >
++          <div style={{ display: 'flex' }}>engineeringgrimaldi.com</div>
++          <div style={{ display: 'flex', color: '#9fb1c1' }}>Vincenzo Ceccarelli Grimaldi</div>
++        </div>
++      </div>
++    ),
++    { width: 1200, height: 630 },
++  );
++}
+diff --git a/app/globals.css b/app/globals.css
+index 3208a8a..8707db6 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -446,3 +446,6 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
+   .calc-inputs fieldset { grid-template-columns: 1fr; }
+   .crumbs ol { font-size: .74rem; }
+ }
++.home-more { margin: 1.4rem 0 0; font-size: .9rem; font-weight: 650; }
++.home-more a { color: var(--phosphor); }
++.utility-in > a { white-space: nowrap; }
+diff --git a/app/sitemap.ts b/app/sitemap.ts
+index ab27bde..0afead3 100644
+--- a/app/sitemap.ts
++++ b/app/sitemap.ts
+@@ -24,6 +24,7 @@ function logicalPaths(): { path: string; priority: number }[] {
+   const paths = new Set<string>(['/', ...allNavPaths()]);
+   for (const s of solutions) paths.add(`/solutions/${s.slug}`);
+   // Legal pages are noindex but remain listed for completeness.
++  paths.add('/about');
+   const extras = ['/impressum', '/datenschutz'];
+ 
+   return [
+diff --git a/components/Chrome.tsx b/components/Chrome.tsx
+index 1e64358..616c9d3 100644
+--- a/components/Chrome.tsx
++++ b/components/Chrome.tsx
+@@ -17,6 +17,7 @@ export default function Chrome({ lang, children }: { lang: Lang; children: React
+           menu: t.navMenu,
+           close: t.navClose,
+           langLabel: t.langLabel,
++          about: t.navAbout,
+           skipToContent: t.skipToContent,
+           primaryNav: t.primaryNav,
+         }}
+diff --git a/components/SiteFooter.tsx b/components/SiteFooter.tsx
+index e888547..7af1b3d 100644
+--- a/components/SiteFooter.tsx
++++ b/components/SiteFooter.tsx
+@@ -47,6 +47,7 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
+           </div>
+           <div className="foot-base-links">
+             <h4>{t.footLegal}</h4>
++            <a href={href('/about')}>{t.navAbout}</a>
+             <a href={href('/impressum')}>{t.impressum}</a>
+             <a href={href('/datenschutz')}>{t.datenschutz}</a>
+             <a href={href('/book')}>{t.navBook}</a>
+diff --git a/components/SiteHeader.tsx b/components/SiteHeader.tsx
+index 1889b2f..0f51945 100644
+--- a/components/SiteHeader.tsx
++++ b/components/SiteHeader.tsx
+@@ -26,6 +26,7 @@ export type HeaderLabels = {
+   menu: string;
+   close: string;
+   langLabel: string;
++  about: string;
+   skipToContent: string;
+   primaryNav: string;
+ };
+@@ -84,6 +85,7 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
+       <div className="utility">
+         <div className="utility-in">
+           <LangSwitcher current={lang} label={labels.langLabel} />
++          <a href={href('/about')}>{labels.about}</a>
+           <a href="https://igrimaldi.engineering">igrimaldi.engineering</a>
+           <a href="https://grimaldi.ca">grimaldi.ca</a>
+           <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
+diff --git a/lib/dict.ts b/lib/dict.ts
+index 793f08b..9d86f5e 100644
+--- a/lib/dict.ts
++++ b/lib/dict.ts
+@@ -17,6 +17,7 @@ export interface Dict {
+   navClose: string;
+   skipToContent: string;
+   primaryNav: string;
++  navAbout: string;
+   calcCardTag: string;
+   calcCardTitle: string;
+   calcCardBody: string;
+@@ -112,6 +113,7 @@ const en: Dict = {
+   navClose: 'Close menu',
+   skipToContent: 'Skip to content',
+   primaryNav: 'Primary',
++  navAbout: 'About',
+   calcCardTag: 'Free tools',
+   calcCardTitle: 'Free engineering calculators',
+   calcCardBody: 'Servo axis sizing, battery pack topology, pallet patterns and vehicle load plans. Torque, C-rate, cube and payload — computed in your browser, CSV export, no sign-up.',
+@@ -211,6 +213,7 @@ const de: Dict = {
+   navClose: 'Menü schließen',
+   skipToContent: 'Zum Inhalt springen',
+   primaryNav: 'Hauptnavigation',
++  navAbout: 'Über',
+   calcCardTag: 'Kostenlose Werkzeuge',
+   calcCardTitle: 'Kostenlose Ingenieur-Rechner',
+   calcCardBody: 'Servoachsen-Auslegung, Batteriepack-Topologie, Palettenmuster und Fahrzeug-Ladepläne. Drehmoment, C-Rate, Raum- und Nutzlast — im Browser berechnet, CSV-Export, ohne Anmeldung.',
+diff --git a/lib/meta.ts b/lib/meta.ts
+new file mode 100644
+index 0000000..e4c2471
+--- /dev/null
++++ b/lib/meta.ts
+@@ -0,0 +1,16 @@
++/**
++ * Social-card URLs. One helper so every page's preview image is the
++ * page's own title rather than a shared default.
++ */
++
++import { SITE_URL } from './site';
++
++export function ogUrl(title: string, kicker = 'Grimaldi Engineering · Frankfurt'): string {
++  const params = new URLSearchParams({ t: title, k: kicker });
++  return `${SITE_URL}/api/og?${params.toString()}`;
++}
++
++/** Ready-made openGraph.images / twitter.images array. */
++export function ogImages(title: string, kicker?: string) {
++  return [{ url: ogUrl(title, kicker), width: 1200, height: 630, alt: title }];
++}
+-- 
+2.43.0
+
