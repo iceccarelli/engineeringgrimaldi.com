@@ -5,6 +5,7 @@ import ControlBudget, { type ControlLabels } from '@/components/ControlBudget';
 import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
 import { SITE_URL } from '@/lib/site';
 
 type PageProps = { params: { lang: string } };
@@ -29,7 +30,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: META[lang].title,
     description: META[lang].description,
     alternates: pageAlternates(lang, PATH),
-    openGraph: { title: `${META[lang].title} | Grimaldi Engineering`, description: META[lang].description, type: 'website' },
+    openGraph: {
+      title: `${META[lang].title} | Grimaldi Engineering`,
+      description: META[lang].description,
+      type: 'website',
+      images: ogImages(META[lang].title),
+    },
+    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
   };
 }
 

@@ -5,6 +5,7 @@ import CaseOptimizer, { type OptimizerLabels } from '@/components/CaseOptimizer'
 import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
 import { SITE_URL } from '@/lib/site';
 
 /**
@@ -41,7 +42,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
       title: `${META[lang].title} | Grimaldi Engineering`,
       description: META[lang].description,
       type: 'website',
+      images: ogImages(META[lang].title),
     },
+    twitter: { card: 'summary_large_image', images: ogImages(META[lang].title) },
   };
 }
 

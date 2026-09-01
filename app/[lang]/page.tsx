@@ -3,34 +3,75 @@ import BookCTA from '@/components/BookCTA';
 import JsonLd from '@/components/JsonLd';
 import WaitlistForm from '@/components/WaitlistForm';
 import { getDict } from '@/lib/dict';
-import { disciplines } from '@/lib/disciplines';
 import { forgeLine } from '@/lib/forge';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
+import { NAV, findSection } from '@/lib/nav';
 import { professionalServiceSchema } from '@/lib/schema';
+import { solutions } from '@/lib/solutions';
 
 /**
- * The homepage is a SWITCHBOARD, not a manifesto: three ICP doors,
- * the Forge Line, the lab, the disciplines, one waitlist. Primary CTA
- * is the bench-review booking — never a mailto, never the toy first.
+ * The landing page is a directory, not a manifesto. It mirrors the six
+ * top-level sections in the order a visitor needs them: who this is for
+ * (Solutions), what proves it (Tools), what is sold (Products), what
+ * backs it (Capabilities), what it costs (Pricing), what to read
+ * (Resources). Everything derives from the same registries as the nav,
+ * so the homepage cannot drift from the architecture around it.
  */
 
 type PageProps = { params: { lang: string } };
 
+const COPY = {
+  en: {
+    solutionsH2: 'Start from your problem',
+    solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
+    toolsH2: 'Seven working calculators',
+    toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
+    productsH2: 'The Forge Line',
+    productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
+    capabilitiesH2: 'What backs it',
+    capabilitiesLead: 'Six engineering tracks, each stating its scope, its boundary and what has actually been published.',
+    pricingH2: 'What it costs',
+    pricingLead: 'Bench review €0. Session €280. Retainer €3,200 a month. Integration by quote after the fit is proven. Calculators stay free.',
+    pricingCta: 'See pricing',
+    seeAll: 'See all',
+  },
+  de: {
+    solutionsH2: 'Bei Ihrem Problem beginnen',
+    solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
+    toolsH2: 'Sieben funktionierende Rechner',
+    toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
+    productsH2: 'Die Forge-Linie',
+    productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
+    capabilitiesH2: 'Was dahintersteht',
+    capabilitiesLead: 'Sechs Ingenieursstränge, jeder mit Umfang, Grenze und dem, was tatsächlich veröffentlicht ist.',
+    pricingH2: 'Was es kostet',
+    pricingLead: 'Bench-Review 0 €. Session 280 €. Retainer 3.200 € im Monat. Integration nach Angebot, sobald der Fit belegt ist. Rechner bleiben kostenlos.',
+    pricingCta: 'Preise ansehen',
+    seeAll: 'Alle ansehen',
+  },
+} as const;
+
 export function generateMetadata({ params }: PageProps): Metadata {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  return { alternates: pageAlternates(lang, '/') };
+  const t = getDict(lang);
+  return {
+    alternates: pageAlternates(lang, '/'),
+    openGraph: { images: ogImages(t.homeH1) },
+    twitter: { card: 'summary_large_image', images: ogImages(t.homeH1) },
+  };
 }
 
 export default function Home({ params }: PageProps) {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const t = getDict(lang);
+  const copy = COPY[lang];
   const href = (path: string) => langHref(lang, path);
 
-  const icps = [
-    { tag: t.icpA_tag, title: t.icpA_title, body: t.icpA_body, cta: t.icpA_cta, href: href('/forge/palletizer') },
-    { tag: t.icpB_tag, title: t.icpB_title, body: t.icpB_body, cta: t.icpB_cta, href: href('/forge/floorforge') },
-    { tag: t.icpC_tag, title: t.icpC_title, body: t.icpC_body, cta: t.icpC_cta, href: href('/book') },
-  ];
+  const tools = findSection('tools');
+  const capabilities = findSection('capabilities');
+  const toolItems = tools ? tools.groups.flatMap((g) => g.items) : [];
+  const capabilityItems = capabilities ? capabilities.groups.flatMap((g) => g.items) : [];
 
   return (
     <main>
@@ -42,45 +83,51 @@ export default function Home({ params }: PageProps) {
             <p className="lead">{t.homeLead}</p>
             <div className="cta-row">
               <BookCTA label={t.ctaBook} />
-              <a className="btn btn-line" href={href('/forge')}>{t.ctaForge}</a>
+              <a className="btn btn-line" href={href('/tools')}>{t.ctaForge}</a>
             </div>
           </div>
         </div>
       </section>
 
       <div className="sheet">
-        {/* SWITCHBOARD — three ICP doors */}
-        <div className="section" id="start">
-          <span className="kicker">{t.icpKicker}</span>
-          <h2>{t.icpTitle}</h2>
-          <p className="intro">{t.icpIntro}</p>
+        {/* 1 — SOLUTIONS: who this is for */}
+        <div className="section" id="solutions">
+          <span className="kicker">{NAV[1].label[lang]}</span>
+          <h2>{copy.solutionsH2}</h2>
+          <p className="intro">{copy.solutionsLead}</p>
           <div className="grid">
-            {icps.map((icp) => (
-              <a className="card card-link" key={icp.href + icp.tag} href={icp.href}>
-                <span className="tag">{icp.tag}</span>
-                <h3>{icp.title}</h3>
-                <p>{icp.body}</p>
-                <span className="cta">{icp.cta} →</span>
+            {solutions.map((s) => (
+              <a className="card card-link" key={s.slug} href={href(`/solutions/${s.slug}`)}>
+                <h3>{s.label[lang]}</h3>
+                <p>{s.audience[lang]}</p>
+                <span className="cta">{t.open}</span>
               </a>
             ))}
           </div>
         </div>
 
-        {/* FREE TOOL — the demand asset for ICP A */}
-        <div className="section" id="tool">
-          <a className="tool-band" href={href('/tools')}>
-            <span className="tag">{t.calcCardTag}</span>
-            <h3>{t.calcCardTitle}</h3>
-            <p>{t.calcCardBody}</p>
-            <span className="cta">{t.open}</span>
-          </a>
+        {/* 2 — TOOLS: what proves it */}
+        <div className="section" id="tools">
+          <span className="kicker">{t.calcCardTag}</span>
+          <h2>{copy.toolsH2}</h2>
+          <p className="intro">{copy.toolsLead}</p>
+          <div className="grid grid-4">
+            {toolItems.map((item) => (
+              <a className="card card-link" key={item.path} href={href(item.path)}>
+                <h3>{item.label[lang]}</h3>
+                <p>{item.blurb[lang]}</p>
+                <span className="cta">{t.open}</span>
+              </a>
+            ))}
+          </div>
+          <p className="home-more"><a href={href('/tools')}>{copy.seeAll} →</a></p>
         </div>
 
-        {/* FORGE LINE */}
+        {/* 3 — PRODUCTS */}
         <div className="section" id="forge">
           <span className="kicker">{t.forgeKicker}</span>
-          <h2>{t.forgeTitle}</h2>
-          <p className="intro">{t.forgeIntro}</p>
+          <h2>{copy.productsH2}</h2>
+          <p className="intro">{copy.productsLead}</p>
           <div className="grid grid-4">
             {forgeLine.map((product) => (
               <a className="card card-link" key={product.slug} href={href(`/forge/${product.slug}`)}>
@@ -96,32 +143,34 @@ export default function Home({ params }: PageProps) {
           </div>
         </div>
 
-        {/* LAB */}
-        <div className="section" id="lab">
-          <span className="kicker">{t.labKicker}</span>
-          <h2>{t.labTitle}</h2>
-          <p className="intro">{t.labIntro}</p>
-          <a className="btn btn-line" href={href('/lab/grid-droop')}>{t.labCta}</a>
-        </div>
-
-        {/* DISCIPLINES */}
-        <div className="section" id="disciplines">
-          <span className="kicker">{t.discKicker}</span>
-          <h2>{t.discTitle}</h2>
-          <p className="intro">{t.discIntro}</p>
+        {/* 4 — CAPABILITIES */}
+        <div className="section" id="capabilities">
+          <span className="kicker">{NAV[3].label[lang]}</span>
+          <h2>{copy.capabilitiesH2}</h2>
+          <p className="intro">{copy.capabilitiesLead}</p>
           <div className="grid">
-            {disciplines.map((d) => (
-              <a className="card card-link" key={d.slug} href={href(`/disciplines/${d.slug}`)}>
-                <span className="tag">{d.tag[lang]}</span>
-                <h3>{d.title[lang]}</h3>
-                <p>{d.body[0][lang]}</p>
+            {capabilityItems.map((item) => (
+              <a className="card card-link" key={item.path} href={href(item.path)}>
+                <h3>{item.label[lang]}</h3>
+                <p>{item.blurb[lang]}</p>
                 <span className="status"><span className="dot dot-dev" /> {t.statusLogPrep}</span>
               </a>
             ))}
           </div>
         </div>
 
-        {/* WAITLIST */}
+        {/* 5 — PRICING */}
+        <div className="section" id="pricing">
+          <div className="banner">
+            <div>
+              <h2>{copy.pricingH2}</h2>
+              <p>{copy.pricingLead}</p>
+            </div>
+            <a className="btn btn-glow" href={href('/pricing')}>{copy.pricingCta}</a>
+          </div>
+        </div>
+
+        {/* 6 — WAITLIST */}
         <div className="section" id="waitlist">
           <div className="banner banner-stack">
             <div>

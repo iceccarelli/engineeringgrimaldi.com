@@ -17,6 +17,7 @@ export default function Chrome({ lang, children }: { lang: Lang; children: React
           menu: t.navMenu,
           close: t.navClose,
           langLabel: t.langLabel,
+          about: t.navAbout,
           skipToContent: t.skipToContent,
           primaryNav: t.primaryNav,
         }}

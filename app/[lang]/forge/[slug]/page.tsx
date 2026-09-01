@@ -5,6 +5,7 @@ import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
 import { forgeLine, getProduct } from '@/lib/forge';
 import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
 import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from '@/lib/schema';
 
 /**
@@ -32,7 +33,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
       title: `${product.metaTitle[lang]} | Grimaldi Engineering`,
       description: product.metaDescription[lang],
       type: 'website',
+      images: ogImages(product.name, product.trade[lang]),
     },
+    twitter: { card: 'summary_large_image', images: ogImages(product.name, product.trade[lang]) },
   };
 }
 

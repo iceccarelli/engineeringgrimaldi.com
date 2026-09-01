@@ -4,6 +4,7 @@ import BookCTA from '@/components/BookCTA';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { getDict } from '@/lib/dict';
 import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
 import { getSolution, solutions } from '@/lib/solutions';
 
 type PageProps = { params: { lang: string; slug: string } };
@@ -24,7 +25,9 @@ export function generateMetadata({ params }: PageProps): Metadata {
       title: `${solution.metaTitle[lang]} | Grimaldi Engineering`,
       description: solution.metaDescription[lang],
       type: 'website',
+      images: ogImages(solution.label[lang], solution.audience[lang]),
     },
+    twitter: { card: 'summary_large_image', images: ogImages(solution.label[lang], solution.audience[lang]) },
   };
 }
 

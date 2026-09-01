@@ -47,6 +47,7 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
           </div>
           <div className="foot-base-links">
             <h4>{t.footLegal}</h4>
+            <a href={href('/about')}>{t.navAbout}</a>
             <a href={href('/impressum')}>{t.impressum}</a>
             <a href={href('/datenschutz')}>{t.datenschutz}</a>
             <a href={href('/book')}>{t.navBook}</a>

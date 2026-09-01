@@ -6,6 +6,7 @@ import { getDict } from '@/lib/dict';
 import { disciplines, getDiscipline } from '@/lib/disciplines';
 import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { synchronousSpeedTable } from '@/lib/machines';
+import { ogImages } from '@/lib/meta';
 import { breadcrumbSchema } from '@/lib/schema';
 
 type PageProps = { params: { lang: string; slug: string } };
@@ -22,6 +23,13 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: discipline.metaTitle[lang],
     description: discipline.metaDescription[lang],
     alternates: pageAlternates(lang, `/disciplines/${discipline.slug}`),
+    openGraph: {
+      title: `${discipline.metaTitle[lang]} | Grimaldi Engineering`,
+      description: discipline.metaDescription[lang],
+      type: 'website',
+      images: ogImages(discipline.title[lang], discipline.tag[lang]),
+    },
+    twitter: { card: 'summary_large_image', images: ogImages(discipline.title[lang], discipline.tag[lang]) },
   };
 }
 

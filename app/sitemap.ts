@@ -24,6 +24,7 @@ function logicalPaths(): { path: string; priority: number }[] {
   const paths = new Set<string>(['/', ...allNavPaths()]);
   for (const s of solutions) paths.add(`/solutions/${s.slug}`);
   // Legal pages are noindex but remain listed for completeness.
+  paths.add('/about');
   const extras = ['/impressum', '/datenschutz'];
 
   return [

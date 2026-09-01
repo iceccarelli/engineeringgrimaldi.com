@@ -17,6 +17,7 @@ export interface Dict {
   navClose: string;
   skipToContent: string;
   primaryNav: string;
+  navAbout: string;
   calcCardTag: string;
   calcCardTitle: string;
   calcCardBody: string;
@@ -112,6 +113,7 @@ const en: Dict = {
   navClose: 'Close menu',
   skipToContent: 'Skip to content',
   primaryNav: 'Primary',
+  navAbout: 'About',
   calcCardTag: 'Free tools',
   calcCardTitle: 'Free engineering calculators',
   calcCardBody: 'Servo axis sizing, battery pack topology, pallet patterns and vehicle load plans. Torque, C-rate, cube and payload — computed in your browser, CSV export, no sign-up.',
@@ -211,6 +213,7 @@ const de: Dict = {
   navClose: 'Menü schließen',
   skipToContent: 'Zum Inhalt springen',
   primaryNav: 'Hauptnavigation',
+  navAbout: 'Über',
   calcCardTag: 'Kostenlose Werkzeuge',
   calcCardTitle: 'Kostenlose Ingenieur-Rechner',
   calcCardBody: 'Servoachsen-Auslegung, Batteriepack-Topologie, Palettenmuster und Fahrzeug-Ladepläne. Drehmoment, C-Rate, Raum- und Nutzlast — im Browser berechnet, CSV-Export, ohne Anmeldung.',

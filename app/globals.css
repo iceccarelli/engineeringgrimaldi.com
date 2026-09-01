@@ -446,3 +446,6 @@ footer { background: #04070b; border-top: 1px solid var(--border); margin-top: 3
   .calc-inputs fieldset { grid-template-columns: 1fr; }
   .crumbs ol { font-size: .74rem; }
 }
+.home-more { margin: 1.4rem 0 0; font-size: .9rem; font-weight: 650; }
+.home-more a { color: var(--phosphor); }
+.utility-in > a { white-space: nowrap; }

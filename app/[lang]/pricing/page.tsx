@@ -3,6 +3,7 @@ import BookCTA from '@/components/BookCTA';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { getDict } from '@/lib/dict';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
+import { ogImages } from '@/lib/meta';
 
 type PageProps = { params: { lang: string } };
 
@@ -61,6 +62,8 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: COPY[lang].title,
     description: COPY[lang].description,
     alternates: pageAlternates(lang, '/pricing'),
+    openGraph: { title: COPY[lang].title, description: COPY[lang].description, type: 'website', images: ogImages(COPY[lang].h1) },
+    twitter: { card: 'summary_large_image', images: ogImages(COPY[lang].h1) },
   };
 }
 

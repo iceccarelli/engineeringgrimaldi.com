@@ -26,6 +26,7 @@ export type HeaderLabels = {
   menu: string;
   close: string;
   langLabel: string;
+  about: string;
   skipToContent: string;
   primaryNav: string;
 };
@@ -84,6 +85,7 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
       <div className="utility">
         <div className="utility-in">
           <LangSwitcher current={lang} label={labels.langLabel} />
+          <a href={href('/about')}>{labels.about}</a>
           <a href="https://igrimaldi.engineering">igrimaldi.engineering</a>
           <a href="https://grimaldi.ca">grimaldi.ca</a>
           <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
