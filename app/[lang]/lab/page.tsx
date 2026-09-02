@@ -13,6 +13,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
         ? 'Das Labor von Grimaldi Engineering: interaktive Instrumente und Baujournale. Aktuell: das Netzfrequenz-Statik-Modell. Erste Hardware-Journale in Vorbereitung.'
         : 'The Grimaldi Engineering lab: interactive instruments and build logs. Currently: the grid-frequency droop model. First hardware logs in preparation.',
     alternates: pageAlternates(lang, '/lab'),
+    robots: { index: false, follow: true },
   };
 }
 

@@ -14,6 +14,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
         ? 'Palettenmaße und Container-Abmessungen mit genannten Quellen, dazu das Labor mit interaktiven Instrumenten und Baujournalen.'
         : 'Pallet sizes and container dimensions with sources cited, plus the lab with interactive instruments and build logs.',
     alternates: pageAlternates(lang, '/resources'),
+    robots: { index: false, follow: true },
   };
 }
 

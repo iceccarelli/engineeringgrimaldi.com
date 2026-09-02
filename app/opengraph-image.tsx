@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og';
 /** 1200×630 OG image, generated at the edge — no binary asset to maintain. */
 
 export const runtime = 'edge';
-export const alt = 'Grimaldi Engineering — Forge Line, high-voltage build logs';
+export const alt = 'Grimaldi Engineering — mixed-SKU palletizing software, Frankfurt';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -18,8 +18,8 @@ export default function OpenGraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 72,
-          background: 'linear-gradient(160deg, #0a1018 0%, #070b10 70%)',
-          color: '#e8f0f6',
+          background: '#F6F7F4',
+          color: '#12151A',
           fontFamily: 'sans-serif',
         }}
       >
@@ -29,17 +29,17 @@ export default function OpenGraphImage() {
             fontSize: 28,
             letterSpacing: 4,
             textTransform: 'uppercase',
-            color: '#3ef58f',
+            color: '#5C6570',
           }}
         >
-          Grimaldi Engineering · Frankfurt
+          PALLETIZING SOFTWARE · FRANKFURT
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, lineHeight: 1.1 }}>
-            The Forge Line
+          <div style={{ display: 'flex', fontSize: 64, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }}>
+            Mixed-SKU palletizing software for the robot you already have.
           </div>
-          <div style={{ display: 'flex', fontSize: 34, color: '#9fb1c1', lineHeight: 1.3 }}>
-            Palletizer OS · FloorForge · High-voltage build logs
+          <div style={{ display: 'flex', fontSize: 30, color: '#5C6570', lineHeight: 1.3 }}>
+            software shipped · cell not commissioned
           </div>
         </div>
         <div
@@ -48,11 +48,11 @@ export default function OpenGraphImage() {
             justifyContent: 'space-between',
             alignItems: 'center',
             fontSize: 26,
-            color: '#6e8093',
+            color: '#5C6570',
           }}
         >
           <div style={{ display: 'flex' }}>engineeringgrimaldi.com</div>
-          <div style={{ display: 'flex', color: '#3ef58f' }}>Vincenzo Ceccarelli Grimaldi</div>
+          <div style={{ display: 'flex', color: '#FF8A00' }}>Grimaldi Engineering</div>
         </div>
       </div>
     ),

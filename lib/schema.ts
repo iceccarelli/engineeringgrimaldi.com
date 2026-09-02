@@ -19,7 +19,7 @@ export function personSchema(): JsonLdObject {
     name: PERSON_NAME,
     alternateName: 'Vincenzo Grimaldi',
     url: `${SITE_URL}/`,
-    jobTitle: 'Electrical Machines, Battery Systems & High-Voltage Engineer',
+    jobTitle: 'Palletizing Software Engineer',
     workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
     sameAs: [...SAME_AS],
   };
@@ -42,27 +42,21 @@ export function professionalServiceSchema(): JsonLdObject {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
     '@id': `${SITE_URL}/#service`,
-    name: `${SITE_NAME} — Engineering Advisory`,
-    url: `${SITE_URL}/book`,
+    name: `${SITE_NAME} — Palletizing Software`,
+    url: `${SITE_URL}/contact`,
     founder: { '@id': `${SITE_URL}/#person` },
     areaServed: [
       { '@type': 'Country', name: 'Germany' },
       { '@type': 'AdministrativeArea', name: 'European Union' },
     ],
     knowsAbout: [
-      'electrical machines',
-      'actuators and servo drives',
-      'asynchronous and synchronous machines',
-      'battery management systems',
-      'battery pack architecture',
-      'power electronics',
-      'high-voltage engineering',
-      'embedded control',
-      'real-time machine control',
-      'fieldbus and motion control integration',
+      'mixed-SKU palletizing',
+      'pallet pattern planning',
+      'load stability and density',
       'robot cell architecture',
-      'palletizing automation',
-      'grid physics',
+      'URScript',
+      'OPC UA',
+      'end-of-line automation',
     ],
   };
 }
@@ -84,16 +78,7 @@ export function softwareApplicationSchema(lang: Lang, product: ForgeProduct): Js
   if (product.demo) {
     schema.installUrl = product.demo;
   }
-  // Offers only for the shipped product, and honestly: price on request.
-  if (product.status === 'shipped') {
-    schema.offers = {
-      '@type': 'Offer',
-      url: `${SITE_URL}/book`,
-      priceSpecification: { '@type': 'PriceSpecification', priceCurrency: 'EUR' },
-      description: 'Commercial integration scoped per project after a free bench review.',
-      availability: 'https://schema.org/PreOrder',
-    };
-  }
+  // No Offer block: price is stated after the SKU problem is on the table.
   return schema;
 }
 

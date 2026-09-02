@@ -105,7 +105,7 @@ export const disciplines: Discipline[] = [
         de: 'Konkret: deterministische Ausführung und begrenzte Worst-Case-Zeiten statt mittlerem Durchsatz; Bewegungsprofilerzeugung mit Ruckbegrenzung und die Kinematik, die ein kartesisches Ziel in koordinierte Gelenkbahnen übersetzt; Feldbus-Zyklusbudgets, die bestimmen, wie viele Achsen eine Steuerung hält; Zustandsautomaten und Verriegelungen, die einen Spannungsausfall mitten in der Bewegung überstehen; und die Diagnose, die eine stehende Zelle erklärbar macht statt nur stehend.',
       },
       {
-        en: 'Above that sits the layer this decade actually added: agentic software that reads a task, proposes a plan and drives tooling through a protocol interface rather than a bespoke integration. It is genuinely useful for interpretation, generation and explanation, and the Forge Line is built to accept it. What it is not is a participant in the control loop.',
+        en: 'Above that sits the layer this decade actually added: assistant software that reads a task, proposes a plan and drives tooling through a protocol interface rather than a bespoke integration. It is genuinely useful for interpretation, generation and explanation, and the Forge is built to accept it. What it is not is a participant in the control loop.',
         de: 'Darüber liegt die Schicht, die dieses Jahrzehnt tatsächlich hinzugefügt hat: agentische Software, die eine Aufgabe liest, einen Plan vorschlägt und Werkzeuge über eine Protokollschnittstelle ansteuert statt über eine Sonderintegration. Für Interpretation, Erzeugung und Erklärung ist sie wirklich nützlich, und die Forge-Linie ist darauf ausgelegt, sie aufzunehmen. Was sie nicht ist: Teilnehmerin im Regelkreis.',
       },
     ],

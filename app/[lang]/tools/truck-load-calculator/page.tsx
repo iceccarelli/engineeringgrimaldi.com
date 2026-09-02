@@ -255,7 +255,7 @@ export default function TruckLoadPage({ params }: PageProps) {
 
           <div className="cta-row">
             <a className="btn btn-glow" href={langHref(lang, '/tools/pallet-pattern-calculator')}>{copy.chainLink}</a>
-            <BookCTA label={t.ctaBook} variant="line" />
+            <BookCTA label={t.ctaBook} variant="line" lang={lang} />
           </div>
 
           <p className="author-block">{t.authorLine}</p>

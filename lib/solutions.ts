@@ -53,7 +53,7 @@ export const solutions: Solution[] = [
       { path: '/tools/case-size-optimizer', label: { en: 'Case size optimizer', de: 'Kartongrößen-Optimierer' }, note: { en: 'Start here: the case decision is the expensive one.', de: 'Hier starten: Die Kartonentscheidung ist die teure.' } },
       { path: '/tools/pallet-pattern-calculator', label: { en: 'Pallet pattern calculator', de: 'Palettenmuster-Rechner' }, note: { en: 'Cases per layer and cube for a given case.', de: 'Kartons pro Lage und Raumnutzung für ein Maß.' } },
       { path: '/tools/truck-load-calculator', label: { en: 'Truck & container load', de: 'Lkw- & Container-Ladung' }, note: { en: 'Whether space or payload limits the shipment.', de: 'Ob Platz oder Nutzlast die Sendung begrenzt.' } },
-      { path: '/forge/palletizer', label: { en: 'Palletizer OS', de: 'Palletizer OS' }, note: { en: 'The software foundation, with its status stated.', de: 'Die Software-Basis, mit klar genanntem Status.' } },
+      { path: '/forge/palletizer', label: { en: 'Palletizer', de: 'Palletizer' }, note: { en: 'The software foundation, with its status stated.', de: 'Die Software-Basis, mit klar genanntem Status.' } },
     ],
     firstStep: {
       en: 'Bring a SKU mix and a cell layout. Twenty minutes is enough to see whether the constraint is the pattern, the carton, or the cell.',
@@ -140,7 +140,7 @@ export const solutions: Solution[] = [
       de: 'Handwerksbetriebe — Automatisierung für Boden, Malerei und Trocknung',
     },
     metaDescription: {
-      en: 'For mid-size flooring, painting and drying contractors: where the Forge Line is heading, what exists today as public code, and what is honestly not for sale yet.',
+      en: 'For mid-size flooring, painting and drying contractors: where the Forge is heading, what exists today as public code, and what is honestly not for sale yet.',
       de: 'Für mittelgroße Bodenleger-, Maler- und Trocknungsbetriebe: wohin die Forge-Linie geht, was heute als öffentlicher Code existiert und was ehrlich gesagt noch nicht verkäuflich ist.',
     },
     audience: {
@@ -161,7 +161,7 @@ export const solutions: Solution[] = [
       { path: '/forge/floorforge', label: { en: 'FloorForge AI', de: 'FloorForge AI' }, note: { en: 'Flooring — public repo, in development.', de: 'Boden — öffentliches Repo, in Entwicklung.' } },
       { path: '/forge/paintforge', label: { en: 'PaintForge AI', de: 'PaintForge AI' }, note: { en: 'Painting — public repo, in development.', de: 'Malerei — öffentliches Repo, in Entwicklung.' } },
       { path: '/forge/dryforge', label: { en: 'DryForge AI', de: 'DryForge AI' }, note: { en: 'Drying — public repo, in development.', de: 'Trocknung — öffentliches Repo, in Entwicklung.' } },
-      { path: '/forge', label: { en: 'The Forge Line', de: 'Die Forge-Linie' }, note: { en: 'How the whole line is being built.', de: 'Wie die gesamte Linie entsteht.' } },
+      { path: '/forge', label: { en: 'The Forge', de: 'Die Forge-Linie' }, note: { en: 'How the whole line is being built.', de: 'Wie die gesamte Linie entsteht.' } },
     ],
     firstStep: {
       en: 'If you want to shape a pilot rather than buy a finished product, a bench review is the honest starting point.',

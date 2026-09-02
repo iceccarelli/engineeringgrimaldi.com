@@ -28,7 +28,7 @@ const COPY = {
       { name: 'Bench review', price: '€0', unit: '20 minutes', body: 'Bring a cell layout, a scope trace, a SKU mix or a CSV from any calculator here. No slides, engineering only.' },
       { name: 'Deep-dive session', price: '€280', unit: '90 minutes', body: 'One specific problem worked through: axis and drive sizing, machine selection, pack and BMS architecture, palletizing cell design, HV questions. Written summary included.' },
       { name: 'Advisory retainer', price: '€3,200', unit: 'per month', body: 'Ongoing advisory across drives, machines, battery systems and grid: weekly call, asynchronous review, priority access. Scope stays on public, generic ground.' },
-      { name: 'Forge integration', price: 'By quote', unit: 'scoped per project', body: 'Palletizer OS or Forge tooling adapted to your line, quoted after a bench review has proven the fit.' },
+      { name: 'Forge integration', price: 'By quote', unit: 'scoped per project', body: 'Palletizer or Forge tooling adapted to your line, quoted after a bench review has proven the fit.' },
     ],
   },
   de: {
@@ -51,7 +51,7 @@ const COPY = {
       { name: 'Bench-Review', price: '0 €', unit: '20 Minuten', body: 'Bringen Sie ein Zellenlayout, eine Scope-Aufnahme, einen SKU-Mix oder eine CSV aus einem Rechner dieser Seite mit. Keine Folien, nur Engineering.' },
       { name: 'Deep-Dive-Session', price: '280 €', unit: '90 Minuten', body: 'Ein konkretes Problem durchgearbeitet: Achsen- und Antriebsauslegung, Maschinenauswahl, Pack- und BMS-Architektur, Palettierzellen-Design, HV-Fragen. Schriftliche Zusammenfassung inklusive.' },
       { name: 'Advisory-Retainer', price: '3.200 €', unit: 'pro Monat', body: 'Laufende Beratung zu Antrieben, Maschinen, Batteriesystemen und Netz: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Die Themen bleiben auf öffentlichem, generischem Terrain.' },
-      { name: 'Forge-Integration', price: 'Nach Angebot', unit: 'pro Projekt gescopet', body: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie — angeboten, nachdem ein Bench-Review den Fit belegt hat.' },
+      { name: 'Forge-Integration', price: 'Nach Angebot', unit: 'pro Projekt gescopet', body: 'Palletizer oder Forge-Tooling, angepasst an Ihre Linie — angeboten, nachdem ein Bench-Review den Fit belegt hat.' },
     ],
   },
 } as const;
@@ -62,6 +62,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: COPY[lang].title,
     description: COPY[lang].description,
     alternates: pageAlternates(lang, '/pricing'),
+    robots: { index: false, follow: true },
     openGraph: { title: COPY[lang].title, description: COPY[lang].description, type: 'website', images: ogImages(COPY[lang].h1) },
     twitter: { card: 'summary_large_image', images: ogImages(COPY[lang].h1) },
   };
@@ -109,7 +110,7 @@ export default function PricingPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/solutions')}>
               {lang === 'de' ? 'Lösungen ansehen →' : 'See solutions →'}
             </a>

@@ -36,7 +36,7 @@ const COPY = {
     honestH2: 'What is not claimed',
     honest: [
       'No customers are named, because none have agreed to be. No case studies, no logos, no testimonials, and no throughput numbers from installations that would have to be described to be credible.',
-      'Of the four Forge Line products, only Palletizer OS has a public repository and a live optimizer you can open. FloorForge, PaintForge and DryForge are public repositories in active development and are labelled exactly that on every page they appear.',
+      'Of the four Forge products, only Palletizer has a public repository and a live optimizer you can open. FloorForge, PaintForge and DryForge are public repositories in active development and are labelled exactly that on every page they appear.',
       'The hardware build logs are in preparation. Until the first one ships with instrument captures, every discipline page says so rather than implying a body of published work that does not exist yet.',
     ],
     boundariesH2: 'Boundaries held on purpose',
@@ -68,7 +68,7 @@ const COPY = {
     honestH2: 'Was nicht behauptet wird',
     honest: [
       'Es werden keine Kunden genannt, weil keiner zugestimmt hat. Keine Fallstudien, keine Logos, keine Referenzzitate und keine Durchsatzzahlen aus Anlagen, die man beschreiben müsste, um glaubwürdig zu sein.',
-      'Von den vier Forge-Produkten hat allein Palletizer OS ein öffentliches Repository und einen Optimierer, den Sie sofort öffnen können. FloorForge, PaintForge und DryForge sind öffentliche Repositories in aktiver Entwicklung — und genau so sind sie auf jeder Seite gekennzeichnet.',
+      'Von den vier Forge-Produkten hat allein Palletizer ein öffentliches Repository und einen Optimierer, den Sie sofort öffnen können. FloorForge, PaintForge und DryForge sind öffentliche Repositories in aktiver Entwicklung — und genau so sind sie auf jeder Seite gekennzeichnet.',
       'Die Hardware-Baujournale sind in Vorbereitung. Bis das erste mit Instrumenten-Messungen erscheint, sagt jede Disziplinseite genau das, statt ein Werk zu suggerieren, das es noch nicht gibt.',
     ],
     boundariesH2: 'Bewusst gehaltene Grenzen',
@@ -101,6 +101,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: COPY[lang].title,
     description: COPY[lang].description,
     alternates: pageAlternates(lang, '/about'),
+    robots: { index: false, follow: true },
     openGraph: {
       title: COPY[lang].title,
       description: COPY[lang].description,
@@ -154,7 +155,7 @@ export default function AboutPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/pricing')}>
               {lang === 'de' ? 'Preise ansehen →' : 'See pricing →'}
             </a>

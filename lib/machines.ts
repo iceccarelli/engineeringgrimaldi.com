@@ -7,7 +7,7 @@
  *    geared servo axis actually demands of its motor: reflected inertia,
  *    gravity torque, the trapezoidal move that dominates the duty cycle,
  *    and the RMS torque that decides whether the motor survives it. This
- *    is the calculation that decides whether a Forge Line cell works.
+ *    is the calculation that decides whether a Forge cell works.
  *
  * 2. MACHINE RELATIONS. Synchronous speed, slip and rotor frequency for
  *    AC machines — the arithmetic behind every async/sync selection.

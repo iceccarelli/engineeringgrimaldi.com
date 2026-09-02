@@ -1,25 +1,20 @@
-import { CAL_QUERY, CAL_URL } from '@/lib/site';
-
 /**
- * The primary conversion action: a Cal.com booking link with source
- * attribution. Never a mailto. Server component.
- * If NEXT_PUBLIC_CAL_URL is unset, the fallback URL contains REPLACE-ME
- * so the misconfiguration is visible in review, not silent.
+ * The one conversion action, kept as a component so parked pages keep
+ * compiling: an internal link to the SKU/layout intake. No calendar,
+ * no external booking service, no mailto. Server component.
  */
 export default function BookCTA({
   label,
   variant = 'glow',
+  lang = 'en',
 }: {
   label: string;
   variant?: 'glow' | 'line';
+  lang?: 'en' | 'de';
 }) {
+  const href = lang === 'de' ? '/de/contact' : '/contact';
   return (
-    <a
-      className={variant === 'glow' ? 'btn btn-glow' : 'btn btn-line'}
-      href={`${CAL_URL}${CAL_QUERY}`}
-      rel="noopener noreferrer"
-      data-cta="book"
-    >
+    <a className={variant === 'glow' ? 'btn btn-signal' : 'btn btn-line'} href={href} data-cta="intake">
       {label}
     </a>
   );

@@ -11,12 +11,12 @@ type PageProps = { params: { lang: string } };
 
 const COPY = {
   en: {
-    title: 'Free Engineering Tools — Palletizing & Logistics Calculators',
+    title: 'Tools — Pallet Pattern, Case Size, Truck Load Calculators',
     description:
-      'Free browser-based calculators from Grimaldi Engineering: pallet layer patterns and truck/container load planning. Deterministic geometry, CSV export, no sign-up, nothing leaves your browser.',
+      'Pallet pattern, case size and truck load calculators plus pallet and container reference tables. Deterministic geometry, CSV export, no sign-up, nothing leaves your browser.',
     kicker: 'Tools',
-    h1: 'Free calculators',
-    lead: 'Working instruments, not lead-capture forms. Every calculation runs in your browser, every result exports to CSV, and none of them ask for an email.',
+    h1: 'Calculate the pallet, the case, the truck.',
+    lead: 'Three calculators and two reference tables. Every calculation runs in your browser, every result exports to CSV, and none of them ask for an email. Mixed-SKU stacks live on the product page.',
     chain: 'Use them in sequence: a case size becomes a pallet, a pallet becomes a vehicle load.',
     tools: [
       {
@@ -37,24 +37,6 @@ const COPY = {
         name: 'Case size optimizer',
         body: 'Sweep every carton size you could order and rank them by pallet cube utilisation — with the gain over your current case in percentage points.',
       },
-      {
-        path: '/tools/motor-sizing-calculator',
-        tag: 'Actuators',
-        name: 'Servo motor sizing calculator',
-        body: 'Rotary axis and robot joint sizing: reflected inertia, inertia ratio, gravity torque, peak and RMS motor torque, speed and power over a real duty cycle.',
-      },
-      {
-        path: '/tools/battery-pack-calculator',
-        tag: 'Battery systems',
-        name: 'Battery pack calculator',
-        body: 'S/P topology, voltage window, energy, C-rate headroom, runtime, resistive loss — with the design flags that catch a pack before it is built.',
-      },
-      {
-        path: '/tools/control-loop-calculator',
-        tag: 'Control & integration',
-        name: 'Control loop & fieldbus budget',
-        body: 'Dead time, achievable closed-loop bandwidth for a phase budget, bus frame time, utilisation and axes per cycle — the two budgets that decide whether software controls a machine or just talks to it.',
-      },
     ],
     referenceH2: 'Reference',
     reference: [
@@ -63,12 +45,12 @@ const COPY = {
     ],
   },
   de: {
-    title: 'Kostenlose Ingenieur-Werkzeuge — Palettier- & Logistikrechner',
+    title: 'Werkzeuge — Palettenmuster-, Kartongrößen- und Lkw-Laderechner',
     description:
-      'Kostenlose Browser-Rechner von Grimaldi Engineering: Paletten-Lagenmuster und Lkw-/Container-Ladeplanung. Deterministische Geometrie, CSV-Export, ohne Anmeldung, nichts verlässt Ihren Browser.',
+      'Palettenmuster-, Kartongrößen- und Lkw-Laderechner plus Paletten- und Container-Referenztabellen. Deterministische Geometrie, CSV-Export, ohne Anmeldung, nichts verlässt Ihren Browser.',
     kicker: 'Werkzeuge',
-    h1: 'Kostenlose Rechner',
-    lead: 'Arbeitende Instrumente, keine Formulare zur Adressgewinnung. Jede Berechnung läuft im Browser, jedes Ergebnis geht als CSV heraus, und keiner fragt nach einer E-Mail-Adresse.',
+    h1: 'Palette, Karton, Lkw berechnen.',
+    lead: 'Drei Rechner und zwei Referenztabellen. Jede Berechnung läuft im Browser, jedes Ergebnis geht als CSV heraus, und keiner fragt nach einer E-Mail-Adresse. Mixed-SKU-Stapel finden Sie auf der Produktseite.',
     chain: 'In Reihe nutzen: Aus einem Kartonmaß wird eine Palette, aus einer Palette eine Fahrzeugladung.',
     tools: [
       {
@@ -88,24 +70,6 @@ const COPY = {
         tag: 'Verpackungsdesign',
         name: 'Kartongrößen-Optimierer',
         body: 'Jedes bestellbare Kartonmaß durchrechnen und nach Palettenraumnutzung sortieren — mit dem Gewinn gegenüber Ihrem aktuellen Karton in Prozentpunkten.',
-      },
-      {
-        path: '/tools/motor-sizing-calculator',
-        tag: 'Aktorik',
-        name: 'Servomotor-Auslegungsrechner',
-        body: 'Auslegung von Drehachsen und Robotergelenken: reduzierte Trägheit, Trägheitsverhältnis, Gravitationsmoment, Spitzen- und Effektivmoment, Drehzahl und Leistung über einen realen Arbeitszyklus.',
-      },
-      {
-        path: '/tools/battery-pack-calculator',
-        tag: 'Batteriesysteme',
-        name: 'Batteriepack-Rechner',
-        body: 'S/P-Topologie, Spannungsfenster, Energie, C-Raten-Reserve, Laufzeit, ohmsche Verluste — mit den Hinweisen, die ein Pack vor dem Bau abfangen.',
-      },
-      {
-        path: '/tools/control-loop-calculator',
-        tag: 'Regelung & Integration',
-        name: 'Regelkreis- & Feldbus-Budget',
-        body: 'Totzeit, erreichbare Regelbandbreite für ein Phasenbudget, Rahmenzeit, Busauslastung und Achsen pro Zyklus — die beiden Budgets, die entscheiden, ob Software eine Maschine regelt oder nur mit ihr spricht.',
       },
     ],
     referenceH2: 'Referenz',
@@ -148,6 +112,9 @@ export default function ToolsIndex({ params }: PageProps) {
             ))}
           </div>
           <p className="book-bring">{copy.chain}</p>
+          <div className="cta-row">
+            <a className="btn btn-signal" href={langHref(lang, '/palletizer')}>{lang === 'de' ? 'Mixed-SKU-Stapelplaner →' : 'Mixed-SKU stack planner →'}</a>
+          </div>
 
           <h2 className="tools-ref-h2">{copy.referenceH2}</h2>
           <div className="grid">

@@ -1,64 +1,67 @@
 import type { Metadata } from 'next';
-import BookCTA from '@/components/BookCTA';
+import IntakeForm from '@/components/IntakeForm';
 import JsonLd from '@/components/JsonLd';
-import WaitlistForm from '@/components/WaitlistForm';
+import StackPlanner from '@/components/StackPlanner';
 import { getDict } from '@/lib/dict';
-import { forgeLine } from '@/lib/forge';
+import { INTAKE_LABELS, PLANNER_LABELS } from '@/lib/labels';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { ogImages } from '@/lib/meta';
-import { NAV, findSection } from '@/lib/nav';
 import { professionalServiceSchema } from '@/lib/schema';
-import { solutions } from '@/lib/solutions';
+import { PRODUCT_REPO, SITE_URL } from '@/lib/site';
 
 /**
- * The landing page is a directory, not a manifesto. It mirrors the six
- * top-level sections in the order a visitor needs them: who this is for
- * (Solutions), what proves it (Tools), what is sold (Products), what
- * backs it (Capabilities), what it costs (Pricing), what to read
- * (Resources). Everything derives from the same registries as the nav,
- * so the homepage cannot drift from the architecture around it.
+ * Home, top to bottom: kicker · H1 · physics line · the live planner with
+ * the sample already stacked · honesty line · three doors · intake.
+ * No price, no calendar, no newsletter. The tool is the store.
  */
 
 type PageProps = { params: { lang: string } };
 
 const COPY = {
   en: {
-    solutionsH2: 'Start from your problem',
-    solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
-    toolsH2: 'Six working calculators',
-    toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
-    productsH2: 'The Forge Line',
-    productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
-    capabilitiesH2: 'What backs it',
-    capabilitiesLead: 'Six engineering tracks, each stating its scope, its boundary and what has actually been published.',
-    pricingH2: 'What it costs',
-    pricingLead: 'Bench review €0. Session €280. Retainer €3,200 a month. Integration by quote after the fit is proven. Calculators stay free.',
-    pricingCta: 'See pricing',
-    seeAll: 'See all',
+    physics: 'Density, stability and cycle time from your real SKU list. Robot-agnostic planner; the arm stays yours.',
+    honestyA: 'software shipped',
+    honestyB: 'cell not commissioned',
+    honestyC: 'UR URScript stub ships · FANUC / KUKA / ABB planned',
+    doorsH2: 'Three doors',
+    doors: [
+      { kicker: 'Plant', h3: 'You palletize mixed SKUs', p: 'Drop the list above. If the stack holds, send it below and get the unstable SKUs named.', cta: 'Product →', path: '/palletizer' },
+      { kicker: 'Integrator', h3: 'You build the cell', p: 'You keep CE, fence, service and the customer. You get the planner, the state-machine doc, a gripper class and an acceptance test.', cta: 'Integrators →', path: '/integrators' },
+      { kicker: 'Tools', h3: 'You need a number today', p: 'Pallet pattern, case size, truck load. Browser only, CSV out, no sign-up.', cta: 'Tools →', path: '/tools' },
+    ],
+    intakeH2: 'Send the SKU list',
+    intakeLead: 'Company, city, robot brand, the file. You get a stack and the unstable SKUs back.',
+    source: 'Source',
   },
   de: {
-    solutionsH2: 'Bei Ihrem Problem beginnen',
-    solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
-    toolsH2: 'Sechs funktionierende Rechner',
-    toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
-    productsH2: 'Die Forge-Linie',
-    productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
-    capabilitiesH2: 'Was dahintersteht',
-    capabilitiesLead: 'Sechs Ingenieursstränge, jeder mit Umfang, Grenze und dem, was tatsächlich veröffentlicht ist.',
-    pricingH2: 'Was es kostet',
-    pricingLead: 'Bench-Review 0 €. Session 280 €. Retainer 3.200 € im Monat. Integration nach Angebot, sobald der Fit belegt ist. Rechner bleiben kostenlos.',
-    pricingCta: 'Preise ansehen',
-    seeAll: 'Alle ansehen',
+    physics: 'Dichte, Stabilität und Taktzeit aus Ihrer echten SKU-Liste. Roboterunabhängiger Planer; der Arm bleibt Ihrer.',
+    honestyA: 'Software ausgeliefert',
+    honestyB: 'Zelle nicht in Betrieb genommen',
+    honestyC: 'UR-URScript-Stub verfügbar · FANUC / KUKA / ABB geplant',
+    doorsH2: 'Drei Türen',
+    doors: [
+      { kicker: 'Werk', h3: 'Sie palettieren Misch-SKUs', p: 'Liste oben einfügen. Hält der Stapel, unten senden — Sie erhalten die instabilen SKUs benannt.', cta: 'Produkt →', path: '/palletizer' },
+      { kicker: 'Integrator', h3: 'Sie bauen die Zelle', p: 'Sie behalten CE, Zaun, Service und den Kunden. Sie erhalten Planer, Zustandsautomat-Dokumentation, Greiferklasse und Abnahmetest.', cta: 'Integratoren →', path: '/integrators' },
+      { kicker: 'Werkzeuge', h3: 'Sie brauchen heute eine Zahl', p: 'Palettenmuster, Kartongröße, Lkw-Ladung. Nur im Browser, CSV-Export, ohne Anmeldung.', cta: 'Werkzeuge →', path: '/tools' },
+    ],
+    intakeH2: 'SKU-Liste senden',
+    intakeLead: 'Firma, Stadt, Robotermarke, die Datei. Sie erhalten einen Stapel und die instabilen SKUs zurück.',
+    source: 'Quellcode',
   },
 } as const;
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const t = getDict(lang);
+  const description = lang === 'de'
+    ? 'Mixed-SKU-Palettiersoftware aus Frankfurt: SKU-Liste einfügen, Stapel, Stabilität und Dichte lesen, URScript-Stub exportieren. Für UR, FANUC, KUKA, ABB — der Roboter bleibt Ihrer.'
+    : 'Mixed-SKU palletizing software from Frankfurt: paste a SKU list, read the stack, stability and density, export a URScript stub. For UR, FANUC, KUKA, ABB — the robot stays yours.';
   return {
+    title: { absolute: `${t.homeH1} | Grimaldi Engineering` },
+    description,
     alternates: pageAlternates(lang, '/'),
-    openGraph: { images: ogImages(t.homeH1) },
-    twitter: { card: 'summary_large_image', images: ogImages(t.homeH1) },
+    openGraph: { title: t.homeH1, description, images: ogImages(t.homeH1, 'Palletizing software · Frankfurt') },
+    twitter: { card: 'summary_large_image', title: t.homeH1, description, images: ogImages(t.homeH1, 'Palletizing software · Frankfurt') },
   };
 }
 
@@ -68,121 +71,63 @@ export default function Home({ params }: PageProps) {
   const copy = COPY[lang];
   const href = (path: string) => langHref(lang, path);
 
-  const tools = findSection('tools');
-  const capabilities = findSection('capabilities');
-  const toolItems = tools ? tools.groups.flatMap((g) => g.items) : [];
-  const capabilityItems = capabilities ? capabilities.groups.flatMap((g) => g.items) : [];
-
   return (
     <main>
       <section className="hero">
         <div className="hero-in">
           <div className="hero-card">
-            <span className="kicker">{t.homeKicker}</span>
+            <span className="kicker kicker-signal">{t.homeKicker}</span>
             <h1>{t.homeH1}</h1>
-            <p className="lead">{t.homeLead}</p>
-            <div className="cta-row">
-              <BookCTA label={t.ctaBook} />
-              <a className="btn btn-line" href={href('/tools')}>{t.ctaForge}</a>
-            </div>
+            <p className="lead">{copy.physics}</p>
           </div>
+          <StackPlanner labels={PLANNER_LABELS[lang]} lang={lang} compact />
+          <p className="honesty" role="note">
+            <span className="chip chip-live">{copy.honestyA}</span>
+            <span className="sep">|</span>
+            <span className="chip chip-hold">{copy.honestyB}</span>
+            <span className="sep">|</span>
+            <span>{copy.honestyC}</span>
+            <span className="sep">|</span>
+            <a href={PRODUCT_REPO} rel="noopener noreferrer">{copy.source}: github.com/iceccarelli/palletizer</a>
+          </p>
         </div>
       </section>
 
-      <div className="sheet">
-        {/* 1 — SOLUTIONS: who this is for */}
-        <div className="section" id="solutions">
-          <span className="kicker">{NAV[1].label[lang]}</span>
-          <h2>{copy.solutionsH2}</h2>
-          <p className="intro">{copy.solutionsLead}</p>
-          <div className="grid">
-            {solutions.map((s) => (
-              <a className="card card-link" key={s.slug} href={href(`/solutions/${s.slug}`)}>
-                <h3>{s.label[lang]}</h3>
-                <p>{s.audience[lang]}</p>
-                <span className="cta">{t.open}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* 2 — TOOLS: what proves it */}
-        <div className="section" id="tools">
-          <span className="kicker">{t.calcCardTag}</span>
-          <h2>{copy.toolsH2}</h2>
-          <p className="intro">{copy.toolsLead}</p>
-          <div className="grid grid-4">
-            {toolItems.map((item) => (
-              <a className="card card-link" key={item.path} href={href(item.path)}>
-                <h3>{item.label[lang]}</h3>
-                <p>{item.blurb[lang]}</p>
-                <span className="cta">{t.open}</span>
-              </a>
-            ))}
-          </div>
-          <p className="home-more"><a href={href('/tools')}>{copy.seeAll} →</a></p>
-        </div>
-
-        {/* 3 — PRODUCTS */}
-        <div className="section" id="forge">
-          <span className="kicker">{t.forgeKicker}</span>
-          <h2>{copy.productsH2}</h2>
-          <p className="intro">{copy.productsLead}</p>
-          <div className="grid grid-4">
-            {forgeLine.map((product) => (
-              <a className="card card-link" key={product.slug} href={href(`/forge/${product.slug}`)}>
-                <span className="tag">{product.trade[lang]}</span>
-                <h3>{product.name}</h3>
-                <p>{product.tagline[lang]}</p>
-                <span className="status">
-                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
-                  {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* 4 — CAPABILITIES */}
-        <div className="section" id="capabilities">
-          <span className="kicker">{NAV[3].label[lang]}</span>
-          <h2>{copy.capabilitiesH2}</h2>
-          <p className="intro">{copy.capabilitiesLead}</p>
-          <div className="grid">
-            {capabilityItems.map((item) => (
-              <a className="card card-link" key={item.path} href={href(item.path)}>
-                <h3>{item.label[lang]}</h3>
-                <p>{item.blurb[lang]}</p>
-                <span className="status"><span className="dot dot-dev" /> {t.statusLogPrep}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* 5 — PRICING */}
-        <div className="section" id="pricing">
-          <div className="banner">
-            <div>
-              <h2>{copy.pricingH2}</h2>
-              <p>{copy.pricingLead}</p>
-            </div>
-            <a className="btn btn-glow" href={href('/pricing')}>{copy.pricingCta}</a>
-          </div>
-        </div>
-
-        {/* 6 — WAITLIST */}
-        <div className="section" id="waitlist">
-          <div className="banner banner-stack">
-            <div>
-              <h2>{t.wlTitle}</h2>
-              <p>{t.wlBody}</p>
-            </div>
-            <WaitlistForm t={t} />
-          </div>
+      <div className="section" id="doors">
+        <h2>{copy.doorsH2}</h2>
+        <div className="doors">
+          {copy.doors.map((d) => (
+            <a className="door" key={d.path} href={href(d.path)}>
+              <span className="kicker">{d.kicker}</span>
+              <h3>{d.h3}</h3>
+              <p>{d.p}</p>
+              <span className="cta">{d.cta}</span>
+            </a>
+          ))}
         </div>
       </div>
 
+      <div className="section" id="intake">
+        <h2>{copy.intakeH2}</h2>
+        <p className="intro">{copy.intakeLead}</p>
+        <IntakeForm labels={INTAKE_LABELS[lang]} lang={lang} />
+      </div>
+
       <JsonLd data={professionalServiceSchema()} />
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          '@id': `${SITE_URL}/palletizer#software`,
+          name: 'Palletizer',
+          url: `${SITE_URL}${href('/palletizer')}`,
+          applicationCategory: 'IndustrialApplication',
+          operatingSystem: 'Web, Linux',
+          description: t.homeH1,
+          author: { '@id': `${SITE_URL}/#person` },
+          codeRepository: PRODUCT_REPO,
+        }}
+      />
     </main>
   );
 }

@@ -5,7 +5,7 @@
 
 import { SITE_URL } from './site';
 
-export function ogUrl(title: string, kicker = 'Grimaldi Engineering · Frankfurt'): string {
+export function ogUrl(title: string, kicker = 'Palletizing software · Frankfurt'): string {
   const params = new URLSearchParams({ t: title, k: kicker });
   return `${SITE_URL}/api/og?${params.toString()}`;
 }

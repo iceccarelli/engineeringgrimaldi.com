@@ -30,6 +30,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: META[lang].title,
     description: META[lang].description,
     alternates: pageAlternates(lang, PATH),
+    robots: { index: false, follow: true },
     openGraph: {
       title: `${META[lang].title} | Grimaldi Engineering`,
       description: META[lang].description,
@@ -216,7 +217,7 @@ export default function BatteryPackPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/tools/motor-sizing-calculator')}>{copy.link}</a>
           </div>
 

@@ -25,12 +25,12 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const title =
     lang === 'de'
-      ? 'Grimaldi Engineering | Elektrische Maschinen, Batteriesysteme & Automatisierung'
-      : 'Grimaldi Engineering | Electrical Machines, Battery Systems & Automation';
+      ? 'Grimaldi Engineering | Mixed-SKU-Palettiersoftware, Frankfurt'
+      : 'Grimaldi Engineering | Mixed-SKU Palletizing Software, Frankfurt';
   const description =
     lang === 'de'
-      ? 'Grimaldi Engineering (Frankfurt): elektrische Maschinen und Aktorik, Batteriesysteme und BMS, Hochspannung, Leistungselektronik und Embedded-Regelung — mit kostenlosen Rechnern für Achsenauslegung, Batteriepacks und Palettierung. Von Vincenzo Ceccarelli Grimaldi.'
-      : 'Grimaldi Engineering (Frankfurt): electrical machines and actuators, battery systems and BMS, high voltage, power electronics and embedded control — with free calculators for axis sizing, battery packs and palletizing. By Vincenzo Ceccarelli Grimaldi.';
+      ? 'Mixed-SKU-Palettiersoftware für den Roboter, den Sie schon haben. SKU-Liste einfügen, Stapel, Stabilität und Dichte lesen, URScript-Stub exportieren. Grimaldi Engineering, Frankfurt am Main.'
+      : 'Mixed-SKU palletizing software for the robot you already have. Paste a SKU list, read the stack, stability and density, export a URScript stub. Grimaldi Engineering, Frankfurt am Main.';
   return {
     metadataBase: new URL(SITE_URL),
     title: {
@@ -61,6 +61,11 @@ export default function RootLayout({ children, params }: LayoutProps) {
 
   return (
     <html lang={lang} id="top">
+      <head>
+        <link rel="preload" href="/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body>
         <Chrome lang={lang}>{children}</Chrome>
         <JsonLd data={websiteSchema()} />

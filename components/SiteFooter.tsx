@@ -4,9 +4,9 @@ import { langHref, type Lang } from '@/lib/i18n';
 import { NAV } from '@/lib/nav';
 
 /**
- * Footer as the full site index, derived from the same spine as the
- * header — the AWS pattern of "everything is reachable from the bottom
- * of every page". Adding a nav item lands it here automatically.
+ * Footer: the five nav items, Frankfurt, Impressum, Datenschutz, the
+ * Naples/UK disambiguation, the product repository and the two sibling
+ * domains as text links. Nothing else.
  */
 export default function SiteFooter({ lang }: { lang: Lang }) {
   const t = getDict(lang);
@@ -40,22 +40,20 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
           </div>
           <div className="foot-base-links">
             <h4>{t.footNet}</h4>
+            <a href="https://github.com/iceccarelli/palletizer" rel="noopener noreferrer">GitHub — palletizer</a>
             <a href="https://igrimaldi.engineering">igrimaldi.engineering — {t.netSoftware}</a>
             <a href="https://grimaldi.ca">grimaldi.ca — {t.netPersonal}</a>
-            <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
-            <a href="https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0" rel="noopener noreferrer">LinkedIn</a>
           </div>
           <div className="foot-base-links">
             <h4>{t.footLegal}</h4>
-            <a href={href('/about')}>{t.navAbout}</a>
             <a href={href('/impressum')}>{t.impressum}</a>
             <a href={href('/datenschutz')}>{t.datenschutz}</a>
-            <a href={href('/book')}>{t.navBook}</a>
+            <a href={href('/contact')}>{t.navBook}</a>
           </div>
         </div>
 
         <div className="legal">
-          <span>{t.rights}</span>
+          <span>Frankfurt am Main · {t.rights}</span>
           <span>{t.authorLine}</span>
         </div>
       </div>

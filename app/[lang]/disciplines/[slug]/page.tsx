@@ -23,6 +23,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: discipline.metaTitle[lang],
     description: discipline.metaDescription[lang],
     alternates: pageAlternates(lang, `/disciplines/${discipline.slug}`),
+    robots: { index: false, follow: true },
     openGraph: {
       title: `${discipline.metaTitle[lang]} | Grimaldi Engineering`,
       description: discipline.metaDescription[lang],
@@ -93,7 +94,7 @@ export default function DisciplinePage({ params }: PageProps) {
                 {discipline.tool.label[lang]}
               </a>
             )}
-            <BookCTA label={t.ctaBook} variant="line" />
+            <BookCTA label={t.ctaBook} variant="line" lang={lang} />
           </div>
           <p className="author-block">{t.authorLine}</p>
         </div>

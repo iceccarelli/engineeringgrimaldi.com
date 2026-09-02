@@ -14,6 +14,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
         ? 'Elektrische Maschinen und Aktorik, Batteriesysteme und BMS, Regelung und Integration, Embedded, Leistungselektronik, Hochspannung — Umfang, Grenzen und Stand je Strang.'
         : 'Electrical machines and actuators, battery systems and BMS, control and integration, embedded, power electronics, high voltage — scope, boundary and status for each track.',
     alternates: pageAlternates(lang, '/disciplines'),
+    robots: { index: false, follow: true },
   };
 }
 

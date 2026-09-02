@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import BookCTA from '@/components/BookCTA';
 import JsonLd from '@/components/JsonLd';
 import { getDict } from '@/lib/dict';
@@ -29,6 +29,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: product.metaTitle[lang],
     description: product.metaDescription[lang],
     alternates: pageAlternates(lang, `/forge/${product.slug}`),
+    robots: { index: false, follow: true },
     openGraph: {
       title: `${product.metaTitle[lang]} | Grimaldi Engineering`,
       description: product.metaDescription[lang],
@@ -41,6 +42,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
 
 export default function ProductPage({ params }: PageProps) {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+  if (params.slug === 'palletizer') permanentRedirect(langHref(lang, '/palletizer'));
   const product = getProduct(params.slug);
   if (!product) notFound();
   const t = getDict(lang);
@@ -59,8 +61,12 @@ export default function ProductPage({ params }: PageProps) {
     <main>
       <div className="sheet sheet-top">
         <div className="section">
-          <span className="kicker">{product.trade[lang]} · Forge Line</span>
+          <span className="kicker">{product.trade[lang]} · Forge</span>
           <h1>{product.name}</h1>
+          <p className="honesty" role="note">
+            <span className="chip chip-hold">{lang === 'de' ? 'Labor' : 'Lab'}</span>
+            <span>{lang === 'de' ? 'Gleiche Controller-These. Anderer Endeffektor. Keine Einheit im Verkauf.' : 'Same controller thesis. Different end-effector. No unit for sale.'}</span>
+          </p>
           <p className="intro">{product.tagline[lang]}</p>
 
           <p className="status status-badge">
@@ -74,16 +80,11 @@ export default function ProductPage({ params }: PageProps) {
                 {lang === 'de' ? 'Live-Demo öffnen' : 'Open the live demo'}
               </a>
             ) : (
-              <BookCTA label={t.ctaBook} />
+              <BookCTA label={t.ctaBook} lang={lang} />
             )}
             <a className="btn btn-line" href={product.repo} rel="noopener noreferrer">
               {lang === 'de' ? 'Quellcode auf GitHub' : 'Source on GitHub'}
             </a>
-            {product.slug === 'palletizer' && (
-              <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>
-                {lang === 'de' ? 'Kostenloser Palettenmuster-Rechner' : 'Free pallet pattern calculator'}
-              </a>
-            )}
           </div>
 
           <div className="prose">
@@ -109,7 +110,7 @@ export default function ProductPage({ params }: PageProps) {
 
           {product.demo == null && (
             <div className="cta-row">
-              <BookCTA label={t.ctaBook} variant="line" />
+              <BookCTA label={t.ctaBook} variant="line" lang={lang} />
             </div>
           )}
 
@@ -122,7 +123,7 @@ export default function ProductPage({ params }: PageProps) {
       <JsonLd
         data={breadcrumbSchema(lang, [
           { name: 'Grimaldi Engineering', path: '/' },
-          { name: 'Forge Line', path: '/forge' },
+          { name: 'Forge', path: '/forge' },
           { name: product.name, path: `/forge/${product.slug}` },
         ])}
       />

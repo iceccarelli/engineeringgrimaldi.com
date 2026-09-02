@@ -11,6 +11,37 @@
       ],
       "destination": "https://engineeringgrimaldi.com/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "palletizer-app.vercel.app"
+        }
+      ],
+      "destination": "https://engineeringgrimaldi.com/palletizer",
+      "permanent": true
+    },
+    {
+      "source": "/book",
+      "destination": "/contact",
+      "permanent": true
+    },
+    {
+      "source": "/de/book",
+      "destination": "/de/contact",
+      "permanent": true
+    },
+    {
+      "source": "/forge/palletizer",
+      "destination": "/palletizer",
+      "permanent": true
+    },
+    {
+      "source": "/de/forge/palletizer",
+      "destination": "/de/palletizer",
+      "permanent": true
     }
   ],
   "headers": [

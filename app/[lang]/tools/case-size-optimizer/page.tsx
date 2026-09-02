@@ -253,7 +253,7 @@ export default function CaseOptimizerPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>{copy.toolLink}</a>
           </div>
 

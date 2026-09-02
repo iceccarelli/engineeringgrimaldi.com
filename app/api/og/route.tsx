@@ -4,7 +4,7 @@ import { ImageResponse } from 'next/og';
  * Per-page social card.
  *
  * LinkedIn, X and Slack all render the OG image before anyone reads the
- * title, so a shared calculator that previews as "The Forge Line" wastes
+ * title, so a shared calculator that previews as "The Forge" wastes
  * the click. This endpoint draws the actual page title at 1200×630 in
  * the site's own palette. Query: ?t=<title>&k=<kicker>.
  *
@@ -20,7 +20,7 @@ const MAX_KICKER = 60;
 export function GET(request: Request): ImageResponse {
   const { searchParams } = new URL(request.url);
   const rawTitle = searchParams.get('t') ?? 'Grimaldi Engineering';
-  const rawKicker = searchParams.get('k') ?? 'Grimaldi Engineering · Frankfurt';
+  const rawKicker = searchParams.get('k') ?? 'Palletizing software · Frankfurt';
 
   const title = rawTitle.slice(0, MAX_TITLE);
   const kicker = rawKicker.slice(0, MAX_KICKER);
@@ -36,14 +36,14 @@ export function GET(request: Request): ImageResponse {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 72,
-          background: 'linear-gradient(160deg, #0a1018 0%, #070b10 70%)',
-          color: '#e8f0f6',
+          background: '#F6F7F4',
+          color: '#12151A',
           fontFamily: 'sans-serif',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', width: 14, height: 44, background: '#3ef58f', borderRadius: 3 }} />
-          <div style={{ display: 'flex', fontSize: 26, letterSpacing: 3, textTransform: 'uppercase', color: '#3ef58f' }}>
+          <div style={{ display: 'flex', width: 14, height: 44, background: '#FF8A00', borderRadius: 2 }} />
+          <div style={{ display: 'flex', fontSize: 26, letterSpacing: 3, textTransform: 'uppercase', color: '#5C6570' }}>
             {kicker}
           </div>
         </div>
@@ -58,13 +58,13 @@ export function GET(request: Request): ImageResponse {
             justifyContent: 'space-between',
             alignItems: 'center',
             fontSize: 25,
-            color: '#6e8093',
-            borderTop: '1px solid #1d2938',
+            color: '#5C6570',
+            borderTop: '1px solid #D7DCD6',
             paddingTop: 24,
           }}
         >
           <div style={{ display: 'flex' }}>engineeringgrimaldi.com</div>
-          <div style={{ display: 'flex', color: '#9fb1c1' }}>Vincenzo Ceccarelli Grimaldi</div>
+          <div style={{ display: 'flex', color: '#12151A' }}>Grimaldi Engineering</div>
         </div>
       </div>
     ),

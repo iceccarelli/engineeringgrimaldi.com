@@ -6,7 +6,8 @@ import { CONTACT_EMAIL, PERSON_NAME } from '@/lib/site';
  * Datenschutzerklärung (DSGVO). Bilingual skeleton with accurate
  * descriptions of what THIS site actually does: Vercel hosting +
  * server logs, cookieless Vercel Analytics / Speed Insights, the
- * double-opt-in waitlist via Loops, and outbound booking via Cal.com.
+ * SKU/layout intake forwarded to a mail relay, and the legacy newsletter
+ * endpoint (kept, unmounted).
  * TODO fields only where operator data (address) must be filled.
  * If GA4 is ever enabled (NEXT_PUBLIC_GA_ID), a consent banner MUST be
  * added first and this page extended — do not enable GA silently.
@@ -20,8 +21,8 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: lang === 'de' ? 'Datenschutzerklärung' : 'Privacy Policy',
     description:
       lang === 'de'
-        ? 'Datenschutzerklärung von engineeringgrimaldi.com: Hosting, Server-Logs, cookielose Analytik, Warteliste mit Double-Opt-in, Terminbuchung.'
-        : 'Privacy policy for engineeringgrimaldi.com: hosting, server logs, cookieless analytics, double-opt-in waitlist, booking.',
+        ? 'Datenschutzerklärung von engineeringgrimaldi.com: Hosting, Server-Logs, cookielose Analytik, SKU-/Layout-Formular.'
+        : 'Privacy policy for engineeringgrimaldi.com: hosting, server logs, cookieless analytics, SKU/layout intake form.',
     alternates: pageAlternates(lang, '/datenschutz'),
     robots: { index: false, follow: true },
   };
@@ -64,20 +65,20 @@ export default function DatenschutzPage({ params }: PageProps) {
               jederzeit per E-Mail möglich.
             </p>
 
-            <h2>4. Warteliste (Newsletter)</h2>
+            <h2>4. SKU-/Layout-Formular</h2>
             <p>
-              Für die Warteliste wird die eingegebene E-Mail-Adresse und das gewählte Interesse an
-              den Dienst Loops (Loops, Inc., USA) übermittelt und dort gespeichert. Die Anmeldung
-              erfolgt im Double-Opt-in-Verfahren; ohne Bestätigung wird nicht versendet.
-              Rechtsgrundlage ist die Einwilligung (Art. 6 Abs. 1 lit. a DSGVO); sie ist jederzeit
-              über den Abmeldelink oder per E-Mail widerrufbar.
+              Über das Formular übermitteln Sie Firma, Stadt, Robotermarke, E-Mail-Adresse, eine
+              SKU-Datei (CSV) und optional ein Zellenlayout (PDF). Diese Daten werden an ein vom
+              Verantwortlichen betriebenes E-Mail-Relais weitergeleitet und ausschließlich zur
+              Beantwortung Ihrer Anfrage verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
+              (vorvertragliche Maßnahmen). Die Daten werden gelöscht, sobald die Anfrage
+              abgeschlossen ist und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
             </p>
 
-            <h2>5. Terminbuchung</h2>
+            <h2>5. Stapelplaner und Rechner</h2>
             <p>
-              Die Terminbuchung führt zu einem externen Buchungsdienst (Cal.com). Dort eingegebene
-              Daten verarbeitet der Anbieter nach eigener Datenschutzerklärung; diese Website
-              überträgt beim Klick lediglich die Herkunftskennung.
+              Der Stapelplaner und die Rechner laufen vollständig in Ihrem Browser. Eingegebene
+              SKU-Listen und Maße werden nicht an einen Server übertragen.
             </p>
 
             <h2>6. Ihre Rechte</h2>
@@ -124,19 +125,19 @@ export default function DatenschutzPage({ params }: PageProps) {
             Art. 6(1)(f) GDPR. You may object at any time by email.
           </p>
 
-          <h2>4. Waitlist</h2>
+          <h2>4. SKU / layout intake</h2>
           <p>
-            Joining the waitlist transmits your email address and chosen interest to Loops (Loops,
-            Inc., USA), where they are stored. Sign-up is double opt-in; nothing is sent without
-            confirmation. Legal basis: consent (Art. 6(1)(a) GDPR), revocable at any time via the
-            unsubscribe link or by email.
+            The intake form transmits company, city, robot brand, email address, a SKU file (CSV)
+            and optionally a cell layout (PDF). These are forwarded to a mail relay operated by the
+            controller and used solely to answer your request. Legal basis: Art. 6(1)(b) GDPR
+            (pre-contractual steps). The data is deleted once the request is closed, subject to
+            statutory retention duties.
           </p>
 
-          <h2>5. Booking</h2>
+          <h2>5. Stack planner and calculators</h2>
           <p>
-            Booking a call leads to an external scheduling service (Cal.com). Data entered there is
-            processed by that provider under its own privacy policy; this site only passes a source
-            identifier along with the click.
+            The stack planner and the calculators run entirely in your browser. SKU lists and
+            dimensions you enter are not transmitted to a server.
           </p>
 
           <h2>6. Your rights</h2>

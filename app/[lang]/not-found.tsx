@@ -5,18 +5,16 @@
 export default function NotFound() {
   return (
     <main>
-      <div className="sheet sheet-top">
-        <div className="section">
-          <span className="kicker">404</span>
-          <h1>No signal on this channel.</h1>
-          <p className="intro">
-            The page you asked for does not exist. / Die angeforderte Seite existiert nicht.
-          </p>
-          <div className="cta-row">
-            <a className="btn btn-glow" href="/">Home (English)</a>
-            <a className="btn btn-line" href="/de">Startseite (Deutsch)</a>
-            <a className="btn btn-line" href="/forge">Forge Line</a>
-          </div>
+      <div className="section">
+        <span className="kicker">404</span>
+        <h1>No such page. / Diese Seite gibt es nicht.</h1>
+        <p className="lead">
+          The address does not exist. / Die Adresse existiert nicht.
+        </p>
+        <div className="cta-row">
+          <a className="btn btn-signal" href="/palletizer">Palletizer</a>
+          <a className="btn btn-line" href="/">Home (English)</a>
+          <a className="btn btn-line" href="/de">Startseite (Deutsch)</a>
         </div>
       </div>
     </main>

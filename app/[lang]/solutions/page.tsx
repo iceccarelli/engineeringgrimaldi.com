@@ -29,6 +29,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: COPY[lang].title,
     description: COPY[lang].description,
     alternates: pageAlternates(lang, '/solutions'),
+    robots: { index: false, follow: true },
   };
 }
 

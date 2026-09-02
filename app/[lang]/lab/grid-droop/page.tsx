@@ -26,6 +26,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
         ? 'Interaktiver Netzfrequenz-Simulator mit echtem Statik-Modell: Δf = −f·0,04·ΔP, RoCoF durch Trägheit H begrenzt. Drei Phasen bei 50 Hz, Anzeigen aus dem Integrator.'
         : 'Interactive grid-frequency simulator driven by a real droop model: Δf = −f·0.04·ΔP with RoCoF bounded by inertia H. Three phases at 50 Hz, readouts from the integrator.',
     alternates: pageAlternates(lang, '/lab/grid-droop'),
+    robots: { index: false, follow: true },
   };
 }
 

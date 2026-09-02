@@ -21,6 +21,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: solution.metaTitle[lang],
     description: solution.metaDescription[lang],
     alternates: pageAlternates(lang, `/solutions/${solution.slug}`),
+    robots: { index: false, follow: true },
     openGraph: {
       title: `${solution.metaTitle[lang]} | Grimaldi Engineering`,
       description: solution.metaDescription[lang],
@@ -70,7 +71,7 @@ export default function SolutionPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/pricing')}>
               {lang === 'de' ? 'Preise ansehen →' : 'See pricing →'}
             </a>

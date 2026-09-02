@@ -24,12 +24,12 @@ const PATH = '/tools/pallet-pattern-calculator';
 
 const META = {
   en: {
-    title: 'Pallet Pattern Calculator — Mixed-SKU Layer Optimizer',
+    title: 'Pallet Pattern Calculator — Cases per Layer, Cube Utilisation',
     description:
       'Free pallet pattern calculator: enter case and pallet dimensions, get cases per layer, layer count, cube utilisation and a downloadable pattern sheet. Column, two-block and four-block layouts on EUR, ISO and 48×40 decks.',
   },
   de: {
-    title: 'Palettenmuster-Rechner — Lagenoptimierung für Misch-SKU',
+    title: 'Palettenmuster-Rechner — Kartons pro Lage, Raumnutzung',
     description:
       'Kostenloser Palettenmuster-Rechner: Kartons- und Palettenmaße eingeben, Kartons pro Lage, Lagenzahl, Raumnutzung und ein Muster-Datenblatt zum Download erhalten. Säulen-, Zwei-Block- und Vier-Block-Muster auf EUR-, ISO- und 48×40-Paletten.',
   },
@@ -155,8 +155,8 @@ const FAQS: Record<Lang, { q: string; a: string }[]> = {
       a: 'No. The whole calculation runs client-side. Your case dimensions are never sent to a server, and the CSV is generated in the browser.',
     },
     {
-      q: 'How does this relate to Palletizer OS?',
-      a: 'This calculator solves a single-SKU layer pattern. Palletizer OS is the wider open codebase for mixed-SKU end-of-line cells — pattern generation plus cell orchestration over a vendor-neutral driver interface.',
+      q: 'How does this relate to the palletizer?',
+      a: 'This calculator solves a single-SKU layer pattern. The palletizer on the product page stacks a mixed-SKU list, scores stability and density, and exports a URScript stub.',
     },
   ],
   de: [
@@ -177,8 +177,8 @@ const FAQS: Record<Lang, { q: string; a: string }[]> = {
       a: 'Nein. Die gesamte Berechnung läuft clientseitig. Ihre Kartonmaße werden nie an einen Server gesendet, und die CSV-Datei entsteht im Browser.',
     },
     {
-      q: 'Wie hängt das mit Palletizer OS zusammen?',
-      a: 'Dieser Rechner löst ein Einzel-SKU-Lagenmuster. Palletizer OS ist die umfassendere offene Codebasis für Misch-SKU-End-of-Line-Zellen — Mustererzeugung plus Zellen-Orchestrierung über eine herstellerneutrale Treiber-Schnittstelle.',
+      q: 'Wie hängt das mit dem Palletizer zusammen?',
+      a: 'Dieser Rechner löst ein Einzel-SKU-Lagenmuster. Der Palletizer auf der Produktseite stapelt eine Mixed-SKU-Liste, bewertet Stabilität und Dichte und exportiert einen URScript-Stub.',
     },
   ],
 };
@@ -195,10 +195,10 @@ const BODY: Record<Lang, { kicker: string; h1: string; lead: string; methodH2: s
       'Layer count is then bounded twice: by usable height (max total height minus deck height, divided by case height) and by payload (max payload divided by the mass of one layer). The smaller bound wins, and the result tells you which one bit.',
     ],
     faqH2: 'Questions',
-    ctaH2: 'Bring the pattern to a bench review',
+    ctaH2: 'Stack the real mix',
     ctaBody:
-      'If the cube utilisation on your real SKU mix is worse than this single-SKU number suggests, that gap is where mixed-SKU software pays for itself. Twenty minutes, no slides — bring the CSV.',
-    productLink: 'See Palletizer OS →',
+      'If the cube utilisation on your real SKU mix is worse than this single-SKU number suggests, that gap is where mixed-SKU software pays for itself. Paste the list into the planner or send it through the intake.',
+    productLink: 'Mixed-SKU stack planner →',
   },
   de: {
     kicker: 'Kostenloses Werkzeug · Palettieren',
@@ -211,10 +211,10 @@ const BODY: Record<Lang, { kicker: string; h1: string; lead: string; methodH2: s
       'Die Lagenzahl wird dann zweifach begrenzt: durch die nutzbare Höhe (Gesamthöhe minus Palettenhöhe, geteilt durch die Kartonhöhe) und durch die Nutzlast (max. Nutzlast geteilt durch die Masse einer Lage). Die kleinere Grenze gewinnt, und das Ergebnis nennt die bindende Grenze.',
     ],
     faqH2: 'Fragen',
-    ctaH2: 'Bringen Sie das Muster in ein Bench-Review',
+    ctaH2: 'Den echten Mix stapeln',
     ctaBody:
-      'Wenn die Raumnutzung bei Ihrem echten SKU-Mix schlechter ausfällt als dieser Einzel-SKU-Wert nahelegt, ist genau diese Lücke der Punkt, an dem sich Misch-SKU-Software rechnet. Zwanzig Minuten, keine Folien — bringen Sie die CSV mit.',
-    productLink: 'Palletizer OS ansehen →',
+      'Wenn die Raumnutzung bei Ihrem echten SKU-Mix schlechter ausfällt als dieser Einzel-SKU-Wert nahelegt, ist genau diese Lücke der Punkt, an dem sich Mixed-SKU-Software rechnet. Fügen Sie die Liste in den Planer ein oder senden Sie sie über das Formular.',
+    productLink: 'Mixed-SKU-Stapelplaner →',
   },
 };
 
@@ -259,14 +259,14 @@ export default function PatternCalculatorPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <BookCTA label={t.ctaBook} lang={lang} />
             <a className="btn btn-line" href={langHref(lang, '/tools/case-size-optimizer')}>
               {lang === 'de' ? 'Kartongrößen-Optimierer →' : 'Case size optimizer →'}
             </a>
             <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>
               {lang === 'de' ? 'Lkw-/Container-Laderechner →' : 'Truck & container load calculator →'}
             </a>
-            <a className="btn btn-line" href={langHref(lang, '/forge/palletizer')}>{copy.productLink}</a>
+            <a className="btn btn-line" href={langHref(lang, '/palletizer')}>{copy.productLink}</a>
           </div>
 
           <p className="author-block">{t.authorLine}</p>

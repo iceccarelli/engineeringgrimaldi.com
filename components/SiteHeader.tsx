@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Site header on the AWS pattern: a thin utility bar, a persistent brand,
- * six stable top-level sections with a grouped mega-menu on pointer
- * devices, and a real drawer on small screens.
+ * Site header: a thin utility bar (language, source), a persistent brand,
+ * five stable top-level items with a grouped menu on pointer devices, and
+ * a real drawer on small screens. No booking pill, no price.
  *
  * The drawer is the important part. Before this component the navigation
  * was simply hidden below 980 px, which left phone visitors with a logo
@@ -85,10 +85,7 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
       <div className="utility">
         <div className="utility-in">
           <LangSwitcher current={lang} label={labels.langLabel} />
-          <a href={href('/about')}>{labels.about}</a>
-          <a href="https://igrimaldi.engineering">igrimaldi.engineering</a>
-          <a href="https://grimaldi.ca">grimaldi.ca</a>
-          <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/iceccarelli/palletizer" rel="noopener noreferrer">GitHub · palletizer</a>
         </div>
       </div>
 
@@ -152,7 +149,7 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
           </nav>
 
           <div className="masthead-actions">
-            <a className="pill" href={href('/book')}>{labels.book}</a>
+            <a className="pill" href={href('/contact')}>{labels.book}</a>
             <button
               type="button"
               className="drawer-toggle"
@@ -213,7 +210,7 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
               </div>
             );
           })}
-          <a className="btn btn-glow drawer-cta" href={href('/book')}>{labels.book}</a>
+          <a className="btn btn-signal drawer-cta" href={href('/contact')}>{labels.book}</a>
         </nav>
       </div>
       {drawerOpen && <div className="drawer-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}

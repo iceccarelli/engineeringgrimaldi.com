@@ -9,12 +9,16 @@ export const SITE_NAME = 'Grimaldi Engineering';
 export const PERSON_NAME = 'Vincenzo Ceccarelli Grimaldi';
 export const PERSON_ID = 'https://igrimaldi.engineering/#person';
 
-/** Cal.com booking URL. Set NEXT_PUBLIC_CAL_URL in Vercel env.
- *  The fallback is a visible placeholder, never a fake working link. */
-export const CAL_URL =
-  process.env.NEXT_PUBLIC_CAL_URL ?? 'https://cal.com/REPLACE-ME/bench-review';
+/** Upstream product repository and its current demo host. The demo host
+ *  is never advertised in a heading; it is a redirect target in waiting. */
+export const PRODUCT_REPO = 'https://github.com/iceccarelli/palletizer';
+export const PRODUCT_DEMO = 'https://palletizer-app.vercel.app';
 
-export const CAL_QUERY = '?utm_source=engineeringgrimaldi&source=engineeringgrimaldi.com';
+/** Intake forwarding. Set INTAKE_WEBHOOK_URL in Vercel env to a JSON
+ *  endpoint (e.g. a mail relay or Zapier hook). Without it the intake
+ *  route answers 503 intake_unconfigured and the form shows the
+ *  fallback address instead of faking a success. */
+export const INTAKE_PATH = '/api/intake';
 
 export const SAME_AS = [
   'https://github.com/iceccarelli',

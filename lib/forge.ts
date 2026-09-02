@@ -1,9 +1,9 @@
 /**
- * The Forge Line — product registry and page content.
+ * The Forge — product registry and page content.
  *
  * Honesty contract (do not weaken):
- * - `status: 'shipped'` is allowed ONLY while it is true. Palletizer OS
- *   qualifies because its repository and live optimizer are public.
+ * - `status: 'shipped'` is allowed ONLY while it is true. Palletizer
+ *   qualifies because its repository and live planner are public.
  * - Everything else is `repo-only` and MUST render as
  *   "Public repo — not a production deployment" until a real deployment exists.
  * - No invented customers, robots, metrics or case studies. Integration
@@ -37,46 +37,46 @@ export type ForgeProduct = {
 export const forgeLine: ForgeProduct[] = [
   {
     slug: 'palletizer',
-    name: 'Palletizer OS',
+    name: 'Palletizer',
     trade: { en: 'Palletizing', de: 'Palettieren' },
     tagline: {
       en: 'A software foundation for high-throughput end-of-line palletizing cells, with a public mixed-SKU optimizer.',
       de: 'Eine Software-Basis für End-of-Line-Palettierzellen mit hohem Durchsatz — mit öffentlichem Misch-SKU-Optimierer.',
     },
     metaTitle: {
-      en: 'Palletizer OS — Mixed-SKU Palletizing Software',
-      de: 'Palletizer OS — Misch-SKU-Palettier-Software',
+      en: 'Palletizer — Mixed-SKU Palletizing Software',
+      de: 'Palletizer — Misch-SKU-Palettier-Software',
     },
     metaDescription: {
-      en: 'Palletizer OS: open palletizing software for mixed-SKU end-of-line cells. Public repository, live pattern optimizer, vendor-neutral architecture. By Grimaldi Engineering, Frankfurt.',
-      de: 'Palletizer OS: offene Palettier-Software für Misch-SKU-End-of-Line-Zellen. Öffentliches Repository, Live-Pattern-Optimierer, herstellerneutrale Architektur. Von Grimaldi Engineering, Frankfurt.',
+      en: 'Palletizer: open palletizing software for mixed-SKU end-of-line cells. Public repository, live pattern optimizer, vendor-neutral architecture. By Grimaldi Engineering, Frankfurt.',
+      de: 'Palletizer: offene Palettier-Software für Misch-SKU-End-of-Line-Zellen. Öffentliches Repository, Live-Pattern-Optimierer, herstellerneutrale Architektur. Von Grimaldi Engineering, Frankfurt.',
     },
     problem: {
-      en: 'Mixed-SKU palletizing is still solved cell by cell with vendor-locked teach pendants and brittle custom rigs. Changing a SKU mix means calling an integrator. Palletizer OS treats pattern generation and cell orchestration as software: versioned, testable, portable across lines.',
-      de: 'Misch-SKU-Palettieren wird noch immer Zelle für Zelle gelöst — mit herstellergebundenen Teach-Pendants und fragilen Sonderaufbauten. Ein geänderter SKU-Mix heißt: Integrator anrufen. Palletizer OS behandelt Pattern-Erzeugung und Zellen-Orchestrierung als Software: versioniert, testbar, über Linien portierbar.',
+      en: 'Mixed-SKU palletizing is still solved cell by cell with vendor-locked teach pendants and brittle custom rigs. Changing a SKU mix means calling an integrator. Palletizer treats pattern generation and cell orchestration as software: versioned, testable, portable across lines.',
+      de: 'Misch-SKU-Palettieren wird noch immer Zelle für Zelle gelöst — mit herstellergebundenen Teach-Pendants und fragilen Sonderaufbauten. Ein geänderter SKU-Mix heißt: Integrator anrufen. Palletizer behandelt Pattern-Erzeugung und Zellen-Orchestrierung als Software: versioniert, testbar, über Linien portierbar.',
     },
     architecture: {
       en: 'A pattern/optimization core (mixed-SKU stacking with stability constraints), a cell-orchestration layer, and a vendor-neutral driver interface intended to sit above specific robot arms and grippers. The mixed-SKU optimizer runs in the browser and is publicly deployed.',
       de: 'Ein Pattern-/Optimierungskern (Misch-SKU-Stapelung mit Stabilitäts-Constraints), eine Zellen-Orchestrierungsschicht und eine herstellerneutrale Treiber-Schnittstelle oberhalb konkreter Roboterarme und Greifer. Der Misch-SKU-Optimierer läuft im Browser und ist öffentlich deployt.',
     },
     integrations: {
-      en: 'Supported robots and grippers: the driver interface is vendor-neutral by design, but no OEM robot or gripper integration is certified yet. If you run a specific arm, bring it to a bench review.',
-      de: 'Unterstützte Roboter und Greifer: Die Treiber-Schnittstelle ist bewusst herstellerneutral, aber noch ist keine OEM-Roboter- oder Greifer-Integration zertifiziert. Wenn Sie einen konkreten Arm betreiben: bringen Sie ihn in ein Bench-Review mit.',
+      en: 'Supported robots and grippers: the driver interface is vendor-neutral by design, but no OEM robot or gripper integration is certified yet. If you run a specific arm, name it in the intake.',
+      de: 'Unterstützte Roboter und Greifer: Die Treiber-Schnittstelle ist bewusst herstellerneutral, aber noch ist keine OEM-Roboter- oder Greifer-Integration zertifiziert. Wenn Sie einen konkreten Arm betreiben: nennen Sie ihn im Formular.',
     },
     license: {
       en: 'License: see the repository. Commercial licensing for production use is agreed per project.',
       de: 'Lizenz: siehe Repository. Kommerzielle Lizenzierung für den Produktiveinsatz wird pro Projekt vereinbart.',
     },
     commercial: {
-      en: 'Commercial terms: custom integration is scoped after a free 20-minute bench review. No integration is sold before the fit is proven on your SKU mix.',
-      de: 'Kommerzielle Konditionen: Integrationen werden nach einem kostenlosen 20-Minuten-Bench-Review gescopet. Keine Integration wird verkauft, bevor der Fit an Ihrem SKU-Mix belegt ist.',
+      en: 'Commercial terms: custom integration is scoped after your SKU list has been stacked. No integration is sold before the fit is proven on your SKU mix.',
+      de: 'Kommerzielle Konditionen: Integrationen werden gescopet, nachdem Ihre SKU-Liste gestapelt wurde. Keine Integration wird verkauft, bevor der Fit an Ihrem SKU-Mix belegt ist.',
     },
     repo: 'https://github.com/iceccarelli/palletizer',
     demo: 'https://palletizer-app.vercel.app',
     status: 'shipped',
     faqs: [
       {
-        q: { en: 'Is Palletizer OS production software?', de: 'Ist Palletizer OS Produktivsoftware?' },
+        q: { en: 'Is Palletizer production software?', de: 'Ist Palletizer Produktivsoftware?' },
         a: {
           en: 'The repository and the mixed-SKU optimizer are public and usable today. No OEM robot integration is certified yet; production deployments are scoped per project.',
           de: 'Repository und Misch-SKU-Optimierer sind öffentlich und heute nutzbar. Noch ist keine OEM-Roboter-Integration zertifiziert; Produktiveinsätze werden pro Projekt gescopet.',
@@ -131,8 +131,8 @@ export const forgeLine: ForgeProduct[] = [
       de: 'Lizenz: siehe Repository.',
     },
     commercial: {
-      en: 'Commercial terms: not for sale yet. Flooring contractors who want to shape the pilot can join the waitlist or book a bench review.',
-      de: 'Kommerzielle Konditionen: noch nicht im Verkauf. Bodenleger-Betriebe, die den Piloten mitprägen wollen, können sich auf die Warteliste setzen oder ein Bench-Review buchen.',
+      en: 'Commercial terms: not for sale yet. Flooring contractors who want to shape the pilot can send a note through the intake.',
+      de: 'Kommerzielle Konditionen: noch nicht im Verkauf. Bodenleger-Betriebe, die den Piloten mitprägen wollen, können sich über das Formular melden.',
     },
     repo: 'https://github.com/iceccarelli/floorforge-ai',
     status: 'repo-only',
@@ -140,8 +140,8 @@ export const forgeLine: ForgeProduct[] = [
       {
         q: { en: 'Can I buy FloorForge AI today?', de: 'Kann ich FloorForge AI heute kaufen?' },
         a: {
-          en: 'No. It is a public repository under active development, not a production deployment. The waitlist gets one email when that changes.',
-          de: 'Nein. Es ist ein öffentliches Repository in aktiver Entwicklung, kein Produktiveinsatz. Die Warteliste erhält eine E-Mail, wenn sich das ändert.',
+          en: 'No. It is a public repository under active development, not a production deployment. This page changes when that changes.',
+          de: 'Nein. Es ist ein öffentliches Repository in aktiver Entwicklung, kein Produktiveinsatz. Diese Seite ändert sich, wenn sich das ändert.',
         },
       },
       {
