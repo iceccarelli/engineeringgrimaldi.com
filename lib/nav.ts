@@ -2,6 +2,9 @@
  * THE INFORMATION ARCHITECTURE SPINE.
  *
  * One registry, six top-level sections, modelled on the pattern AWS uses:
+ * (Products = Palletizer first. PaintForge, DryForge and ForgeOS are NOT
+ * in this registry on purpose: they are reachable only via /forge, so they
+ * are always two clicks away and never one. The sitemap adds them.)
  * a small number of stable top-level categories, each with an index page
  * that never orphans its children, and a grouped menu that shows the
  * whole category at once instead of hiding it behind a scroll.
@@ -42,20 +45,24 @@ export type NavSection = {
 export const NAV: NavSection[] = [
   {
     id: 'products',
-    path: '/forge',
-    label: { en: 'Products', de: 'Produkte' },
+    path: '/palletizer',
+    label: { en: 'Palletizer', de: 'Palletizer' },
     blurb: {
-      en: 'The Forge Line — one automation product per trade, code public, status stated plainly.',
-      de: 'Die Forge-Linie — ein Automatisierungsprodukt pro Gewerk, Code öffentlich, Status klar benannt.',
+      en: 'The one product on the hero: a mixed-SKU pallet optimizer with a stability number you can check. Everything else in the Forge Line sits behind the index, with its status in capitals.',
+      de: 'Das eine Produkt auf der Startseite: ein Misch-SKU-Palettenoptimierer mit einer Stabilitätszahl, die Sie nachrechnen können. Alles andere in der Forge-Linie steht hinter dem Index, mit Status in Großbuchstaben.',
     },
     groups: [
       {
-        label: { en: 'Automation products', de: 'Automatisierungsprodukte' },
+        label: { en: 'Shipped', de: 'Ausgeliefert' },
         items: [
-          { path: '/forge/palletizer', label: { en: 'Palletizer OS', de: 'Palletizer OS' }, blurb: { en: 'Mixed-SKU palletizing software for end-of-line cells.', de: 'Misch-SKU-Palettiersoftware für End-of-Line-Zellen.' } },
-          { path: '/forge/floorforge', label: { en: 'FloorForge AI', de: 'FloorForge AI' }, blurb: { en: 'Automation tooling for the flooring trade.', de: 'Automatisierungs-Tooling für das Bodenleger-Gewerk.' } },
-          { path: '/forge/paintforge', label: { en: 'PaintForge AI', de: 'PaintForge AI' }, blurb: { en: 'Automation tooling for the painting trade.', de: 'Automatisierungs-Tooling für das Maler-Gewerk.' } },
-          { path: '/forge/dryforge', label: { en: 'DryForge AI', de: 'DryForge AI' }, blurb: { en: 'Drying and climate workflows on site.', de: 'Trocknungs- und Klima-Abläufe auf der Baustelle.' } },
+          { path: '/palletizer', label: { en: 'Palletizer OS', de: 'Palletizer OS' }, blurb: { en: 'What ships, what does not, robot-OEM honesty, the 30-day pilot.', de: 'Was ausgeliefert ist, was nicht, Roboter-OEM-Ehrlichkeit, der 30-Tage-Pilot.' } },
+          { path: '/proof', label: { en: 'Proof', de: 'Nachweis' }, blurb: { en: 'Fixture results and the slot for SKU before/after PDFs.', de: 'Fixture-Ergebnisse und der Platz für SKU-Vorher/Nachher-PDFs.' } },
+        ],
+      },
+      {
+        label: { en: 'The rest of the line', de: 'Der Rest der Linie' },
+        items: [
+          { path: '/forge', label: { en: 'Forge Line index', de: 'Forge-Linie — Index' }, blurb: { en: 'FloorForge, PaintForge, DryForge, ForgeOS — with brutal status badges.', de: 'FloorForge, PaintForge, DryForge, ForgeOS — mit schonungslosen Status-Badges.' } },
         ],
       },
     ],
@@ -110,10 +117,10 @@ export const NAV: NavSection[] = [
   {
     id: 'capabilities',
     path: '/disciplines',
-    label: { en: 'Capabilities', de: 'Kompetenzen' },
+    label: { en: 'Disciplines', de: 'Disziplinen' },
     blurb: {
-      en: 'Six engineering tracks. Each states its scope, its boundary, and what has actually been published.',
-      de: 'Sechs Ingenieursstränge. Jeder nennt Umfang, Grenze und was tatsächlich veröffentlicht ist.',
+      en: 'Six engineering tracks. Each states its scope, its boundary, and — in red — that no instrument log has been published yet.',
+      de: 'Sechs Ingenieursstränge. Jeder nennt Umfang, Grenze und — in Rot — dass noch kein Instrumenten-Journal veröffentlicht ist.',
     },
     groups: [
       {
@@ -139,14 +146,15 @@ export const NAV: NavSection[] = [
     path: '/pricing',
     label: { en: 'Pricing', de: 'Preise' },
     blurb: {
-      en: 'What things cost, stated before you ask. Free tools stay free; engagements are priced in the open.',
-      de: 'Was Dinge kosten, genannt bevor Sie fragen. Kostenlose Werkzeuge bleiben kostenlos; Leistungen sind offen bepreist.',
+      en: 'The pilot first, then the teardown. Stated before you ask; the calculators stay free.',
+      de: 'Erst der Pilot, dann der Teardown. Genannt, bevor Sie fragen; die Rechner bleiben kostenlos.',
     },
     groups: [
       {
         label: { en: 'Engagements', de: 'Leistungen' },
         items: [
-          { path: '/pricing', label: { en: 'Rates & engagements', de: 'Sätze & Leistungen' }, blurb: { en: 'Bench review, deep-dive session, retainer, integration.', de: 'Bench-Review, Deep-Dive-Session, Retainer, Integration.' } },
+          { path: '/pricing', label: { en: 'Pilot & teardown', de: 'Pilot & Teardown' }, blurb: { en: '30-day software pilot with a kill date; €280 packaging teardown.', de: '30-Tage-Software-Pilot mit Abbruchdatum; 280 € Verpackungs-Teardown.' } },
+          { path: '/connect', label: { en: 'Connect', de: 'Kontakt' }, blurb: { en: 'One address, two subject lines.', de: 'Eine Adresse, zwei Betreffzeilen.' } },
           { path: '/book', label: { en: 'Book a bench review', de: 'Bench-Review buchen' }, blurb: { en: 'Twenty minutes, €0, no slides.', de: 'Zwanzig Minuten, 0 €, keine Folien.' } },
         ],
       },
@@ -157,8 +165,8 @@ export const NAV: NavSection[] = [
     path: '/resources',
     label: { en: 'Resources', de: 'Ressourcen' },
     blurb: {
-      en: 'Reference data with its sources named, and the lab where instruments and build logs live.',
-      de: 'Referenzdaten mit genannten Quellen und das Labor, in dem Instrumente und Baujournale leben.',
+      en: 'Reference data with its sources named, the lab, and the pointers to the rest of the network.',
+      de: 'Referenzdaten mit genannten Quellen, das Labor und die Verweise auf den Rest des Netzwerks.',
     },
     groups: [
       {
@@ -169,10 +177,11 @@ export const NAV: NavSection[] = [
         ],
       },
       {
-        label: { en: 'Lab', de: 'Labor' },
+        label: { en: 'Lab & network', de: 'Labor & Netzwerk' },
         items: [
-          { path: '/lab', label: { en: 'Lab index', de: 'Labor-Übersicht' }, blurb: { en: 'Instruments and build logs as they ship.', de: 'Instrumente und Baujournale, sobald sie erscheinen.' } },
+          { path: '/lab', label: { en: 'Lab', de: 'Labor' }, blurb: { en: 'The droop instrument, the parked OEM dreams, the banned slogans.', de: 'Das Statik-Instrument, die geparkten OEM-Träume, die verbotenen Slogans.' } },
           { path: '/lab/grid-droop', label: { en: 'Grid droop instrument', de: 'Netz-Statik-Instrument' }, blurb: { en: 'A real frequency-droop model you can drag.', de: 'Ein echtes Frequenz-Statik-Modell zum Ziehen.' } },
+          { path: '/network', label: { en: 'Network', de: 'Netzwerk' }, blurb: { en: 'igrimaldi.engineering, grimaldi.ca, GitHub — one line each.', de: 'igrimaldi.engineering, grimaldi.ca, GitHub — je eine Zeile.' } },
         ],
       },
     ],
@@ -201,7 +210,8 @@ export function sectionForPath(path: string): NavSection | undefined {
     (s) =>
       s.path === path ||
       s.groups.some((g) => g.items.some((i) => i.path === path)) ||
-      (s.path !== '/' && path.startsWith(`${s.path}/`)),
+      (s.path !== '/' && path.startsWith(`${s.path}/`)) ||
+      s.groups.some((g) => g.items.some((i) => path.startsWith(`${i.path}/`))),
   );
 }
 

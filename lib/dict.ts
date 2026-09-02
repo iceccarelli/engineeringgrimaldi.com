@@ -11,6 +11,7 @@ export interface Dict {
   navForge: string;
   navLab: string;
   navDisciplines: string;
+  netHeading: string;
   navBook: string;
   navTools: string;
   navMenu: string;
@@ -103,10 +104,11 @@ export interface Dict {
 }
 
 const en: Dict = {
-  brandTag: 'Machines • Batteries • Power Electronics',
+  brandTag: 'Palletizer OS • one trade cell, shipped and measured',
   navForge: 'Forge Line',
   navLab: 'Lab',
   navDisciplines: 'Disciplines',
+  netHeading: 'The Grimaldi network',
   navBook: 'Book a bench review',
   navTools: 'Tools',
   navMenu: 'Menu',
@@ -160,10 +162,10 @@ const en: Dict = {
 
   statusShipped: 'Shipped',
   statusRepoOnly: 'Public repo — not a production deployment',
-  statusLogPrep: 'First build log in preparation',
+  statusLogPrep: 'No log yet',
 
   wlTitle: 'Get one email when something real ships',
-  wlBody: 'First lab log, Palletizer OS milestones, FloorForge pilots. Double opt-in, no noise, unsubscribe anytime.',
+  wlBody: 'A status badge changing, a first instrument log, a Palletizer release. Double opt-in, no noise, unsubscribe anytime.',
   wlEmailLabel: 'Email address',
   wlInterestLabel: 'I care about',
   wlInterestPalletizer: 'Palletizer OS',
@@ -182,18 +184,18 @@ const en: Dict = {
   bookCta: 'Pick a slot',
   bookBring: 'What to bring: a cell layout, a scope trace, a SKU mix, or a one-paragraph problem statement.',
   offersTitle: 'Working terms',
-  offerSession: 'Deep-dive session — €280',
-  offerSessionBody: '90 minutes on your specific problem: axis and drive sizing, machine selection, battery pack and BMS architecture, palletizing cell design, HV questions. Written summary included.',
-  offerRetainer: 'Advisory retainer — €3,200/mo',
-  offerRetainerBody: 'Ongoing engineering advisory across drives, machines, battery systems and grid: weekly call, async review, priority access. Scope stays on public, generic ground.',
-  offerIntegration: 'Forge integration — custom quote',
-  offerIntegrationBody: 'Palletizer OS or Forge tooling adapted to your line. Scoped after a bench review; no integration is sold before the fit is proven.',
+  offerSession: 'Packaging teardown — €280',
+  offerSessionBody: '90 minutes on your SKU master and current pallet patterns. Written summary included. The grid version of this door lives on igrimaldi.engineering/advisory.',
+  offerRetainer: 'Advisory retainer — on igrimaldi.engineering',
+  offerRetainerBody: 'The grid and traction-power advisory retainer is sold on igrimaldi.engineering/advisory, not here. This domain sells one thing: the Palletizer pilot.',
+  offerIntegration: 'Palletizer 30-day pilot — fixed fee per CSV',
+  offerIntegrationBody: 'Your CSV at week 0, a density / stability report at week 2, go / no-go at week 4, kill date on the calendar. Arm and integration are quoted only after a go.',
 
-  footAbout: 'Electrical machines, battery systems and automation software. The hardware and product surface of the Grimaldi network, operated from Frankfurt am Main.',
+  footAbout: 'One trade cell, shipped and measured: Palletizer OS on the hero, the rest of the Forge Line behind /forge with its status in capitals, and six discipline pages that say NO LOG YET until an instrument capture is published. Operated from Frankfurt am Main.',
   footNet: 'The Grimaldi network',
   footLegal: 'Legal',
   footDisambiguation:
-    'Not affiliated with Grimaldi Engineering Ltd (UK automotive workshop) or the Grimaldi Group (shipping, Naples).',
+    'Not affiliated with Grimaldi Engineering Ltd (UK, in liquidation), the French consultancy of the same name, or the Grimaldi Group (shipping, Naples).',
   netSoftware: 'Software & AI portfolio',
   netPersonal: 'Personal site',
   impressum: 'Impressum',
@@ -203,10 +205,11 @@ const en: Dict = {
 };
 
 const de: Dict = {
-  brandTag: 'Maschinen • Batterien • Leistungselektronik',
+  brandTag: 'Palletizer OS • eine Gewerkezelle, ausgeliefert und gemessen',
   navForge: 'Forge-Linie',
   navLab: 'Labor',
   navDisciplines: 'Disziplinen',
+  netHeading: 'Das Grimaldi-Netzwerk',
   navBook: 'Bench-Review buchen',
   navTools: 'Werkzeuge',
   navMenu: 'Menü',
@@ -260,10 +263,10 @@ const de: Dict = {
 
   statusShipped: 'Veröffentlicht',
   statusRepoOnly: 'Öffentliches Repo — kein Produktiveinsatz',
-  statusLogPrep: 'Erstes Baujournal in Vorbereitung',
+  statusLogPrep: 'Noch kein Journal',
 
   wlTitle: 'Eine E-Mail, wenn etwas Echtes erscheint',
-  wlBody: 'Erstes Laborjournal, Palletizer-OS-Meilensteine, FloorForge-Piloten. Double-Opt-in, kein Lärm, jederzeit abbestellbar.',
+  wlBody: 'Ein Status-Badge, das sich ändert, ein erstes Instrumenten-Journal, ein Palletizer-Release. Double-Opt-in, kein Lärm, jederzeit abbestellbar.',
   wlEmailLabel: 'E-Mail-Adresse',
   wlInterestLabel: 'Mich interessiert',
   wlInterestPalletizer: 'Palletizer OS',
@@ -282,18 +285,18 @@ const de: Dict = {
   bookCta: 'Termin wählen',
   bookBring: 'Mitbringen: ein Zellen-Layout, eine Scope-Aufnahme, ein SKU-Mix oder eine Problemstellung in einem Absatz.',
   offersTitle: 'Konditionen',
-  offerSession: 'Deep-Dive-Session — 280 €',
-  offerSessionBody: '90 Minuten zu Ihrem konkreten Problem: Achsen- und Antriebsauslegung, Maschinenauswahl, Batteriepack- und BMS-Architektur, Palettierzellen-Design, HV-Fragen. Schriftliche Zusammenfassung inklusive.',
-  offerRetainer: 'Advisory-Retainer — 3.200 €/Monat',
-  offerRetainerBody: 'Laufende Ingenieursberatung zu Antrieben, Maschinen, Batteriesystemen und Netz: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Die Themen bleiben auf öffentlichem, generischem Terrain.',
-  offerIntegration: 'Forge-Integration — individuelles Angebot',
-  offerIntegrationBody: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie. Scoping nach einem Bench-Review; keine Integration wird verkauft, bevor der Fit belegt ist.',
+  offerSession: 'Verpackungs-Teardown — 280 €',
+  offerSessionBody: '90 Minuten zu Ihrem SKU-Stamm und Ihren aktuellen Palettenmustern. Schriftliche Zusammenfassung inklusive. Die Netz-Variante dieser Tür lebt auf igrimaldi.engineering/advisory.',
+  offerRetainer: 'Advisory-Retainer — auf igrimaldi.engineering',
+  offerRetainerBody: 'Der Advisory-Retainer für Netze und Bahnstrom wird auf igrimaldi.engineering/advisory verkauft, nicht hier. Diese Domain verkauft eine Sache: den Palletizer-Piloten.',
+  offerIntegration: 'Palletizer-30-Tage-Pilot — Festpreis pro CSV',
+  offerIntegrationBody: 'Ihre CSV in Woche 0, ein Dichte- / Stabilitätsbericht in Woche 2, Go / No-Go in Woche 4, Abbruchdatum im Kalender. Arm und Integration werden erst nach einem Go angeboten.',
 
-  footAbout: 'Elektrische Maschinen, Batteriesysteme und Automatisierungssoftware. Die Hardware- und Produkt-Oberfläche des Grimaldi-Netzwerks, betrieben aus Frankfurt am Main.',
+  footAbout: 'Eine Gewerkezelle, ausgeliefert und gemessen: Palletizer OS auf der Startseite, der Rest der Forge-Linie hinter /forge mit Status in Großbuchstaben, und sechs Disziplinseiten, die NOCH KEIN JOURNAL sagen, bis eine Messung veröffentlicht ist. Betrieben aus Frankfurt am Main.',
   footNet: 'Das Grimaldi-Netzwerk',
   footLegal: 'Rechtliches',
   footDisambiguation:
-    'Nicht verbunden mit Grimaldi Engineering Ltd (Kfz-Werkstatt, UK) oder der Grimaldi Group (Schifffahrt, Neapel).',
+    'Nicht verbunden mit Grimaldi Engineering Ltd (UK, in Liquidation), der gleichnamigen französischen Beratung oder der Grimaldi Group (Schifffahrt, Neapel).',
   netSoftware: 'Software- & KI-Portfolio',
   netPersonal: 'Persönliche Seite',
   impressum: 'Impressum',

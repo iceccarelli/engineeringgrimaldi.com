@@ -266,7 +266,7 @@ export default function PatternCalculatorPage({ params }: PageProps) {
             <a className="btn btn-line" href={langHref(lang, '/tools/truck-load-calculator')}>
               {lang === 'de' ? 'Lkw-/Container-Laderechner →' : 'Truck & container load calculator →'}
             </a>
-            <a className="btn btn-line" href={langHref(lang, '/forge/palletizer')}>{copy.productLink}</a>
+            <a className="btn btn-line" href={langHref(lang, '/palletizer')}>{copy.productLink}</a>
           </div>
 
           <p className="author-block">{t.authorLine}</p>

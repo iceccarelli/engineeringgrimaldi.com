@@ -7,7 +7,24 @@
  * Security headers and the www→apex redirect live in vercel.json.
  * (Next 14 does not support next.config.ts — this stays .js.)
  */
+/** Short alias routes from the IA brief and the old palletizer URL, both
+ *  locales. Permanent, so old links and the brief's paths both resolve. */
+const ALIASES = [
+  ['/forge/palletizer', '/palletizer'],
+  ['/forge/floor', '/forge/floorforge'],
+  ['/forge/paint', '/forge/paintforge'],
+  ['/forge/dry', '/forge/dryforge'],
+  ['/disciplines/hv', '/disciplines/high-voltage'],
+  ['/disciplines/power', '/disciplines/power-electronics'],
+];
+
 module.exports = {
   reactStrictMode: true,
   poweredByHeader: false,
+  async redirects() {
+    return ALIASES.flatMap(([from, to]) => [
+      { source: from, destination: to, permanent: true },
+      { source: `/de${from}`, destination: `/de${to}`, permanent: true },
+    ]);
+  },
 };

@@ -36,8 +36,8 @@ const COPY = {
     honestH2: 'What is not claimed',
     honest: [
       'No customers are named, because none have agreed to be. No case studies, no logos, no testimonials, and no throughput numbers from installations that would have to be described to be credible.',
-      'Of the four Forge Line products, only Palletizer OS has a public repository and a live optimizer you can open. FloorForge, PaintForge and DryForge are public repositories in active development and are labelled exactly that on every page they appear.',
-      'The hardware build logs are in preparation. Until the first one ships with instrument captures, every discipline page says so rather than implying a body of published work that does not exist yet.',
+      'Of the Forge Line, only Palletizer ships: a versioned optimizer with tests, CI and a live app — and a page that lists what it does not ship (no certified robot driver, no cell). FloorForge is IN DEVELOPMENT by its own README; PaintForge, DryForge and ForgeOS are PARKED and say so in capitals.',
+      'No hardware build log has been published. Every discipline page carries a red NO LOG YET banner and an empty lab-notebook slot rather than implying a body of published work that does not exist yet. The document title of this site is the product that ships, not a lab that has not been photographed.',
     ],
     boundariesH2: 'Boundaries held on purpose',
     boundaries: [
@@ -68,8 +68,8 @@ const COPY = {
     honestH2: 'Was nicht behauptet wird',
     honest: [
       'Es werden keine Kunden genannt, weil keiner zugestimmt hat. Keine Fallstudien, keine Logos, keine Referenzzitate und keine Durchsatzzahlen aus Anlagen, die man beschreiben müsste, um glaubwürdig zu sein.',
-      'Von den vier Forge-Produkten hat allein Palletizer OS ein öffentliches Repository und einen Optimierer, den Sie sofort öffnen können. FloorForge, PaintForge und DryForge sind öffentliche Repositories in aktiver Entwicklung — und genau so sind sie auf jeder Seite gekennzeichnet.',
-      'Die Hardware-Baujournale sind in Vorbereitung. Bis das erste mit Instrumenten-Messungen erscheint, sagt jede Disziplinseite genau das, statt ein Werk zu suggerieren, das es noch nicht gibt.',
+      'Von der Forge-Linie ist allein Palletizer ausgeliefert: ein versionierter Optimierer mit Tests, CI und Live-App — und einer Seite, die nennt, was nicht ausgeliefert ist (kein zertifizierter Robotertreiber, keine Zelle). FloorForge ist laut eigenem README IN ENTWICKLUNG; PaintForge, DryForge und ForgeOS sind GEPARKT und sagen das in Großbuchstaben.',
+      'Kein Hardware-Baujournal ist veröffentlicht. Jede Disziplinseite trägt ein rotes NOCH-KEIN-JOURNAL-Banner und ein leeres Laborbuch-Feld, statt ein Werk zu suggerieren, das es noch nicht gibt. Der Dokumenttitel dieser Seite ist das Produkt, das ausgeliefert ist, nicht ein Labor, das noch nicht fotografiert wurde.',
     ],
     boundariesH2: 'Bewusst gehaltene Grenzen',
     boundaries: [

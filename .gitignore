@@ -10,3 +10,6 @@ out/
 
 # applied patches — never ship these
 *.patch
+
+# local env — never commit
+.env*.local

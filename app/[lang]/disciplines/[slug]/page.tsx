@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import BookCTA from '@/components/BookCTA';
-import JsonLd from '@/components/JsonLd';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import EmptyBuildLog from '@/components/EmptyBuildLog';
+import StatusBadge from '@/components/StatusBadge';
 import { getDict } from '@/lib/dict';
 import { disciplines, getDiscipline } from '@/lib/disciplines';
 import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { synchronousSpeedTable } from '@/lib/machines';
 import { ogImages } from '@/lib/meta';
-import { breadcrumbSchema } from '@/lib/schema';
 
 type PageProps = { params: { lang: string; slug: string } };
 
@@ -43,11 +44,17 @@ export default function DisciplinePage({ params }: PageProps) {
     <main>
       <div className="sheet sheet-top">
         <div className="section">
+          <Breadcrumbs lang={lang} crumbs={[
+            { name: 'Grimaldi Engineering', path: '/' },
+            { name: lang === 'de' ? 'Disziplinen' : 'Disciplines', path: '/disciplines' },
+            { name: discipline.title[lang], path: `/disciplines/${discipline.slug}` },
+          ]} />
           <span className="kicker">{discipline.tag[lang]}</span>
           <h1>{discipline.title[lang]}</h1>
-          <p className="status status-badge">
-            <span className="dot dot-dev" /> {t.statusLogPrep}
+          <p className="status-row">
+            <StatusBadge status="NO_LOG_YET" lang={lang} />
           </p>
+          <EmptyBuildLog lang={lang} />
           <div className="prose">
             {discipline.body.map((paragraph) => (
               <p key={paragraph.en}>{paragraph[lang]}</p>
@@ -98,12 +105,6 @@ export default function DisciplinePage({ params }: PageProps) {
           <p className="author-block">{t.authorLine}</p>
         </div>
       </div>
-      <JsonLd
-        data={breadcrumbSchema(lang, [
-          { name: 'Grimaldi Engineering', path: '/' },
-          { name: discipline.title[lang], path: `/disciplines/${discipline.slug}` },
-        ])}
-      />
     </main>
   );
 }

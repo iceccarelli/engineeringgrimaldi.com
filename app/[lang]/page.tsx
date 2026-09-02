@@ -1,184 +1,151 @@
 import type { Metadata } from 'next';
-import BookCTA from '@/components/BookCTA';
 import JsonLd from '@/components/JsonLd';
-import WaitlistForm from '@/components/WaitlistForm';
+import PalletFill from '@/components/PalletFill';
+import PilotKillDate from '@/components/PilotKillDate';
+import StatusBadge from '@/components/StatusBadge';
 import { getDict } from '@/lib/dict';
-import { forgeLine } from '@/lib/forge';
+import { getProduct } from '@/lib/forge';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { ogImages } from '@/lib/meta';
-import { NAV, findSection } from '@/lib/nav';
+import { NOT_SHIPPED, SHIPPED } from '@/lib/palletizer-facts';
+import { OPTIMIZER_URL, PALLETIZER_REPO } from '@/lib/pilot';
 import { professionalServiceSchema } from '@/lib/schema';
-import { solutions } from '@/lib/solutions';
 
 /**
- * The landing page is a directory, not a manifesto. It mirrors the six
- * top-level sections in the order a visitor needs them: who this is for
- * (Solutions), what proves it (Tools), what is sold (Products), what
- * backs it (Capabilities), what it costs (Pricing), what to read
- * (Resources). Everything derives from the same registries as the nav,
- * so the homepage cannot drift from the architecture around it.
+ * The landing page has one product on it. Hero = Palletizer: the H1 is the
+ * product sentence (not the company name — "Grimaldi Engineering" is not
+ * ours globally), the cinema is the pallet the real optimizer fills, the
+ * two buttons are the optimizer and the pilot. Below the fold: the
+ * shipped / not-shipped columns in short form, the pilot with its kill
+ * date, and a thin index to everything else. Paint and Dry are not linked
+ * from here — they live behind /forge, two clicks away.
  */
 
 type PageProps = { params: { lang: string } };
 
 const COPY = {
   en: {
-    solutionsH2: 'Start from your problem',
-    solutionsLead: 'Four routes in. Each names the products, tools and capabilities that apply to that operation — no mixed pitch.',
-    toolsH2: 'Six working calculators',
-    toolsLead: 'Real physics in your browser, CSV export, no sign-up and no email. They exist because a working instrument argues better than a brochure.',
-    productsH2: 'The Forge Line',
-    productsLead: 'One automation product per trade, code in the open, status stated plainly on every page.',
-    capabilitiesH2: 'What backs it',
-    capabilitiesLead: 'Six engineering tracks, each stating its scope, its boundary and what has actually been published.',
-    pricingH2: 'What it costs',
-    pricingLead: 'Bench review €0. Session €280. Retainer €3,200 a month. Integration by quote after the fit is proven. Calculators stay free.',
-    pricingCta: 'See pricing',
-    seeAll: 'See all',
+    kicker: 'engineeringgrimaldi.com · one trade cell, shipped and measured',
+    h1: 'Mixed-SKU pallet plans with a stability number you can check.',
+    sub: 'Open-core optimizer. v0.2 heuristic. Same math in the browser and in Python. Not a cell OS yet.',
+    run: 'Run your SKU list',
+    product: 'What ships, what does not',
+    shippedH2: 'Shipped',
+    notShippedH2: 'Not shipped',
+    fullList: 'Full list with file paths on /palletizer →',
+    restH2: 'Everything else, one click deeper',
+    restLead: 'Kept, reachable, labelled. Nothing below is on the hero because nothing below is shipped and measured.',
+    rest: [
+      { path: '/forge', title: 'Forge Line', body: 'FloorForge (IN DEVELOPMENT), PaintForge, DryForge, ForgeOS (PARKED). Status badges first, copy second.' },
+      { path: '/tools', title: 'Six free calculators', body: 'Pallet patterns, truck load, case size, servo sizing, battery packs, control loops. Browser, CSV export, no sign-up.' },
+      { path: '/disciplines', title: 'Disciplines', body: 'HV, embedded, power electronics, machines, batteries, control — each with a red NO LOG YET banner until an instrument capture is published.' },
+      { path: '/lab', title: 'Lab', body: 'The grid-droop instrument that works, the OEM dreams that are parked, and the slogans that are banned.' },
+      { path: '/proof', title: 'Proof', body: 'Fixture results, including the one the heuristic loses. Slot for SKU before/after PDFs.' },
+      { path: '/network', title: 'Network', body: 'igrimaldi.engineering for the verification brain, grimaldi.ca for the logbook, GitHub for the code.' },
+    ],
+    hv: 'The engineer behind this digitises high-voltage systems for German rail by day. That credential backs the HV discipline pages; it is not evidence that Palletizer runs anywhere near a railway.',
   },
   de: {
-    solutionsH2: 'Bei Ihrem Problem beginnen',
-    solutionsLead: 'Vier Wege hinein. Jeder nennt die Produkte, Werkzeuge und Kompetenzen, die für diesen Betrieb gelten — kein vermischter Pitch.',
-    toolsH2: 'Sechs funktionierende Rechner',
-    toolsLead: 'Echte Physik im Browser, CSV-Export, ohne Anmeldung und ohne E-Mail. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
-    productsH2: 'Die Forge-Linie',
-    productsLead: 'Ein Automatisierungsprodukt pro Gewerk, Code offen, Status auf jeder Seite klar benannt.',
-    capabilitiesH2: 'Was dahintersteht',
-    capabilitiesLead: 'Sechs Ingenieursstränge, jeder mit Umfang, Grenze und dem, was tatsächlich veröffentlicht ist.',
-    pricingH2: 'Was es kostet',
-    pricingLead: 'Bench-Review 0 €. Session 280 €. Retainer 3.200 € im Monat. Integration nach Angebot, sobald der Fit belegt ist. Rechner bleiben kostenlos.',
-    pricingCta: 'Preise ansehen',
-    seeAll: 'Alle ansehen',
+    kicker: 'engineeringgrimaldi.com · eine Gewerkezelle, ausgeliefert und gemessen',
+    h1: 'Misch-SKU-Palettenpläne mit einer Stabilitätszahl, die Sie nachrechnen können.',
+    sub: 'Open-Core-Optimierer. v0.2-Heuristik. Dieselbe Mathematik im Browser und in Python. Noch kein Zellen-Betriebssystem.',
+    run: 'Ihre SKU-Liste rechnen',
+    product: 'Was ausgeliefert ist, was nicht',
+    shippedH2: 'Ausgeliefert',
+    notShippedH2: 'Nicht ausgeliefert',
+    fullList: 'Vollständige Liste mit Dateipfaden auf /palletizer →',
+    restH2: 'Alles andere, einen Klick tiefer',
+    restLead: 'Behalten, erreichbar, beschriftet. Nichts davon steht auf der Startseite, weil nichts davon ausgeliefert und gemessen ist.',
+    rest: [
+      { path: '/forge', title: 'Forge-Linie', body: 'FloorForge (IN ENTWICKLUNG), PaintForge, DryForge, ForgeOS (GEPARKT). Erst Status-Badge, dann Text.' },
+      { path: '/tools', title: 'Sechs kostenlose Rechner', body: 'Palettenmuster, Lkw-Ladung, Kartongröße, Servo-Auslegung, Batteriepacks, Regelkreise. Browser, CSV-Export, ohne Anmeldung.' },
+      { path: '/disciplines', title: 'Disziplinen', body: 'HV, Embedded, Leistungselektronik, Maschinen, Batterien, Regelung — jede mit rotem NOCH-KEIN-JOURNAL-Banner, bis eine Messung veröffentlicht ist.' },
+      { path: '/lab', title: 'Labor', body: 'Das Statik-Instrument, das funktioniert, die geparkten OEM-Träume und die verbotenen Slogans.' },
+      { path: '/proof', title: 'Nachweis', body: 'Fixture-Ergebnisse, einschließlich des einen, das die Heuristik verliert. Platz für SKU-Vorher/Nachher-PDFs.' },
+      { path: '/network', title: 'Netzwerk', body: 'igrimaldi.engineering für das Verifikationsgehirn, grimaldi.ca für das Logbuch, GitHub für den Code.' },
+    ],
+    hv: 'Der Ingenieur dahinter digitalisiert tagsüber Hochspannungssysteme für die deutsche Bahn. Diese Referenz stützt die HV-Disziplinseiten; sie ist kein Beleg dafür, dass Palletizer irgendwo in Bahnnähe läuft.',
   },
 } as const;
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  const t = getDict(lang);
+  const c = COPY[lang];
   return {
     alternates: pageAlternates(lang, '/'),
-    openGraph: { images: ogImages(t.homeH1) },
-    twitter: { card: 'summary_large_image', images: ogImages(t.homeH1) },
+    openGraph: { images: ogImages('Palletizer OS — mixed-SKU planning', c.kicker) },
+    twitter: { card: 'summary_large_image', images: ogImages('Palletizer OS — mixed-SKU planning', c.kicker) },
   };
 }
 
 export default function Home({ params }: PageProps) {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const t = getDict(lang);
-  const copy = COPY[lang];
+  const c = COPY[lang];
   const href = (path: string) => langHref(lang, path);
-
-  const tools = findSection('tools');
-  const capabilities = findSection('capabilities');
-  const toolItems = tools ? tools.groups.flatMap((g) => g.items) : [];
-  const capabilityItems = capabilities ? capabilities.groups.flatMap((g) => g.items) : [];
+  const product = getProduct('palletizer');
 
   return (
     <main>
-      <section className="hero">
-        <div className="hero-in">
+      <section className="hero hero-wedge">
+        <div className="hero-in hero-split">
           <div className="hero-card">
-            <span className="kicker">{t.homeKicker}</span>
-            <h1>{t.homeH1}</h1>
-            <p className="lead">{t.homeLead}</p>
+            <span className="kicker">{c.kicker}</span>
+            <h1>{c.h1}</h1>
+            <p className="lead">{c.sub}</p>
+            {product ? (
+              <p className="status-row"><StatusBadge status={product.status} lang={lang} note={product.statusNote?.[lang]} /></p>
+            ) : null}
             <div className="cta-row">
-              <BookCTA label={t.ctaBook} />
-              <a className="btn btn-line" href={href('/tools')}>{t.ctaForge}</a>
+              <a className="btn btn-glow" href={OPTIMIZER_URL} rel="noopener noreferrer" data-cta="optimizer">{c.run} →</a>
+              <a className="btn btn-line" href={href('/palletizer')}>{c.product}</a>
             </div>
+            <p className="hero-fine">
+              <a className="mono" href={PALLETIZER_REPO} rel="noopener noreferrer">github.com/iceccarelli/palletizer</a>
+            </p>
+          </div>
+          <div className="hero-cinema">
+            <PalletFill lang={lang} />
           </div>
         </div>
       </section>
 
       <div className="sheet">
-        {/* 1 — SOLUTIONS: who this is for */}
-        <div className="section" id="solutions">
-          <span className="kicker">{NAV[1].label[lang]}</span>
-          <h2>{copy.solutionsH2}</h2>
-          <p className="intro">{copy.solutionsLead}</p>
+        <div className="section" id="ships">
+          <div className="honesty-grid">
+            <section className="honesty-col honesty-col-ok" aria-labelledby="home-shipped">
+              <h2 id="home-shipped">{c.shippedH2}</h2>
+              <ul className="honesty-list honesty-list-short">
+                {SHIPPED.map((l) => <li key={l.text.en}>{l.text[lang]}</li>)}
+              </ul>
+            </section>
+            <section className="honesty-col honesty-col-no" aria-labelledby="home-not">
+              <h2 id="home-not">{c.notShippedH2}</h2>
+              <ul className="honesty-list honesty-list-short">
+                {NOT_SHIPPED.map((l) => <li key={l.text.en}>{l.text[lang]}</li>)}
+              </ul>
+            </section>
+          </div>
+          <p className="home-more"><a href={href('/palletizer')}>{c.fullList}</a></p>
+        </div>
+
+        <div className="section" id="pilot-home">
+          <PilotKillDate lang={lang} compact />
+        </div>
+
+        <div className="section" id="rest">
+          <h2>{c.restH2}</h2>
+          <p className="intro">{c.restLead}</p>
           <div className="grid">
-            {solutions.map((s) => (
-              <a className="card card-link" key={s.slug} href={href(`/solutions/${s.slug}`)}>
-                <h3>{s.label[lang]}</h3>
-                <p>{s.audience[lang]}</p>
+            {c.rest.map((r) => (
+              <a className="card card-link" key={r.path} href={href(r.path)}>
+                <h3>{r.title}</h3>
+                <p>{r.body}</p>
                 <span className="cta">{t.open}</span>
               </a>
             ))}
           </div>
-        </div>
-
-        {/* 2 — TOOLS: what proves it */}
-        <div className="section" id="tools">
-          <span className="kicker">{t.calcCardTag}</span>
-          <h2>{copy.toolsH2}</h2>
-          <p className="intro">{copy.toolsLead}</p>
-          <div className="grid grid-4">
-            {toolItems.map((item) => (
-              <a className="card card-link" key={item.path} href={href(item.path)}>
-                <h3>{item.label[lang]}</h3>
-                <p>{item.blurb[lang]}</p>
-                <span className="cta">{t.open}</span>
-              </a>
-            ))}
-          </div>
-          <p className="home-more"><a href={href('/tools')}>{copy.seeAll} →</a></p>
-        </div>
-
-        {/* 3 — PRODUCTS */}
-        <div className="section" id="forge">
-          <span className="kicker">{t.forgeKicker}</span>
-          <h2>{copy.productsH2}</h2>
-          <p className="intro">{copy.productsLead}</p>
-          <div className="grid grid-4">
-            {forgeLine.map((product) => (
-              <a className="card card-link" key={product.slug} href={href(`/forge/${product.slug}`)}>
-                <span className="tag">{product.trade[lang]}</span>
-                <h3>{product.name}</h3>
-                <p>{product.tagline[lang]}</p>
-                <span className="status">
-                  <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
-                  {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* 4 — CAPABILITIES */}
-        <div className="section" id="capabilities">
-          <span className="kicker">{NAV[3].label[lang]}</span>
-          <h2>{copy.capabilitiesH2}</h2>
-          <p className="intro">{copy.capabilitiesLead}</p>
-          <div className="grid">
-            {capabilityItems.map((item) => (
-              <a className="card card-link" key={item.path} href={href(item.path)}>
-                <h3>{item.label[lang]}</h3>
-                <p>{item.blurb[lang]}</p>
-                <span className="status"><span className="dot dot-dev" /> {t.statusLogPrep}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* 5 — PRICING */}
-        <div className="section" id="pricing">
-          <div className="banner">
-            <div>
-              <h2>{copy.pricingH2}</h2>
-              <p>{copy.pricingLead}</p>
-            </div>
-            <a className="btn btn-glow" href={href('/pricing')}>{copy.pricingCta}</a>
-          </div>
-        </div>
-
-        {/* 6 — WAITLIST */}
-        <div className="section" id="waitlist">
-          <div className="banner banner-stack">
-            <div>
-              <h2>{t.wlTitle}</h2>
-              <p>{t.wlBody}</p>
-            </div>
-            <WaitlistForm t={t} />
-          </div>
+          <p className="calc-meta">{c.hv}</p>
         </div>
       </div>
 

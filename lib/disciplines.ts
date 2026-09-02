@@ -33,13 +33,13 @@ export const disciplines: Discipline[] = [
       de: 'Hochspannungssysteme & Bahnstrom-Digitalisierung',
     },
     metaDescription: {
-      en: 'Generic high-voltage engineering: traction power principles, protection and measurement chains, digitalisation of HV assets. Build logs with instrument captures — first log in preparation. No operator internals.',
-      de: 'Generische Hochspannungstechnik: Bahnstrom-Grundlagen, Schutz- und Messketten, Digitalisierung von HV-Anlagen. Baujournale mit Instrumenten-Messungen — erstes Journal in Vorbereitung. Keine Betreiber-Interna.',
+      en: 'Generic high-voltage engineering: traction power principles, protection and measurement chains, digitalisation of HV assets. No build log published yet — the page says so in red. No operator internals.',
+      de: 'Generische Hochspannungstechnik: Bahnstrom-Grundlagen, Schutz- und Messketten, Digitalisierung von HV-Anlagen. Noch kein Baujournal veröffentlicht — die Seite sagt das in Rot. Keine Betreiber-Interna.',
     },
     body: [
       {
-        en: 'Traction power, substation-class hardware, protection and measurement chains: this track documents the energy layer with generic, owned material — schematics drawn for this site, measurements taken on this bench.',
-        de: 'Bahnstrom, Hardware der Unterwerks-Klasse, Schutz- und Messketten: Dieser Strang dokumentiert die Energieebene mit generischem, eigenem Material — Schaltpläne für diese Seite gezeichnet, Messungen an dieser Werkbank genommen.',
+        en: 'Traction power, substation-class hardware, protection and measurement chains: this track is where the energy layer will be documented with generic, owned material — schematics drawn for this site, measurements taken on a bench that is not yet on camera. The engineer behind it digitises high-voltage systems for German rail by day; that is the credential, not a published measurement.',
+        de: 'Bahnstrom, Hardware der Unterwerks-Klasse, Schutz- und Messketten: Hier soll die Energieebene mit generischem, eigenem Material dokumentiert werden — Schaltpläne für diese Seite gezeichnet, Messungen an einer Werkbank, die noch nicht vor der Kamera steht. Der Ingenieur dahinter digitalisiert tagsüber Hochspannungssysteme für die deutsche Bahn; das ist die Referenz, keine veröffentlichte Messung.',
       },
       {
         en: 'Every future log opens with design intent and simulation, continues with real instrument captures, and keeps the failure notes in the record.',
@@ -158,13 +158,13 @@ export const disciplines: Discipline[] = [
       de: 'Embedded-Regelung & Hardware-in-the-Loop',
     },
     metaDescription: {
-      en: 'Deterministic controllers, RTOS firmware, signal integrity and hardware-in-the-loop rigs. Build logs with instrument captures — first log in preparation.',
-      de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände. Baujournale mit Instrumenten-Messungen — erstes Journal in Vorbereitung.',
+      en: 'Deterministic controllers, RTOS firmware, signal integrity and hardware-in-the-loop rigs. No build log published yet — the page says so in red.',
+      de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände. Noch kein Baujournal veröffentlicht — die Seite sagt das in Rot.',
     },
     body: [
       {
-        en: 'Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs that prove the timing before anything touches a real plant.',
-        de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände, die das Timing beweisen, bevor etwas eine echte Anlage berührt.',
+        en: 'Deterministic controllers, RTOS firmware, signal integrity, and hardware-in-the-loop test rigs that prove the timing before anything touches a real plant. No rig has been photographed for this site yet.',
+        de: 'Deterministische Regler, RTOS-Firmware, Signalintegrität und Hardware-in-the-Loop-Prüfstände, die das Timing beweisen, bevor etwas eine echte Anlage berührt. Noch ist kein Prüfstand für diese Seite fotografiert.',
       },
     ],
   },
@@ -177,13 +177,13 @@ export const disciplines: Discipline[] = [
       de: 'Leistungselektronik — Wechselrichter & Umrichter',
     },
     metaDescription: {
-      en: 'Inverters, converters and switching hardware connecting renewables to real grids — measured, thermally characterised, documented. First build log in preparation.',
-      de: 'Wechselrichter, Umrichter und Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet — gemessen, thermisch charakterisiert, dokumentiert. Erstes Baujournal in Vorbereitung.',
+      en: 'Inverters, converters and switching hardware connecting renewables to real grids. No build log published yet — the page says so in red.',
+      de: 'Wechselrichter, Umrichter und Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet. Noch kein Baujournal veröffentlicht — die Seite sagt das in Rot.',
     },
     body: [
       {
-        en: 'Inverters, converters, and the switching hardware that connects renewables to real grids — measured, thermally characterised, documented.',
-        de: 'Wechselrichter, Umrichter und die Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet — gemessen, thermisch charakterisiert, dokumentiert.',
+        en: 'Inverters, converters, and the switching hardware that connects renewables to real grids. The intent for every entry: measured, thermally characterised, documented. No entry exists yet.',
+        de: 'Wechselrichter, Umrichter und die Schalt-Hardware, die Erneuerbare mit echten Netzen verbindet. Die Absicht für jeden Eintrag: gemessen, thermisch charakterisiert, dokumentiert. Noch existiert kein Eintrag.',
       },
     ],
   },

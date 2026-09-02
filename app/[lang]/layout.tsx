@@ -23,14 +23,17 @@ type LayoutProps = { children: ReactNode; params: { lang: string } };
 
 export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+  // <title> law: until an instrument photo or capture is published, the
+  // document title is the product that ships — never "Hardware & Electrical
+  // Engineering — lab". The hardware positioning survives as a section.
   const title =
     lang === 'de'
-      ? 'Grimaldi Engineering | Elektrische Maschinen, Batteriesysteme & Automatisierung'
-      : 'Grimaldi Engineering | Electrical Machines, Battery Systems & Automation';
+      ? 'Palletizer OS — Misch-SKU-Planung | Grimaldi Engineering'
+      : 'Palletizer OS — mixed-SKU planning | Grimaldi Engineering';
   const description =
     lang === 'de'
-      ? 'Grimaldi Engineering (Frankfurt): elektrische Maschinen und Aktorik, Batteriesysteme und BMS, Hochspannung, Leistungselektronik und Embedded-Regelung — mit kostenlosen Rechnern für Achsenauslegung, Batteriepacks und Palettierung. Von Vincenzo Ceccarelli Grimaldi.'
-      : 'Grimaldi Engineering (Frankfurt): electrical machines and actuators, battery systems and BMS, high voltage, power electronics and embedded control — with free calculators for axis sizing, battery packs and palletizing. By Vincenzo Ceccarelli Grimaldi.';
+      ? 'Misch-SKU-Palettenpläne mit einer Stabilitätszahl, die Sie nachrechnen können. Open-Core-Optimierer v0.2, dieselbe Mathematik im Browser und in Python, 30-Tage-Software-Pilot mit Abbruchdatum. Noch kein Zellen-Betriebssystem. Von Vincenzo Ceccarelli Grimaldi, Frankfurt.'
+      : 'Mixed-SKU pallet plans with a stability number you can check. Open-core optimizer v0.2, same math in the browser and in Python, 30-day software pilot with a kill date. Not a cell OS yet. By Vincenzo Ceccarelli Grimaldi, Frankfurt.';
   return {
     metadataBase: new URL(SITE_URL),
     title: {

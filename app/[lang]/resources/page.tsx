@@ -11,8 +11,8 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: lang === 'de' ? 'Ressourcen — Referenzdaten und Labor' : 'Resources — Reference Data and Lab',
     description:
       lang === 'de'
-        ? 'Palettenmaße und Container-Abmessungen mit genannten Quellen, dazu das Labor mit interaktiven Instrumenten und Baujournalen.'
-        : 'Pallet sizes and container dimensions with sources cited, plus the lab with interactive instruments and build logs.',
+        ? 'Palettenmaße und Container-Abmessungen mit genannten Quellen, dazu das Labor (ein funktionierendes Instrument, noch kein Hardware-Baujournal) und die Netzwerk-Verweise.'
+        : 'Pallet sizes and container dimensions with sources cited, plus the lab (one working instrument, no hardware build log yet) and the network pointers.',
     alternates: pageAlternates(lang, '/resources'),
   };
 }

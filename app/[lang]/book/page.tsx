@@ -11,8 +11,8 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title: lang === 'de' ? 'Bench-Review buchen — 20 Minuten, 0 €' : 'Book a Bench Review — 20 Minutes, €0',
     description:
       lang === 'de'
-        ? 'Buchen Sie ein 20-minütiges Bench-Review mit Vincenzo Ceccarelli Grimaldi: Palettierzellen, HV-/OT-Fragen, Architektur. Danach: Session 280 €, Retainer 3.200 €/Monat, Forge-Integration nach Angebot.'
-        : 'Book a 20-minute bench review with Vincenzo Ceccarelli Grimaldi: palletizing cells, HV/OT questions, architecture. Then: session €280, retainer €3,200/mo, Forge integration by quote.',
+        ? 'Buchen Sie ein 20-minütiges Bench-Review mit Vincenzo Ceccarelli Grimaldi: Palettierzellen, HV-/OT-Fragen, Architektur. Danach: Palletizer-30-Tage-Pilot mit Abbruchdatum oder Verpackungs-Teardown 280 €.'
+        : 'Book a 20-minute bench review with Vincenzo Ceccarelli Grimaldi: palletizing cells, HV/OT questions, architecture. Then: the Palletizer 30-day pilot with a kill date, or a €280 packaging teardown.',
     alternates: pageAlternates(lang, '/book'),
   };
 }

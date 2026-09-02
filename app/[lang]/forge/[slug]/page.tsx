@@ -1,30 +1,34 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import BookCTA from '@/components/BookCTA';
+import { notFound, permanentRedirect } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import HonestyBanner from '@/components/HonestyBanner';
 import JsonLd from '@/components/JsonLd';
+import StatusBadge from '@/components/StatusBadge';
 import { getDict } from '@/lib/dict';
 import { forgeLine, getProduct } from '@/lib/forge';
 import { LANGS, isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { ogImages } from '@/lib/meta';
-import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from '@/lib/schema';
+import { faqSchema, softwareApplicationSchema } from '@/lib/schema';
 
 /**
- * Product page template. Every product page carries: problem,
- * architecture, integration truth, repo, demo (if real), status,
- * license, commercial terms, FAQ — plus SoftwareApplication +
- * FAQPage + BreadcrumbList JSON-LD and an author block.
+ * Product page template for the rest of the Forge Line. Palletizer has
+ * its own route (/palletizer); /forge/palletizer redirects there so old
+ * links keep working. Every page here carries the status badge first,
+ * then problem, architecture, integration truth, license, commercial
+ * terms, FAQ. FloorForge quotes its own README verbatim. Repo links are
+ * rendered only when a URL exists — ForgeOS has none, so none is drawn.
  */
 
 type PageProps = { params: { lang: string; slug: string } };
 
 export function generateStaticParams(): { lang: Lang; slug: string }[] {
-  return LANGS.flatMap((lang) => forgeLine.map((p) => ({ lang, slug: p.slug })));
+  return LANGS.flatMap((lang) => forgeLine.filter((p) => p.slug !== 'palletizer').map((p) => ({ lang, slug: p.slug })));
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const product = getProduct(params.slug);
-  if (!product) return {};
+  if (!product || product.slug === 'palletizer') return {};
   return {
     title: product.metaTitle[lang],
     description: product.metaDescription[lang],
@@ -41,49 +45,58 @@ export function generateMetadata({ params }: PageProps): Metadata {
 
 export default function ProductPage({ params }: PageProps) {
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
+  if (params.slug === 'palletizer') permanentRedirect(langHref(lang, '/palletizer'));
   const product = getProduct(params.slug);
   if (!product) notFound();
   const t = getDict(lang);
 
   const sections: { heading: string; text: string }[] = [
     { heading: lang === 'de' ? 'Problem' : 'Problem', text: product.problem[lang] },
-    { heading: lang === 'de' ? 'Architektur' : 'Architecture', text: product.architecture[lang] },
+    { heading: lang === 'de' ? 'Was das Repository ist' : 'What the repository is', text: product.architecture[lang] },
     { heading: lang === 'de' ? 'Integrationen' : 'Integrations', text: product.integrations[lang] },
     { heading: lang === 'de' ? 'Lizenz' : 'License', text: product.license[lang] },
     { heading: lang === 'de' ? 'Kommerzielles' : 'Commercial', text: product.commercial[lang] },
   ];
 
   const faq = faqSchema(lang, product);
+  const parkedTitle = lang === 'de' ? 'GEPARKT — nicht in Arbeit' : 'PARKED — not being worked on';
+  const parkedBody = lang === 'de'
+    ? 'Diese Seite bleibt, damit der Name nicht verschwindet. Es wird nichts daran gebaut, verkauft oder versprochen, solange Palletizer der Keil ist.'
+    : 'This page stays so the name does not vanish. Nothing is being built, sold or promised under it while Palletizer is the wedge.';
 
   return (
     <main>
       <div className="sheet sheet-top">
         <div className="section">
+          <Breadcrumbs lang={lang} crumbs={[{ name: 'Grimaldi Engineering', path: '/' }, { name: 'Forge Line', path: '/forge' }, { name: product.name, path: `/forge/${product.slug}` }]} />
           <span className="kicker">{product.trade[lang]} · Forge Line</span>
           <h1>{product.name}</h1>
           <p className="intro">{product.tagline[lang]}</p>
 
-          <p className="status status-badge">
-            <span className={product.status === 'shipped' ? 'dot' : 'dot dot-dev'} />{' '}
-            {product.status === 'shipped' ? t.statusShipped : t.statusRepoOnly}
+          <p className="status-row">
+            <StatusBadge status={product.status} lang={lang} note={product.statusNote?.[lang]} />
           </p>
 
+          {product.status === 'PARKED' && <HonestyBanner tone="amber" title={parkedTitle}>{parkedBody}</HonestyBanner>}
+
+          {product.readmeQuote && (
+            <blockquote className="readme-quote">
+              <p>“{product.readmeQuote.text}”</p>
+              <cite className="mono">{product.readmeQuote.source}</cite>
+            </blockquote>
+          )}
+
           <div className="cta-row">
-            {product.demo ? (
-              <a className="btn btn-glow" href={product.demo} rel="noopener noreferrer">
-                {lang === 'de' ? 'Live-Demo öffnen' : 'Open the live demo'}
+            {product.repo ? (
+              <a className="btn btn-line" href={product.repo} rel="noopener noreferrer">
+                {lang === 'de' ? 'Quellcode auf GitHub' : 'Source on GitHub'}
               </a>
             ) : (
-              <BookCTA label={t.ctaBook} />
+              <span className="btn btn-line btn-disabled" aria-disabled="true">
+                {lang === 'de' ? 'Kein Repository — nichts zu verlinken' : 'No repository — nothing to link'}
+              </span>
             )}
-            <a className="btn btn-line" href={product.repo} rel="noopener noreferrer">
-              {lang === 'de' ? 'Quellcode auf GitHub' : 'Source on GitHub'}
-            </a>
-            {product.slug === 'palletizer' && (
-              <a className="btn btn-line" href={langHref(lang, '/tools/pallet-pattern-calculator')}>
-                {lang === 'de' ? 'Kostenloser Palettenmuster-Rechner' : 'Free pallet pattern calculator'}
-              </a>
-            )}
+            <a className="btn btn-line" href={langHref(lang, '/forge')}>{lang === 'de' ? 'Zurück zum Index' : 'Back to the index'}</a>
           </div>
 
           <div className="prose">
@@ -107,25 +120,12 @@ export default function ProductPage({ params }: PageProps) {
             )}
           </div>
 
-          {product.demo == null && (
-            <div className="cta-row">
-              <BookCTA label={t.ctaBook} variant="line" />
-            </div>
-          )}
-
           <p className="author-block">{t.authorLine}</p>
         </div>
       </div>
 
       <JsonLd data={softwareApplicationSchema(lang, product)} />
       {faq ? <JsonLd data={faq} /> : null}
-      <JsonLd
-        data={breadcrumbSchema(lang, [
-          { name: 'Grimaldi Engineering', path: '/' },
-          { name: 'Forge Line', path: '/forge' },
-          { name: product.name, path: `/forge/${product.slug}` },
-        ])}
-      />
     </main>
   );
 }

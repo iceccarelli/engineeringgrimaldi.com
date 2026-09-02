@@ -19,7 +19,7 @@ export function personSchema(): JsonLdObject {
     name: PERSON_NAME,
     alternateName: 'Vincenzo Grimaldi',
     url: `${SITE_URL}/`,
-    jobTitle: 'Electrical Machines, Battery Systems & High-Voltage Engineer',
+    jobTitle: 'Engineer — palletizing software, high-voltage rail digitalisation',
     workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
     sameAs: [...SAME_AS],
   };
@@ -68,30 +68,33 @@ export function professionalServiceSchema(): JsonLdObject {
 }
 
 export function softwareApplicationSchema(lang: Lang, product: ForgeProduct): JsonLdObject {
-  const url = `${SITE_URL}${langHref(lang, `/forge/${product.slug}`)}`;
+  const path = product.slug === 'palletizer' ? '/palletizer' : `/forge/${product.slug}`;
+  const url = `${SITE_URL}${langHref(lang, path)}`;
   const schema: JsonLdObject = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    '@id': `${SITE_URL}/forge/${product.slug}#software`,
+    '@id': `${SITE_URL}${path}#software`,
     name: product.name,
     url,
     applicationCategory: 'IndustrialApplication',
     operatingSystem: 'Web',
     description: product.metaDescription[lang],
     author: { '@id': `${SITE_URL}/#person` },
-    codeRepository: product.repo,
   };
+  if (product.repo) {
+    schema.codeRepository = product.repo;
+  }
   if (product.demo) {
     schema.installUrl = product.demo;
   }
-  // Offers only for the shipped product, and honestly: price on request.
-  if (product.status === 'shipped') {
+  // Offers only for the shipped product, and honestly: fixed fee quoted per CSV.
+  if (product.status === 'SHIPPED') {
     schema.offers = {
       '@type': 'Offer',
-      url: `${SITE_URL}/book`,
+      url: `${SITE_URL}/palletizer#pilot`,
       priceSpecification: { '@type': 'PriceSpecification', priceCurrency: 'EUR' },
-      description: 'Commercial integration scoped per project after a free bench review.',
-      availability: 'https://schema.org/PreOrder',
+      description: '30-day software pilot on the customer CSV with a kill date at week 0; fixed fee quoted within one working day.',
+      availability: 'https://schema.org/InStock',
     };
   }
   return schema;
@@ -102,7 +105,7 @@ export function faqSchema(lang: Lang, product: ForgeProduct): JsonLdObject | nul
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    '@id': `${SITE_URL}/forge/${product.slug}#faq`,
+    '@id': `${SITE_URL}${product.slug === 'palletizer' ? '/palletizer' : `/forge/${product.slug}`}#faq`,
     mainEntity: product.faqs.map((f) => ({
       '@type': 'Question',
       name: f.q[lang],

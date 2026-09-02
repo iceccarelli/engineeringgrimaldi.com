@@ -4,54 +4,55 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { getDict } from '@/lib/dict';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { ogImages } from '@/lib/meta';
+import { PILOT_MAILTO } from '@/lib/pilot';
 
 type PageProps = { params: { lang: string } };
 
 const COPY = {
   en: {
     title: 'Pricing — Rates and Engagements',
-    description: 'Bench review €0, deep-dive session €280, advisory retainer €3,200/mo, Forge integration by quote. Free calculators stay free. Prices stated before you ask.',
+    description: 'Palletizer 30-day software pilot — fixed fee per CSV, kill date at week 0. Packaging teardown €280. Bench review €0. The grid retainer is sold on igrimaldi.engineering, not here. Calculators stay free.',
     h1: 'Pricing',
-    lead: 'Stated openly, because being asked for a rate card is not a qualification step. The calculators and reference data on this site are free and stay free — no account, no email, no usage limit.',
+    lead: 'A plant manager should be able to price a pilot without reading a manifesto. So: the pilot first, the teardown second, the free bench review third. The calculators and reference data stay free — no account, no email, no usage limit.',
     freeH2: 'Free, permanently',
     freeBody: 'Six calculators and the reference tables. Everything runs in your browser, exports to CSV, and asks for nothing. They exist because a working instrument argues better than a brochure.',
     engagementsH2: 'Engagements',
     notesH2: 'How it works',
     notes: [
-      'Every engagement starts with the free bench review. Twenty minutes is usually enough to tell whether the problem is one I can help with, and if it is not, I will say so on that call.',
-      'Sessions and retainers are invoiced from Frankfurt am Main. VAT is charged where applicable; the details are on the Impressum.',
-      'Integration work is scoped only after the fit is proven on your own data. No integration is quoted from a brochure.',
+      'The pilot does not need a call first. Send the CSV with the subject line Palletizer-30-day-pilot and the quote comes back within one working day with a proposed kill date.',
+      'Pilots and teardowns are invoiced from Frankfurt am Main. VAT is charged where applicable; the details are on the Impressum.',
+      'The grid and traction-power advisory retainer is not sold on this domain. It lives on igrimaldi.engineering/advisory, with the €280 grid teardown next to it.',
     ],
     boundaryH2: 'What is not sold',
     boundary: 'No safety-function design, no certification, and no work that would require publishing employer or operator internals. Where a request crosses that line, the answer is a referral rather than a quote.',
     tiers: [
-      { name: 'Bench review', price: '€0', unit: '20 minutes', body: 'Bring a cell layout, a scope trace, a SKU mix or a CSV from any calculator here. No slides, engineering only.' },
-      { name: 'Deep-dive session', price: '€280', unit: '90 minutes', body: 'One specific problem worked through: axis and drive sizing, machine selection, pack and BMS architecture, palletizing cell design, HV questions. Written summary included.' },
-      { name: 'Advisory retainer', price: '€3,200', unit: 'per month', body: 'Ongoing advisory across drives, machines, battery systems and grid: weekly call, asynchronous review, priority access. Scope stays on public, generic ground.' },
-      { name: 'Forge integration', price: 'By quote', unit: 'scoped per project', body: 'Palletizer OS or Forge tooling adapted to your line, quoted after a bench review has proven the fit.' },
+      { name: 'Palletizer 30-day pilot', price: 'Fixed fee', unit: 'quoted per CSV within one working day', body: 'Week 0 your CSV, week 2 density / stability report, week 4 go / no-go, kill date on your calendar from day one. Software only; no arm, no site visit, nothing invoiced past the kill date.' },
+      { name: 'Packaging teardown', price: '€280', unit: '90 minutes', body: 'Your SKU master and current pallet patterns, worked through with the optimizer. Written summary included. Subject line: Packaging-teardown.' },
+      { name: 'Bench review', price: '€0', unit: '20 minutes', body: 'Bring a SKU mix, a cell layout, or a CSV from any calculator here. No slides, engineering only.' },
+      { name: 'Arm + integration', price: 'By quote', unit: 'only after a pilot go', body: 'One partner arm, integration days, quoted after week 4 says go. Never quoted from a brochure, never before the numbers.' },
     ],
   },
   de: {
     title: 'Preise — Sätze und Leistungen',
-    description: 'Bench-Review 0 €, Deep-Dive-Session 280 €, Advisory-Retainer 3.200 €/Monat, Forge-Integration nach Angebot. Kostenlose Rechner bleiben kostenlos. Preise genannt, bevor Sie fragen.',
+    description: 'Palletizer-30-Tage-Software-Pilot — Festpreis pro CSV, Abbruchdatum in Woche 0. Verpackungs-Teardown 280 €. Bench-Review 0 €. Der Netz-Retainer wird auf igrimaldi.engineering verkauft, nicht hier. Rechner bleiben kostenlos.',
     h1: 'Preise',
-    lead: 'Offen genannt, denn nach einem Satz zu fragen ist kein Qualifizierungsschritt. Die Rechner und Referenzdaten dieser Seite sind kostenlos und bleiben es — ohne Konto, ohne E-Mail, ohne Nutzungsgrenze.',
+    lead: 'Ein Werksleiter sollte einen Piloten bepreisen können, ohne ein Manifest zu lesen. Also: erst der Pilot, dann der Teardown, dann das kostenlose Bench-Review. Die Rechner und Referenzdaten bleiben kostenlos — ohne Konto, ohne E-Mail, ohne Nutzungsgrenze.',
     freeH2: 'Dauerhaft kostenlos',
     freeBody: 'Sechs Rechner und die Referenztabellen. Alles läuft im Browser, geht als CSV heraus und verlangt nichts. Sie existieren, weil ein funktionierendes Instrument besser argumentiert als ein Prospekt.',
     engagementsH2: 'Leistungen',
     notesH2: 'Wie es abläuft',
     notes: [
-      'Jede Zusammenarbeit beginnt mit dem kostenlosen Bench-Review. Zwanzig Minuten genügen meist, um zu klären, ob ich beim Problem helfen kann — und wenn nicht, sage ich das in diesem Gespräch.',
-      'Sessions und Retainer werden aus Frankfurt am Main abgerechnet. Umsatzsteuer wird berechnet, soweit anwendbar; Details im Impressum.',
-      'Integrationsarbeit wird erst gescopet, wenn der Fit an Ihren eigenen Daten belegt ist. Keine Integration wird aus einem Prospekt angeboten.',
+      'Der Pilot braucht vorher kein Gespräch. Senden Sie die CSV mit dem Betreff Palletizer-30-day-pilot, und das Angebot kommt innerhalb eines Werktags mit einem vorgeschlagenen Abbruchdatum zurück.',
+      'Piloten und Teardowns werden aus Frankfurt am Main abgerechnet. Umsatzsteuer wird berechnet, soweit anwendbar; Details im Impressum.',
+      'Der Advisory-Retainer für Netze und Bahnstrom wird auf dieser Domain nicht verkauft. Er lebt auf igrimaldi.engineering/advisory, mit dem 280-€-Netz-Teardown daneben.',
     ],
     boundaryH2: 'Was nicht verkauft wird',
     boundary: 'Keine Auslegung von Sicherheitsfunktionen, keine Zertifizierung und keine Arbeit, die das Veröffentlichen von Arbeitgeber- oder Betreiber-Interna erfordern würde. Überschreitet eine Anfrage diese Linie, folgt eine Empfehlung statt eines Angebots.',
     tiers: [
-      { name: 'Bench-Review', price: '0 €', unit: '20 Minuten', body: 'Bringen Sie ein Zellenlayout, eine Scope-Aufnahme, einen SKU-Mix oder eine CSV aus einem Rechner dieser Seite mit. Keine Folien, nur Engineering.' },
-      { name: 'Deep-Dive-Session', price: '280 €', unit: '90 Minuten', body: 'Ein konkretes Problem durchgearbeitet: Achsen- und Antriebsauslegung, Maschinenauswahl, Pack- und BMS-Architektur, Palettierzellen-Design, HV-Fragen. Schriftliche Zusammenfassung inklusive.' },
-      { name: 'Advisory-Retainer', price: '3.200 €', unit: 'pro Monat', body: 'Laufende Beratung zu Antrieben, Maschinen, Batteriesystemen und Netz: wöchentlicher Call, asynchrone Reviews, priorisierter Zugang. Die Themen bleiben auf öffentlichem, generischem Terrain.' },
-      { name: 'Forge-Integration', price: 'Nach Angebot', unit: 'pro Projekt gescopet', body: 'Palletizer OS oder Forge-Tooling, angepasst an Ihre Linie — angeboten, nachdem ein Bench-Review den Fit belegt hat.' },
+      { name: 'Palletizer-30-Tage-Pilot', price: 'Festpreis', unit: 'pro CSV innerhalb eines Werktags angeboten', body: 'Woche 0 Ihre CSV, Woche 2 Dichte- / Stabilitätsbericht, Woche 4 Go / No-Go, Abbruchdatum ab Tag eins in Ihrem Kalender. Nur Software; kein Arm, kein Vor-Ort-Termin, nichts wird nach dem Abbruchdatum berechnet.' },
+      { name: 'Verpackungs-Teardown', price: '280 €', unit: '90 Minuten', body: 'Ihr SKU-Stamm und Ihre aktuellen Palettenmuster, mit dem Optimierer durchgearbeitet. Schriftliche Zusammenfassung inklusive. Betreff: Packaging-teardown.' },
+      { name: 'Bench-Review', price: '0 €', unit: '20 Minuten', body: 'Bringen Sie einen SKU-Mix, ein Zellenlayout oder eine CSV aus einem Rechner dieser Seite mit. Keine Folien, nur Engineering.' },
+      { name: 'Arm + Integration', price: 'Nach Angebot', unit: 'erst nach einem Pilot-Go', body: 'Ein Partner-Arm, Integrationstage, angeboten, nachdem Woche 4 Go sagt. Nie aus einem Prospekt, nie vor den Zahlen.' },
     ],
   },
 } as const;
@@ -109,7 +110,8 @@ export default function PricingPage({ params }: PageProps) {
           </div>
 
           <div className="cta-row">
-            <BookCTA label={t.ctaBook} />
+            <a className="btn btn-glow" href={PILOT_MAILTO} data-cta="pilot-mail">{lang === 'de' ? '30-Tage-Pilot anfragen' : 'Book the 30-day pilot'}</a>
+            <BookCTA label={t.ctaBook} variant="line" />
             <a className="btn btn-line" href={langHref(lang, '/solutions')}>
               {lang === 'de' ? 'Lösungen ansehen →' : 'See solutions →'}
             </a>

@@ -53,7 +53,7 @@ export const solutions: Solution[] = [
       { path: '/tools/case-size-optimizer', label: { en: 'Case size optimizer', de: 'Kartongrößen-Optimierer' }, note: { en: 'Start here: the case decision is the expensive one.', de: 'Hier starten: Die Kartonentscheidung ist die teure.' } },
       { path: '/tools/pallet-pattern-calculator', label: { en: 'Pallet pattern calculator', de: 'Palettenmuster-Rechner' }, note: { en: 'Cases per layer and cube for a given case.', de: 'Kartons pro Lage und Raumnutzung für ein Maß.' } },
       { path: '/tools/truck-load-calculator', label: { en: 'Truck & container load', de: 'Lkw- & Container-Ladung' }, note: { en: 'Whether space or payload limits the shipment.', de: 'Ob Platz oder Nutzlast die Sendung begrenzt.' } },
-      { path: '/forge/palletizer', label: { en: 'Palletizer OS', de: 'Palletizer OS' }, note: { en: 'The software foundation, with its status stated.', de: 'Die Software-Basis, mit klar genanntem Status.' } },
+      { path: '/palletizer', label: { en: 'Palletizer OS', de: 'Palletizer OS' }, note: { en: 'The optimizer that ships, and the 30-day pilot with a kill date.', de: 'Der Optimierer, der ausgeliefert ist, und der 30-Tage-Pilot mit Abbruchdatum.' } },
     ],
     firstStep: {
       en: 'Bring a SKU mix and a cell layout. Twenty minutes is enough to see whether the constraint is the pattern, the carton, or the cell.',
@@ -153,14 +153,14 @@ export const solutions: Solution[] = [
         de: 'Kalkulation auf Papier, Auslegung nach Augenmaß, Planung per Telefon: Verschnitt, Nacharbeit und wartende Kolonnen gelten als Betriebskosten statt als Softwareproblem.',
       },
       {
-        en: 'Being direct about status: FloorForge, PaintForge and DryForge are public repositories in active development. They are not production deployments and are not for sale today. If that changes, it changes on their product pages first.',
-        de: 'Klar zum Status: FloorForge, PaintForge und DryForge sind öffentliche Repositories in aktiver Entwicklung. Sie sind kein Produktiveinsatz und heute nicht verkäuflich. Ändert sich das, ändert es sich zuerst auf ihren Produktseiten.',
+        en: 'Being direct about status: FloorForge is IN DEVELOPMENT (its README: no shipped hardware or production software yet). PaintForge and DryForge are PARKED. None is a production deployment or for sale today. If that changes, it changes on their product pages first.',
+        de: 'Klar zum Status: FloorForge ist IN ENTWICKLUNG (laut README: noch keine ausgelieferte Hardware und keine Produktivsoftware). PaintForge und DryForge sind GEPARKT. Keines ist ein Produktiveinsatz oder heute verkäuflich. Ändert sich das, ändert es sich zuerst auf ihren Produktseiten.',
       },
     ],
     routes: [
-      { path: '/forge/floorforge', label: { en: 'FloorForge AI', de: 'FloorForge AI' }, note: { en: 'Flooring — public repo, in development.', de: 'Boden — öffentliches Repo, in Entwicklung.' } },
-      { path: '/forge/paintforge', label: { en: 'PaintForge AI', de: 'PaintForge AI' }, note: { en: 'Painting — public repo, in development.', de: 'Malerei — öffentliches Repo, in Entwicklung.' } },
-      { path: '/forge/dryforge', label: { en: 'DryForge AI', de: 'DryForge AI' }, note: { en: 'Drying — public repo, in development.', de: 'Trocknung — öffentliches Repo, in Entwicklung.' } },
+      { path: '/forge/floorforge', label: { en: 'FloorForge AI', de: 'FloorForge AI' }, note: { en: 'Flooring — IN DEVELOPMENT.', de: 'Boden — IN ENTWICKLUNG.' } },
+      { path: '/forge/paintforge', label: { en: 'PaintForge AI', de: 'PaintForge AI' }, note: { en: 'Painting — PARKED.', de: 'Malerei — GEPARKT.' } },
+      { path: '/forge/dryforge', label: { en: 'DryForge AI', de: 'DryForge AI' }, note: { en: 'Drying — PARKED.', de: 'Trocknung — GEPARKT.' } },
       { path: '/forge', label: { en: 'The Forge Line', de: 'Die Forge-Linie' }, note: { en: 'How the whole line is being built.', de: 'Wie die gesamte Linie entsteht.' } },
     ],
     firstStep: {

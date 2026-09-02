@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og';
 /** 1200×630 OG image, generated at the edge — no binary asset to maintain. */
 
 export const runtime = 'edge';
-export const alt = 'Grimaldi Engineering — Forge Line, high-voltage build logs';
+export const alt = 'Palletizer OS — mixed-SKU pallet plans with a stability number you can check';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -39,7 +39,7 @@ export default function OpenGraphImage() {
             The Forge Line
           </div>
           <div style={{ display: 'flex', fontSize: 34, color: '#9fb1c1', lineHeight: 1.3 }}>
-            Palletizer OS · FloorForge · High-voltage build logs
+            Palletizer OS · mixed-SKU planning · stability = 0.6·support + 0.4·CoM
           </div>
         </div>
         <div

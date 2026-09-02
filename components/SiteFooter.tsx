@@ -1,4 +1,5 @@
 import BrandMark from './BrandMark';
+import NetworkFooter from './NetworkFooter';
 import { getDict } from '@/lib/dict';
 import { langHref, type Lang } from '@/lib/i18n';
 import { NAV } from '@/lib/nav';
@@ -38,13 +39,7 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
             <p>{t.footAbout}</p>
             <p className="foot-disambiguation">{t.footDisambiguation}</p>
           </div>
-          <div className="foot-base-links">
-            <h4>{t.footNet}</h4>
-            <a href="https://igrimaldi.engineering">igrimaldi.engineering — {t.netSoftware}</a>
-            <a href="https://grimaldi.ca">grimaldi.ca — {t.netPersonal}</a>
-            <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub</a>
-            <a href="https://www.linkedin.com/in/vincenzo-ceccarelli-grimaldi-2912b42a0" rel="noopener noreferrer">LinkedIn</a>
-          </div>
+          <NetworkFooter heading={t.netHeading} />
           <div className="foot-base-links">
             <h4>{t.footLegal}</h4>
             <a href={href('/about')}>{t.navAbout}</a>
