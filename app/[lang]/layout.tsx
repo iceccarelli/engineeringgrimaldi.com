@@ -25,12 +25,12 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
   const lang: Lang = isLang(params.lang) ? params.lang : 'en';
   const title =
     lang === 'de'
-      ? 'Grimaldi Engineering | Mixed-SKU-Palettiersoftware, Frankfurt'
-      : 'Grimaldi Engineering | Mixed-SKU Palletizing Software, Frankfurt';
+      ? 'Grimaldi Engineering | Energy Intelligence, Physical AI, Operations — Frankfurt'
+      : 'Grimaldi Engineering | Energy Intelligence, Physical AI, Operations — Frankfurt';
   const description =
     lang === 'de'
-      ? 'Mixed-SKU-Palettiersoftware für den Roboter, den Sie schon haben. SKU-Liste einfügen, Stapel, Stabilität und Dichte lesen, URScript-Stub exportieren. Grimaldi Engineering, Frankfurt am Main.'
-      : 'Mixed-SKU palletizing software for the robot you already have. Paste a SKU list, read the stack, stability and density, export a URScript stub. Grimaldi Engineering, Frankfurt am Main.';
+      ? 'Steuerungszentrale der drei Grimaldi-Engineering-Cluster. Cluster 1 Energy Intelligence: GridOS, DER-Integration, Energie Teilen, Sicherheitsgrenze, Agent-Tools, KPIs — maschinenlesbar. Cluster 2: Mixed-SKU-Palettiersoftware. Frankfurt am Main.'
+      : 'Control engine for the three Grimaldi Engineering clusters. Cluster 1 Energy Intelligence: GridOS, DER integration, Energie Teilen, safety boundary, agent tools, KPIs — machine-readable. Cluster 2: mixed-SKU palletizing software. Frankfurt am Main.';
   return {
     metadataBase: new URL(SITE_URL),
     title: {

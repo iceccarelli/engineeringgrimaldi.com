@@ -6,10 +6,16 @@
 
 export const SITE_URL = 'https://engineeringgrimaldi.com';
 export const SITE_NAME = 'Grimaldi Engineering';
+
+/** This site is the control engine of the Grimaldi Engineering cluster of
+ *  ventures. Cluster 1 (Energy Intelligence) is controlled here; the
+ *  registry and the other clusters are declared in lib/clusters.ts. */
+export const GITHUB_OWNER = 'https://github.com/iceccarelli';
+export const ENERGY_API = '/api/energy/index';
 export const PERSON_NAME = 'Vincenzo Ceccarelli Grimaldi';
 export const PERSON_ID = 'https://igrimaldi.engineering/#person';
 
-/** Upstream product repository and its current demo host. The demo host
+/** Cluster-2 product repository and its current demo host. The demo host
  *  is never advertised in a heading; it is a redirect target in waiting. */
 export const PRODUCT_REPO = 'https://github.com/iceccarelli/palletizer';
 export const PRODUCT_DEMO = 'https://palletizer-app.vercel.app';

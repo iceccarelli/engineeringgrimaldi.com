@@ -1,9 +1,14 @@
 /**
  * THE INFORMATION ARCHITECTURE SPINE.
  *
- * Five top-level items, one product per URL. Header, mobile drawer,
- * footer and the XML sitemap all derive from this file. Nothing that is
- * not listed here is linked from the header or the home page.
+ * Five top-level items. Header, mobile drawer, footer and the XML sitemap
+ * all derive from this file. Nothing that is not listed here is linked
+ * from the header or the home page.
+ *
+ * Item 1 is the Energy Intelligence cluster (cluster 1 of three) — this
+ * site is its control engine; its child pages come from lib/energy/pages.
+ * Item 2 is the Palletizer product (cluster 2), unchanged: same URLs,
+ * same planner, Integrators folded into its menu group.
  *
  * Parked routes (still HTTP 200, deliberately unlisted): /forge, /lab,
  * /disciplines, /solutions, /pricing, /resources, /about, and the
@@ -12,6 +17,7 @@
  */
 
 import type { Localized } from './i18n';
+import { ENERGY_GROUP_LABEL, ENERGY_PAGES, ENERGY_ROOT } from './energy/pages';
 
 export type NavItem = {
   path: string;
@@ -36,9 +42,22 @@ export type NavSection = {
 
 export const NAV: NavSection[] = [
   {
+    id: 'energy',
+    path: ENERGY_ROOT,
+    label: { en: 'Energy', de: 'Energie' },
+    blurb: {
+      en: 'Energy Intelligence — cluster 1. Registry, GridOS architecture, safety boundary, agent tools, KPIs, decisions. Machine-readable at /api/energy.',
+      de: 'Energy Intelligence — Cluster 1. Register, GridOS-Architektur, Sicherheitsgrenze, Agent-Tools, KPIs, Entscheidungen. Maschinenlesbar unter /api/energy.',
+    },
+    groups: (['control', 'architecture', 'execution'] as const).map((g) => ({
+      label: ENERGY_GROUP_LABEL[g],
+      items: ENERGY_PAGES.filter((p) => p.group === g).map((p) => ({ path: p.path, label: p.label, blurb: p.blurb })),
+    })),
+  },
+  {
     id: 'product',
     path: '/palletizer',
-    label: { en: 'Product', de: 'Produkt' },
+    label: { en: 'Palletizer', de: 'Palletizer' },
     blurb: {
       en: 'Mixed-SKU palletizing software: planner, state machine, robot adapters.',
       de: 'Mixed-SKU-Palettiersoftware: Planer, Zustandsautomat, Roboter-Adapter.',
@@ -49,19 +68,10 @@ export const NAV: NavSection[] = [
         items: [
           { path: '/palletizer', label: { en: 'Palletizer', de: 'Palletizer' }, blurb: { en: 'Stack a SKU list, read stability and density, export a URScript stub.', de: 'SKU-Liste stapeln, Stabilität und Dichte lesen, URScript-Stub exportieren.' } },
           { path: '/docs', label: { en: 'Docs', de: 'Dokumentation' }, blurb: { en: 'CSV format, units, fault codes, IDLE · RUN · HOLD · FAULT.', de: 'CSV-Format, Einheiten, Fehlercodes, IDLE · RUN · HOLD · FAULT.' } },
+          { path: '/integrators', label: { en: 'Integrators', de: 'Integratoren' }, blurb: { en: 'You keep CE, fence, service and the customer. We supply planner, state-machine doc, gripper class, acceptance test.', de: 'Sie behalten CE, Zaun, Service und den Kunden. Wir liefern Planer, Zustandsautomat-Doku, Greiferklasse, Abnahmetest.' } },
         ],
       },
     ],
-  },
-  {
-    id: 'integrators',
-    path: '/integrators',
-    label: { en: 'Integrators', de: 'Integratoren' },
-    blurb: {
-      en: 'You keep CE, fence, service and the customer. We supply the planner, the state-machine doc, a gripper class and an acceptance test.',
-      de: 'Sie behalten CE, Zaun, Service und den Kunden. Wir liefern Planer, Zustandsautomat-Dokumentation, Greiferklasse und Abnahmetest.',
-    },
-    groups: [],
   },
   {
     id: 'tools',

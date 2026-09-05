@@ -81,7 +81,7 @@ export interface Dict {
 }
 
 const en: Dict = {
-  brandTag: 'Palletizing software · Frankfurt',
+  brandTag: 'Cluster control · Frankfurt',
   navMenu: 'Menu',
   navClose: 'Close menu',
   skipToContent: 'Skip to content',
@@ -91,8 +91,8 @@ const en: Dict = {
   langLabel: 'Language',
   calcCardTag: 'Tools',
 
-  homeKicker: 'PALLETIZING SOFTWARE · FRANKFURT',
-  homeH1: 'Mixed-SKU palletizing software for the robot you already have.',
+  homeKicker: 'GRIMALDI ENGINEERING · THREE CLUSTERS · FRANKFURT',
+  homeH1: 'Energy intelligence first. One company per cluster, judged by customers, revenue and proof.',
   homeLead:
     'Density, stability and cycle time from your real SKU list. Robot-agnostic planner; the arm stays yours.',
   ctaBook: 'Send a SKU list',
@@ -139,7 +139,7 @@ const en: Dict = {
   offerIntegration: 'Integration',
   offerIntegrationBody: 'Priced after the SKU problem is on the table, never before.',
 
-  footAbout: 'Mixed-SKU palletizing software for cells built by integrators. Operated from Frankfurt am Main.',
+  footAbout: 'Control engine for the Grimaldi Engineering clusters: Energy Intelligence (GridOS), Physical AI (Palletizer), Operations. Operated from Frankfurt am Main.',
   footNet: 'Elsewhere',
   footLegal: 'Legal',
   footDisambiguation:
@@ -153,7 +153,7 @@ const en: Dict = {
 };
 
 const de: Dict = {
-  brandTag: 'Palettiersoftware · Frankfurt',
+  brandTag: 'Cluster-Steuerung · Frankfurt',
   navMenu: 'Menü',
   navClose: 'Menü schließen',
   skipToContent: 'Zum Inhalt springen',
@@ -163,8 +163,8 @@ const de: Dict = {
   langLabel: 'Sprache',
   calcCardTag: 'Werkzeuge',
 
-  homeKicker: 'PALETTIERSOFTWARE · FRANKFURT',
-  homeH1: 'Mixed-SKU-Palettiersoftware für den Roboter, den Sie schon haben.',
+  homeKicker: 'GRIMALDI ENGINEERING · DREI CLUSTER · FRANKFURT',
+  homeH1: 'Energy Intelligence zuerst. Ein Unternehmen je Cluster, bewertet nach Kunden, Umsatz und Beweis.',
   homeLead:
     'Dichte, Stabilität und Taktzeit aus Ihrer echten SKU-Liste. Roboterunabhängiger Planer; der Arm bleibt Ihrer.',
   ctaBook: 'SKU-Liste senden',
@@ -211,7 +211,7 @@ const de: Dict = {
   offerIntegration: 'Integration',
   offerIntegrationBody: 'Bepreist, sobald das SKU-Problem auf dem Tisch liegt — nicht vorher.',
 
-  footAbout: 'Mixed-SKU-Palettiersoftware für Zellen, die Integratoren bauen. Betrieben aus Frankfurt am Main.',
+  footAbout: 'Steuerungszentrale der Grimaldi-Engineering-Cluster: Energy Intelligence (GridOS), Physical AI (Palletizer), Operations. Betrieben aus Frankfurt am Main.',
   footNet: 'Anderswo',
   footLegal: 'Rechtliches',
   footDisambiguation:

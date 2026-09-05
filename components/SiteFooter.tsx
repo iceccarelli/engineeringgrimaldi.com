@@ -40,6 +40,8 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
           </div>
           <div className="foot-base-links">
             <h4>{t.footNet}</h4>
+            <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub — iceccarelli</a>
+            <a href="/api/energy/index">/api/energy — {lang === 'de' ? 'maschinenlesbar' : 'machine-readable'}</a>
             <a href="https://github.com/iceccarelli/palletizer" rel="noopener noreferrer">GitHub — palletizer</a>
             <a href="https://igrimaldi.engineering">igrimaldi.engineering — {t.netSoftware}</a>
             <a href="https://grimaldi.ca">grimaldi.ca — {t.netPersonal}</a>
