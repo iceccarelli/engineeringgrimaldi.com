@@ -85,7 +85,8 @@ export default function SiteHeader({ lang, labels }: { lang: Lang; labels: Heade
       <div className="utility">
         <div className="utility-in">
           <LangSwitcher current={lang} label={labels.langLabel} />
-          <a href="https://github.com/iceccarelli/palletizer" rel="noopener noreferrer">GitHub · palletizer</a>
+          <a href="/api/energy/index">/api/energy</a>
+          <a href="https://github.com/iceccarelli" rel="noopener noreferrer">GitHub · iceccarelli</a>
         </div>
       </div>
 

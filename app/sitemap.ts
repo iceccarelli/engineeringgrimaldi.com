@@ -4,14 +4,15 @@ import { allNavPaths } from '@/lib/nav';
 import { SITE_URL } from '@/lib/site';
 
 /**
- * The sitemap derives from the five-item navigation spine plus the
- * legal pages. Parked routes still answer 200 but are noindex and are
+ * The sitemap derives from the five-item navigation spine (which includes
+ * the /energy tree from lib/energy/pages) plus the legal pages. Parked routes still answer 200 but are noindex and are
  * deliberately not listed here.
  */
 function logicalPaths(): { path: string; priority: number }[] {
   const priorityFor = (path: string): number => {
     if (path === '/') return 1;
-    if (path === '/palletizer' || path === '/contact' || path === '/integrators') return 0.9;
+    if (path === '/energy' || path === '/palletizer' || path === '/contact') return 0.9;
+    if (path.startsWith('/energy/') || path === '/integrators') return 0.85;
     if (path === '/docs' || path.startsWith('/tools')) return 0.8;
     if (path.startsWith('/reference/')) return 0.6;
     return 0.7;

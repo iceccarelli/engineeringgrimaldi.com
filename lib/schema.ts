@@ -19,7 +19,7 @@ export function personSchema(): JsonLdObject {
     name: PERSON_NAME,
     alternateName: 'Vincenzo Grimaldi',
     url: `${SITE_URL}/`,
-    jobTitle: 'Palletizing Software Engineer',
+    jobTitle: 'Grid Networks Engineer · Founder, Grimaldi Engineering',
     workLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Frankfurt am Main', addressCountry: 'DE' } },
     sameAs: [...SAME_AS],
   };
@@ -42,7 +42,7 @@ export function professionalServiceSchema(): JsonLdObject {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
     '@id': `${SITE_URL}/#service`,
-    name: `${SITE_NAME} — Palletizing Software`,
+    name: `${SITE_NAME}`,
     url: `${SITE_URL}/contact`,
     founder: { '@id': `${SITE_URL}/#person` },
     areaServed: [
@@ -50,6 +50,12 @@ export function professionalServiceSchema(): JsonLdObject {
       { '@type': 'AdministrativeArea', name: 'European Union' },
     ],
     knowsAbout: [
+      'distributed energy resources (DER)',
+      'BESS dispatch optimization',
+      'DERMS',
+      'Mieterstrom §42b EnWG',
+      'power flow and digital twins',
+      'physics-informed neural networks',
       'mixed-SKU palletizing',
       'pallet pattern planning',
       'load stability and density',
