@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import KpiTiles from '@/components/viz/KpiTiles';
+import ProgressionRail from '@/components/viz/ProgressionRail';
+import { StatusBar } from '@/components/viz/RegistryCharts';
+import WedgeFunnel from '@/components/viz/WedgeFunnel';
 import JsonLd from '@/components/JsonLd';
 import { CLUSTERS, clusterById } from '@/lib/clusters';
 import { DECISIONS, KILL_LIST } from '@/lib/energy/decisions';
@@ -83,21 +87,18 @@ export default function EnergyPage({ params }: PageProps) {
   const cluster = clusterById('energy');
   const counts = statusCounts();
   const href = (p: string) => langHref(lang, p);
-  const headline = KPIS.filter((k) => ['revenue', 'qualified', 'pilots', 'deployments', 'assets', 'benchmarks'].includes(k.id));
+  const headline = KPIS.filter((k) => ['revenue', 'qualified', 'pilots', 'deployments', 'assets', 'opt-value', 'benchmarks'].includes(k.id));
   const wedge = WEDGES[0];
 
   return (
     <EnergyShell lang={lang} path={ENERGY_ROOT} kicker={ENERGY_KICKER} h1={c.h1} lead={cluster.mission[lang]} api="index">
-      <p className="energy-progression" aria-label={c.progression}>
-        {cluster.progression.map((s, i) => (
-          <span key={s}>{i > 0 && <i aria-hidden="true">→</i>}<b>{s}</b></span>
-        ))}
-      </p>
+      <ProgressionRail lang={lang} />
       <p className="honesty" role="note"><span className="kicker">{c.status}</span> {cluster.status[lang]}</p>
 
       <section className="index-group">
         <h2>{c.registryH2}</h2>
         <p className="intro">{c.registryLead(REGISTRY.length)}</p>
+        <StatusBar lang={lang} />
         <div className="energy-counts">
           {Object.entries(counts).map(([s, n]) => (
             <a key={s} href={`${href('/energy/registry')}#${s.toLowerCase()}`} className="energy-count">
@@ -110,19 +111,12 @@ export default function EnergyPage({ params }: PageProps) {
       <section className="index-group">
         <h2>{c.kpiH2}</h2>
         <p className="intro">{c.kpiLead}</p>
-        <div className="grid grid-3 energy-kpis">
-          {headline.map((k) => (
-            <div className="card" key={k.id}>
-              <span className="tag">{k.label}</span>
-              <strong className="energy-kpi-value">{k.value === null ? c.notMeasured : k.value}</strong>
-              <p>{k.unit} · {k.target}</p>
-            </div>
-          ))}
-        </div>
+        <KpiTiles lang={lang} ids={headline.map((k) => k.id)} />
       </section>
 
       <section className="index-group">
         <h2>{c.wedgeH2}</h2>
+        <WedgeFunnel lang={lang} />
         <div className="card">
           <span className="tag">Wedge {wedge.id} · <Status value={wedge.status} /></span>
           <h3>{wedge.name}</h3>

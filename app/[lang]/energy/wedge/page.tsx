@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import WedgeFunnel from '@/components/viz/WedgeFunnel';
 import { energyPage } from '@/lib/energy/pages';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
 import { DISCOVERY_QUESTIONS, NEVER_ASK, PRIORITY_CUSTOMERS, WEDGES } from '@/lib/energy/wedge';
@@ -33,6 +34,7 @@ export default function WedgePage({ params }: PageProps) {
   const c = COPY[lang];
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead} api={PAGE.api}>
+      <WedgeFunnel lang={lang} />
       {WEDGES.map((w) => (
         <section className="index-group" key={w.id} id={`wedge-${w.id}`}>
           <h2>Wedge {w.id} · {w.name} <Status value={w.status} /></h2>

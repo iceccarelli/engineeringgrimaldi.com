@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import { StatusBar, ValueRiskMatrix } from '@/components/viz/RegistryCharts';
 import { energyPage } from '@/lib/energy/pages';
 import { REGISTRY, REGISTRY_STATUSES, byStatus } from '@/lib/energy/registry';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
@@ -38,6 +39,8 @@ export default function RegistryPage({ params }: PageProps) {
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead} api={PAGE.api}>
       <p className="intro energy-method">{c.method}</p>
+      <StatusBar lang={lang} />
+      <ValueRiskMatrix lang={lang} />
 
       {REGISTRY_STATUSES.map((s) => {
         const rows = byStatus(s);

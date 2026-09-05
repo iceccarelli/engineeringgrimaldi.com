@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import ResearchMatrix from '@/components/viz/ResearchMatrix';
 import { energyPage } from '@/lib/energy/pages';
 import { BENCHMARK_RECORD, FRONTIER, RESEARCH } from '@/lib/energy/research';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
@@ -41,6 +42,7 @@ export default function ResearchPage({ params }: PageProps) {
         <h2>{c.recordH2}</h2>
         <p className="energy-chips">{BENCHMARK_RECORD.map((b) => <span className="chip" key={b}>{b}</span>)}</p>
       </section>
+      <ResearchMatrix lang={lang} />
       <section className="index-group">
         <h2>{c.topicsH2}</h2>
         <div className="table-wrap">

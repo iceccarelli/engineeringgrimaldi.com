@@ -63,6 +63,10 @@ done
 # 5. DERIM → GridOS module (D-003, needs CEO approval): open the merge PR in gridos, retire the derim web front
 ```
 
+## Visualization layer (patch 0002)
+
+`lib/viz.ts` (validated four-colour system) and `components/viz/*`: ProgressionRail (what may run today, locked stages hatched), SafetyChainDiagram (ten stages, one boundary), ArchitectureMap (GridOS module map, probabilistic modules dashed), StatusBar + ValueRiskMatrix (registry), KpiTiles (hero revenue, explicit "not measured"), WedgeFunnel (counted vs 90-day target), DecisionTimeline, ResearchMatrix (benchmark fields per topic). All server-rendered SVG, no client JS, each with a table twin on the same page.
+
 ## Weekly loop from here
 
 1. Update `KPI_AS_OF`, `REGISTRY_UPDATED`, KPI values (with sources) in `lib/energy/kpis.ts`, `lib/energy/registry.ts`.

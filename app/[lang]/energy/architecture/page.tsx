@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import ArchitectureMap from '@/components/viz/ArchitectureMap';
 import { MODULES, PRIMITIVES, PRODUCT_BRAND, SEPARATION_TRIGGERS } from '@/lib/energy/architecture';
 import { energyPage } from '@/lib/energy/pages';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
@@ -42,6 +43,7 @@ export default function ArchitecturePage({ params }: PageProps) {
   const children = MODULES.filter((m) => m.id !== 'kernel');
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead} api={PAGE.api}>
+      <ArchitectureMap lang={lang} />
       <section className="index-group">
         <h2>{c.treeH2}</h2>
         <pre className="energy-tree" aria-label="target architecture">{`${PRODUCT_BRAND.toUpperCase()}

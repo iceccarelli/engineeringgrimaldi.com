@@ -59,3 +59,12 @@ export const PRIORITY_CUSTOMERS = [
   'C&I energy operators', 'BESS operators', 'renewable developers', 'microgrid operators',
   'aggregators', 'energy communities', 'Stadtwerke', 'selected DSO / utility partners',
 ] as const;
+
+/** The commercial funnel for wedge A. `actual` is counted, never estimated;
+ *  `target` is the 90-day objective. */
+export const FUNNEL: readonly { step: string; actual: number; target: number }[] = [
+  { step: 'Conversations', actual: 0, target: 10 },
+  { step: 'Cost named by budget owner', actual: 0, target: 5 },
+  { step: 'Data-sharing agreed', actual: 0, target: 2 },
+  { step: 'Paid trial', actual: 0, target: 1 },
+] as const;

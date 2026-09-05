@@ -96,3 +96,15 @@ export const PRIMITIVES: readonly Primitive[] = [
   { name: 'Simulation & policy interfaces', users: ['optimizer', 'physics', 'agents'], eliminates: 'Solver-specific call sites', reducesCost: 'Newton vs PINN swap is one adapter', securityBenefit: 'Constraint check independent of proposer', unlocks: 'Benchmarks with identical harness', from: 'physics-informed', state: 'specified' },
   { name: 'Experiment tracking & model registry', users: ['forecasting', 'physics', 'research'], eliminates: 'Notebook-only results', reducesCost: 'Reproducible runs, no re-derivation', securityBenefit: 'Provenance of every deployed model', unlocks: 'Honest "state of the art" claims', from: 'new (MLflow or equivalent)', state: 'specified' },
 ] as const;
+
+/** Which stages of the progression the cluster is allowed to operate today.
+ *  AUTHORIZE and EXECUTE are locked by decision D-007 until NeuralBridge exists. */
+export const PROGRESSION_STATE: readonly { stage: string; state: 'active' | 'building' | 'locked'; note: string }[] = [
+  { stage: 'OBSERVE', state: 'active', note: 'GridOS ingestion, OPC UA adapter' },
+  { stage: 'PREDICT', state: 'active', note: 'MPC forecast loop — error not yet measured' },
+  { stage: 'SIMULATE', state: 'building', note: 'Newton baseline; PINN surrogate in research' },
+  { stage: 'OPTIMIZE', state: 'active', note: 'MILP dispatch scheduler' },
+  { stage: 'RECOMMEND', state: 'building', note: 'Wedge A: explanation + € gap report' },
+  { stage: 'AUTHORIZE', state: 'locked', note: 'D-007 — no safety runtime exists' },
+  { stage: 'EXECUTE', state: 'locked', note: 'D-007 — never before NeuralBridge' },
+] as const;

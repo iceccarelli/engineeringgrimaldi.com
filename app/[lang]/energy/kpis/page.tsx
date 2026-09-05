@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell from '@/components/EnergyShell';
+import KpiTiles from '@/components/viz/KpiTiles';
 import { CEO_REPORT_SECTIONS, KPIS, KPI_AS_OF } from '@/lib/energy/kpis';
 import { energyPage } from '@/lib/energy/pages';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
@@ -33,6 +34,7 @@ export default function KpiPage({ params }: PageProps) {
   const c = COPY[lang];
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead} api={PAGE.api}>
+      <KpiTiles lang={lang} />
       <section className="index-group">
         <div className="table-wrap">
           <table className="ref-table energy-table">

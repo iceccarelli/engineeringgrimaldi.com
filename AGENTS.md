@@ -37,6 +37,14 @@ Pages render these constants. **Never** duplicate a fact in a page; change the c
 - **Weekly**: update `KPI_AS_OF`, `REGISTRY_UPDATED`, KPI values with sources, new decisions, findings that answer all six questions. Produce the ten-section CEO report from `CEO_REPORT_SECTIONS`.
 - **Palletizer is not yours.** Cluster-2 files (`lib/mixedsku.ts`, `lib/palletize.ts`, `components/StackPlanner.tsx`, `/palletizer`, `/docs`, `/integrators`, `/tools`) change only on explicit cluster-2 tasks.
 
+## Visualization rules (components/viz, lib/viz.ts)
+
+- Charts are **server-rendered SVG**, no client JavaScript. They read the same constants as the tables; a chart never carries a number the table does not.
+- **Four data colours only** (`VIZ.keep / support / hold / kill`), validated with the dataviz six-checks validator on the paper surface. Colour follows the entity's tier, never its rank. Text never wears a data colour.
+- Every figure: title naming what is plotted, a legend for ≥ 2 tiers, direct labels on marks, 2 px surface gaps, `<title>` hover detail, a table twin on the same page.
+- "not measured" (`null`) renders as the words, in muted ink — never as 0, never hidden. Locked stages render hatched, not greyed.
+- One hero figure per view (revenue). No dual axes. No rainbow. No decorative charts.
+
 ## Build and verify
 
 ```bash

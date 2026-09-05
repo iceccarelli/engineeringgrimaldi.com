@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { Status } from '@/components/EnergyShell';
+import KpiTiles from '@/components/viz/KpiTiles';
+import ProgressionRail from '@/components/viz/ProgressionRail';
+import { StatusBar } from '@/components/viz/RegistryCharts';
 import IntakeForm from '@/components/IntakeForm';
 import JsonLd from '@/components/JsonLd';
 import { CLUSTERS, NOT_REWARDED_FOR, REWARDED_FOR } from '@/lib/clusters';
@@ -95,7 +98,7 @@ export default function Home({ params }: PageProps) {
   const copy = COPY[lang];
   const href = (path: string) => langHref(lang, path);
   const counts = statusCounts();
-  const headline = KPIS.filter((k) => ['revenue', 'qualified', 'pilots', 'deployments'].includes(k.id));
+  const headline = KPIS.filter((k) => ['revenue', 'qualified', 'pilots'].includes(k.id));
   const last = DECISIONS[DECISIONS.length - 1];
   const wedge = WEDGES[0];
 
@@ -130,24 +133,21 @@ export default function Home({ params }: PageProps) {
                 <span className="kicker">Cluster {c.order} · {c.external ? copy.referenced : copy.controlledHere}</span>
                 <h3>{c.name[lang]}</h3>
                 <p>{c.mission[lang]}</p>
-                <p className="energy-progression">
-                  {c.progression.map((s, i) => <span key={s}>{i > 0 && <i aria-hidden="true">→</i>}<b>{s}</b></span>)}
-                </p>
+                {isEnergy ? (
+                  <ProgressionRail lang={lang} compact />
+                ) : (
+                  <p className="energy-progression">
+                    {c.progression.map((s, i) => <span key={s}>{i > 0 && <i aria-hidden="true">→</i>}<b>{s}</b></span>)}
+                  </p>
+                )}
                 {isEnergy && (
                   <div className="cluster-live">
                     <p className="kicker">{copy.kpiAsOf}</p>
+                    <KpiTiles lang={lang} ids={headline.map((k) => k.id)} />
+                    <StatusBar lang={lang} compact />
                     <div className="energy-counts">
                       {Object.entries(counts).map(([s, n]) => (
                         <a key={s} href={`${href('/energy/registry')}#${s.toLowerCase()}`} className="energy-count"><Status value={s} /><strong>{n}</strong></a>
-                      ))}
-                    </div>
-                    <div className="grid grid-4 energy-kpis">
-                      {headline.map((k) => (
-                        <div className="card" key={k.id}>
-                          <span className="tag">{k.label}</span>
-                          <strong className="energy-kpi-value">{k.value === null ? copy.notMeasured : k.value}</strong>
-                          <p>{k.unit}</p>
-                        </div>
                       ))}
                     </div>
                     <p><b>{copy.wedge} {wedge.id}</b> <Status value={wedge.status} /> — <a href={href('/energy/wedge')}>{wedge.name}</a></p>

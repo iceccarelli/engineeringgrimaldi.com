@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import EnergyShell from '@/components/EnergyShell';
+import ProgressionRail from '@/components/viz/ProgressionRail';
+import SafetyChainDiagram from '@/components/viz/SafetyChainDiagram';
 import { SAFETY_CHAIN } from '@/lib/energy/architecture';
 import { energyPage } from '@/lib/energy/pages';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
@@ -55,6 +57,8 @@ export default function SafetyPage({ params }: PageProps) {
   const c = COPY[lang];
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead}>
+      <SafetyChainDiagram lang={lang} />
+      <ProgressionRail lang={lang} />
       <section className="index-group">
         <h2>{c.chainH2}</h2>
         <ol className="energy-chain">

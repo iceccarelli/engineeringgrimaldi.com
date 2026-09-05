@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import DecisionTimeline from '@/components/viz/DecisionTimeline';
 import { CLUSTER_MOVE_RECORD, PROJECT_GATES } from '@/lib/clusters';
 import { DECISIONS, KILL_LIST } from '@/lib/energy/decisions';
 import { energyPage } from '@/lib/energy/pages';
@@ -42,6 +43,7 @@ export default function DecisionsPage({ params }: PageProps) {
   const c = COPY[lang];
   return (
     <EnergyShell lang={lang} path={PAGE.path} kicker={ENERGY_KICKER} h1={PAGE.label[lang]} lead={c.lead} api={PAGE.api}>
+      <DecisionTimeline lang={lang} />
       <section className="index-group">
         <h2>{c.logH2}</h2>
         {[...DECISIONS].reverse().map((d) => (
