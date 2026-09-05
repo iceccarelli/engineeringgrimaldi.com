@@ -67,10 +67,18 @@ done
 
 `lib/viz.ts` (validated four-colour system) and `components/viz/*`: ProgressionRail (what may run today, locked stages hatched), SafetyChainDiagram (ten stages, one boundary), ArchitectureMap (GridOS module map, probabilistic modules dashed), StatusBar + ValueRiskMatrix (registry), KpiTiles (hero revenue, explicit "not measured"), WedgeFunnel (counted vs 90-day target), DecisionTimeline, ResearchMatrix (benchmark fields per topic). All server-rendered SVG, no client JS, each with a table twin on the same page.
 
+## Customer evidence, energy intake, CEO report generator (patch 0003)
+
+- `lib/energy/customers.ts`: anonymised conversation records; funnel and qualified/pilot KPIs derived from them (D-011). `/energy/customers` + `/api/energy/customers`.
+- `components/EnergyIntakeForm.tsx` + `cluster=energy` branch in `/api/intake`: the five discovery questions, same webhook, tagged (D-012). On `/`, `/energy/wedge`, `/energy/customers`.
+- `scripts/ceo-report.mjs` + `.github/workflows/ceo-report.yml`: ten-section report generated every Friday into `docs/energy/reports/`, delivered as a PR (D-013).
+- `docs/energy/wedge-a/`: OFFER.md (four-week dispatch review, price hypothesis, kill condition), DISCOVERY_SCRIPT.de.md (20-minute call), TARGET_LIST.md (how the first fifty CRM rows are built from MaStR / BNetzA / VKU — no names in the repo).
+
 ## Weekly loop from here
 
-1. Update `KPI_AS_OF`, `REGISTRY_UPDATED`, KPI values (with sources) in `lib/energy/kpis.ts`, `lib/energy/registry.ts`.
+0. Ten outbound contacts; every reply → 20-minute call → one record in `lib/energy/customers.ts` the same day.
+1. Update `KPI_AS_OF`, `REGISTRY_UPDATED`, remaining KPI values (with sources) in `lib/energy/kpis.ts`, `lib/energy/registry.ts`. Revenue comes from Stripe/invoices; qualified and pilots are derived.
 2. Append decisions to `lib/energy/decisions.ts`; never edit old ones.
 3. Log findings in `lib/energy/intel.ts` only if all six questions are answered.
 4. `npm run build` — all `/energy/*` and `/api/energy/*` must prerender.
-5. Produce the ten-section CEO report.
+5. Friday: the Action opens the CEO-report PR; fill in the two human sections; merge.

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { CLUSTERS, CLUSTER_MOVE_RECORD, NOT_REWARDED_FOR, PROJECT_GATES, REWARDED_FOR } from '@/lib/clusters';
 import { MODULES, PRIMITIVES, PRODUCT_BRAND, SAFETY_CHAIN, SEPARATION_TRIGGERS } from '@/lib/energy/architecture';
+import { CONVERSATIONS, CUSTOMERS_UPDATED, FUNNEL_TARGETS, STAGES, bySegment, funnel } from '@/lib/energy/customers';
 import { DECISIONS, KILL_LIST } from '@/lib/energy/decisions';
 import { FINDINGS, WATCH } from '@/lib/energy/intel';
 import { CEO_REPORT_SECTIONS, KPIS, KPI_AS_OF } from '@/lib/energy/kpis';
@@ -35,9 +36,10 @@ const RESOURCES = {
   tools: () => ({ requirements: TOOL_REQUIREMENTS, invariant: 'No tool writes a setpoint. request_authorization produces a signed request for NeuralBridge.', tools: AGENT_TOOLS }),
   kpis: () => ({ asOf: KPI_AS_OF, note: 'null means not measured', kpis: KPIS, ceoReportSections: CEO_REPORT_SECTIONS }),
   decisions: () => ({ decisions: DECISIONS, killList: KILL_LIST }),
+  customers: () => ({ updated: CUSTOMERS_UPDATED, note: 'Anonymised: segment, region, size band, cost band, budget-owner role. Names and contacts live only in the private CRM (ref).', stages: STAGES, targets: FUNNEL_TARGETS, funnel: funnel('A'), bySegment: bySegment(), count: CONVERSATIONS.length, conversations: CONVERSATIONS }),
   research: () => ({ benchmarkRecord: BENCHMARK_RECORD, topics: RESEARCH }),
   intelligence: () => ({ watch: WATCH, findings: FINDINGS }),
-  wedge: () => ({ wedges: WEDGES, priorityCustomers: PRIORITY_CUSTOMERS, discoveryQuestions: DISCOVERY_QUESTIONS }),
+  wedge: () => ({ wedges: WEDGES, funnel: funnel('A'), priorityCustomers: PRIORITY_CUSTOMERS, discoveryQuestions: DISCOVERY_QUESTIONS }),
 } as const;
 
 type Resource = keyof typeof RESOURCES;
