@@ -1,5 +1,5 @@
 import Figure from './Figure';
-import { FUNNEL } from '@/lib/energy/wedge';
+import { funnel } from '@/lib/energy/customers';
 import { MARK, SVG_TEXT, VIZ } from '@/lib/viz';
 
 /**
@@ -8,6 +8,7 @@ import { MARK, SVG_TEXT, VIZ } from '@/lib/viz';
  * honestly instead of hiding an empty chart.
  */
 export default function WedgeFunnel({ lang }: { lang: 'en' | 'de' }) {
+  const FUNNEL = funnel('A');
   const W = 920; const rowH = 44; const pl = 250; const pr = 60; const top = 16; const H = top + FUNNEL.length * rowH + 8;
   const max = Math.max(...FUNNEL.map((f) => f.target));
   const sx = (v: number) => (v / max) * (W - pl - pr);
