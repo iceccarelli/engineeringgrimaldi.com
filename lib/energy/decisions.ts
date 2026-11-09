@@ -45,6 +45,15 @@ export const DECISIONS: readonly Decision[] = [
   { id: 'D-010', date: '2026-09-05', title: 'Locate-or-strike deadline for unlocated repositories', status: 'decided', needsCeo: false,
     decision: 'NeuralBridge, BatteryTrack*, UtilityPulse*, Advanced Asset Insight, Advanced Mobile SCADA Suite: provide a URL by 2026-09-19 or they are struck from the registry.',
     because: ['A registry entry nobody can open is not an asset'] },
+  { id: 'D-011', date: '2026-09-05', title: 'Customer evidence is public but anonymised; the funnel is derived, never typed', status: 'decided', needsCeo: false,
+    decision: 'lib/energy/customers.ts holds one record per conversation with segment, region, size band, cost band, budget-owner role and stage. Names and contacts stay in the private CRM. Funnel counts and the qualified / pilot KPIs are computed from these records.',
+    because: ['Compliments are not validation; a record has to reach a stage', 'A hand-typed funnel drifts; a derived one cannot', 'DSGVO: no personal data on a public page'] },
+  { id: 'D-012', date: '2026-09-05', title: 'Energy intake goes live on home and /energy/wedge', status: 'decided', needsCeo: false,
+    decision: 'A second intake path asks the five discovery questions (what costs money, how much, who owns the budget, how it is solved today, what success is worth) and forwards to the same webhook as the SKU intake with cluster=energy.',
+    because: ['The only thing on this site that turns into money is a lead', 'The SKU intake cannot carry an energy conversation'] },
+  { id: 'D-013', date: '2026-09-05', title: 'Weekly CEO report is generated, not written', status: 'decided', needsCeo: false,
+    decision: 'scripts/ceo-report.mjs reads /api/energy/* and writes docs/energy/reports/YYYY-MM-DD.md with exactly the ten sections. A GitHub Action runs it every Friday and opens a pull request.',
+    because: ['Outcomes come from the constants; prose comes from a human only in DECISIONS and NEXT 7 DAYS', 'A report that is not produced on schedule is not a KPI system'] },
 ] as const;
 
 export type Kill = { what: string; date: string; reason: string; decision: string };

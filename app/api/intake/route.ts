@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 
 /**
+ * Two intakes, one route, one webhook.
+ *  - cluster=energy: the five discovery questions (D-012). No files.
+ *  - default: SKU / layout intake (cluster 2, unchanged).
+ *
  * SKU / layout intake. Multipart in (company, city, robot, sku CSV,
  * optional layout PDF, email), forwarded as JSON to INTAKE_WEBHOOK_URL.
  *
@@ -23,13 +27,16 @@ function wantsJson(request: Request): boolean {
   return (request.headers.get('accept') ?? '').includes('application/json') || request.headers.get('x-requested-with') === 'fetch';
 }
 
-function respond(request: Request, lang: string, outcome: Outcome): NextResponse {
+const SEGMENTS = ['stadtwerke', 'mieterstrom-operator', 'bess-operator', 'c-and-i', 'aggregator', 'energy-community', 'renewable-developer', 'dso', 'other'] as const;
+const BANDS = ['unknown', '<10k', '10k-50k', '50k-250k', '>250k'] as const;
+
+function respond(request: Request, lang: string, outcome: Outcome, returnPath = '/contact'): NextResponse {
   if (wantsJson(request)) {
     return outcome.ok
       ? NextResponse.json({ ok: true })
       : NextResponse.json({ error: outcome.error }, { status: outcome.status });
   }
-  const base = lang === 'de' ? '/de/contact' : '/contact';
+  const base = lang === 'de' ? `/de${returnPath}` : returnPath;
   const url = new URL(outcome.ok ? `${base}#received` : `${base}#error`, request.url);
   return NextResponse.redirect(url, 303);
 }
@@ -49,6 +56,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const str = (k: string) => (typeof form.get(k) === 'string' ? (form.get(k) as string).trim() : '');
+
+  if (str('cluster') === 'energy') return energyIntake(request, form, lang, str);
+
   const company = str('company').slice(0, 200);
   const city = str('city').slice(0, 120);
   const robot = ROBOTS.includes(str('robot') as (typeof ROBOTS)[number]) ? str('robot') : 'other';
@@ -86,4 +96,39 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!res || !res.ok) return respond(request, lang, { ok: false, error: 'provider_error', status: 502 });
   return respond(request, lang, { ok: true });
+}
+
+/** Energy intake (cluster 1): five questions, no files, same webhook, tagged. */
+async function energyIntake(request: Request, form: FormData, lang: 'en' | 'de', str: (k: string) => string): Promise<NextResponse> {
+  const RET = '/energy/customers';
+  const company = str('company').slice(0, 200);
+  const role = str('role').slice(0, 120);
+  const segment = (SEGMENTS as readonly string[]).includes(str('segment')) ? str('segment') : 'other';
+  const band = (BANDS as readonly string[]).includes(str('band')) ? str('band') : 'unknown';
+  const email = str('email').toLowerCase();
+  const costs = str('costs').slice(0, 1000);
+  const owner = str('owner').slice(0, 200);
+  const current = str('current').slice(0, 300);
+  const worth = str('worth').slice(0, 300);
+
+  if (!company || !role || !costs) return respond(request, lang, { ok: false, error: 'missing_fields', status: 400 }, RET);
+  if (!EMAIL_RE.test(email) || email.length > 254) return respond(request, lang, { ok: false, error: 'invalid_email', status: 400 }, RET);
+
+  const webhook = process.env.INTAKE_WEBHOOK_URL;
+  if (!webhook) return respond(request, lang, { ok: false, error: 'intake_unconfigured', status: 503 }, RET);
+
+  const res = await fetch(webhook, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(process.env.INTAKE_WEBHOOK_TOKEN ? { Authorization: `Bearer ${process.env.INTAKE_WEBHOOK_TOKEN}` } : {}) },
+    body: JSON.stringify({
+      source: 'engineeringgrimaldi.com', cluster: 'energy', wedge: 'A', receivedAt: new Date().toISOString(), lang,
+      company, role, segment, email,
+      answers: { costsToday: costs, costBand: band, budgetOwner: owner, currentSolution: current, successWorth: worth },
+      /** What the CRM row should become on /energy/customers once the call happens — names stripped. */
+      registryDraft: { segment, costBand: band, stage: 'contacted', wedge: 'A' },
+    }),
+  }).catch(() => null);
+
+  if (!res || !res.ok) return respond(request, lang, { ok: false, error: 'provider_error', status: 502 }, RET);
+  return respond(request, lang, { ok: true }, RET);
 }

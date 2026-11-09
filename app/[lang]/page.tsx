@@ -3,6 +3,7 @@ import { Status } from '@/components/EnergyShell';
 import KpiTiles from '@/components/viz/KpiTiles';
 import ProgressionRail from '@/components/viz/ProgressionRail';
 import { StatusBar } from '@/components/viz/RegistryCharts';
+import EnergyIntakeForm from '@/components/EnergyIntakeForm';
 import IntakeForm from '@/components/IntakeForm';
 import JsonLd from '@/components/JsonLd';
 import { CLUSTERS, NOT_REWARDED_FOR, REWARDED_FOR } from '@/lib/clusters';
@@ -12,7 +13,7 @@ import { KPIS, KPI_AS_OF } from '@/lib/energy/kpis';
 import { ENERGY_PAGES } from '@/lib/energy/pages';
 import { REGISTRY, statusCounts } from '@/lib/energy/registry';
 import { WEDGES } from '@/lib/energy/wedge';
-import { INTAKE_LABELS } from '@/lib/labels';
+import { ENERGY_INTAKE_LABELS, INTAKE_LABELS } from '@/lib/labels';
 import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
 import { ogImages } from '@/lib/meta';
 import { professionalServiceSchema } from '@/lib/schema';
@@ -47,8 +48,10 @@ const COPY = {
     notRewarded: 'Not rewarded for',
     machineH2: 'For agents, evaluators and procurement',
     machineP: 'Every control page has a JSON twin. Read the index, then the resource you need. No sign-up, no key, read-only.',
-    intakeH2: 'Contact',
-    intakeLead: 'Energy: tell us what your dispatch or your Mieterstrom project costs you today. Palletizing: send the SKU list. Either way you get an answer, not a demo.',
+    intakeH2: 'Contact — energy',
+    intakeLead: 'Five questions. Tell us what your dispatch or your Mieterstrom project costs you today; you get a written answer with numbers, not a demo.',
+    skuH2: 'Contact — palletizing',
+    skuLead: 'Send the SKU list. You get a stack and the unstable SKUs back.',
     palletizerNote: 'Cluster 2 product surface — planner, docs, integrators, tools — is unchanged.',
     source: 'Source',
   },
@@ -70,8 +73,10 @@ const COPY = {
     notRewarded: 'Nicht belohnt für',
     machineH2: 'Für Agenten, Prüfer und Einkauf',
     machineP: 'Jede Steuerungsseite hat einen JSON-Zwilling. Erst den Index lesen, dann die benötigte Ressource. Keine Anmeldung, kein Schlüssel, nur lesend.',
-    intakeH2: 'Kontakt',
-    intakeLead: 'Energie: Sagen Sie uns, was Ihr Dispatch oder Ihr Mieterstrom-Projekt Sie heute kostet. Palettieren: SKU-Liste senden. In beiden Fällen bekommen Sie eine Antwort, keine Demo.',
+    intakeH2: 'Kontakt — Energie',
+    intakeLead: 'Fünf Fragen. Sagen Sie uns, was Ihr Dispatch oder Ihr Mieterstrom-Projekt Sie heute kostet; Sie bekommen eine schriftliche Antwort mit Zahlen, keine Demo.',
+    skuH2: 'Kontakt — Palettieren',
+    skuLead: 'SKU-Liste senden. Sie erhalten einen Stapel und die instabilen SKUs zurück.',
     palletizerNote: 'Produktoberfläche Cluster 2 — Planer, Doku, Integratoren, Werkzeuge — ist unverändert.',
     source: 'Quellcode',
   },
@@ -195,6 +200,12 @@ GET ${SITE_URL}/api/energy/decisions`}</pre>
       <div className="section" id="intake">
         <h2>{copy.intakeH2}</h2>
         <p className="intro">{copy.intakeLead}</p>
+        <EnergyIntakeForm labels={ENERGY_INTAKE_LABELS[lang]} lang={lang} />
+      </div>
+
+      <div className="section" id="sku-intake">
+        <h2>{copy.skuH2}</h2>
+        <p className="intro">{copy.skuLead}</p>
         <IntakeForm labels={INTAKE_LABELS[lang]} lang={lang} />
       </div>
 

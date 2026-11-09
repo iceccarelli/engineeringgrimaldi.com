@@ -16,13 +16,15 @@ export type Kpi = {
   reportSection: 'MONEY' | 'CUSTOMERS' | 'PRODUCT' | 'TECHNOLOGY' | 'RESEARCH' | 'RISKS';
 };
 
+import { countAtLeast } from './customers';
+
 export const KPI_AS_OF = '2026-09-05';
 
 export const KPIS: readonly Kpi[] = [
   { id: 'revenue', label: 'Revenue', unit: '€ / month', value: 0, target: 'First paid customer', source: 'Stripe (energie-teilen) + invoices', reportSection: 'MONEY' },
   { id: 'pipeline', label: 'Pipeline', unit: '€ weighted', value: 0, target: '≥ 3 qualified opportunities', source: 'Decision log, customer evidence file', reportSection: 'MONEY' },
-  { id: 'qualified', label: 'Qualified customers', unit: 'count', value: 0, target: '≥ 3 (budget owner named, cost quantified)', source: 'Customer evidence file', reportSection: 'CUSTOMERS' },
-  { id: 'pilots', label: 'Pilots', unit: 'count', value: 0, target: '1 signed', source: 'Signed pilot agreement', reportSection: 'CUSTOMERS' },
+  { id: 'qualified', label: 'Qualified customers', unit: 'count', value: countAtLeast('cost-named'), target: '≥ 3 (budget owner named, cost quantified)', source: 'Customer evidence file', reportSection: 'CUSTOMERS' },
+  { id: 'pilots', label: 'Pilots', unit: 'count', value: countAtLeast('paid-trial'), target: '1 signed', source: 'Signed pilot agreement', reportSection: 'CUSTOMERS' },
   { id: 'deployments', label: 'Deployments', unit: 'count', value: 0, target: '1', source: 'Kernel deployment registry', reportSection: 'PRODUCT' },
   { id: 'assets', label: 'MW / assets connected', unit: 'MW · assets', value: 0, target: 'First real asset stream', source: 'Telemetry ingestion primitive', reportSection: 'PRODUCT' },
   { id: 'forecast-error', label: 'Forecast error', unit: 'MAPE / pinball', value: null, target: 'Beat persistence baseline on customer data', source: 'Experiment tracking', reportSection: 'TECHNOLOGY' },

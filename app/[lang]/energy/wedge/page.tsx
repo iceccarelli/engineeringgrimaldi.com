@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import EnergyShell, { Status } from '@/components/EnergyShell';
+import EnergyIntakeForm from '@/components/EnergyIntakeForm';
 import WedgeFunnel from '@/components/viz/WedgeFunnel';
+import { ENERGY_INTAKE_LABELS } from '@/lib/labels';
 import { energyPage } from '@/lib/energy/pages';
 import { ENERGY_KICKER, energyMetadata, langOf } from '@/lib/energy/seo';
 import { DISCOVERY_QUESTIONS, NEVER_ASK, PRIORITY_CUSTOMERS, WEDGES } from '@/lib/energy/wedge';
@@ -58,6 +60,10 @@ export default function WedgePage({ params }: PageProps) {
         <h2>{c.askH2}</h2>
         <ol className="energy-rules">{DISCOVERY_QUESTIONS.map((q) => <li key={q}>{q}</li>)}</ol>
         <p className="boundary-note"><b>{c.never}</b> “{NEVER_ASK}”</p>
+      </section>
+      <section className="index-group" id="intake">
+        <h2>{lang === 'de' ? 'Gespräch beginnen' : 'Start a conversation'}</h2>
+        <EnergyIntakeForm labels={ENERGY_INTAKE_LABELS[lang]} lang={lang} />
       </section>
     </EnergyShell>
   );
