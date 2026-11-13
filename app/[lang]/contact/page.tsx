@@ -1,62 +1,23 @@
-import type { Metadata } from 'next';
-import Breadcrumbs from '@/components/Breadcrumbs';
-import IntakeForm from '@/components/IntakeForm';
-import { getDict } from '@/lib/dict';
-import { INTAKE_LABELS } from '@/lib/labels';
-import { isLang, pageAlternates, type Lang } from '@/lib/i18n';
-import { CONTACT_EMAIL } from '@/lib/site';
-
-/** Contact = the same intake. No calendar, no price. */
-
-type PageProps = { params: { lang: string } };
-const PATH = '/contact';
-
-const COPY = {
-  en: {
-    title: 'Contact — Send a SKU List',
-    description: 'Send company, city, robot brand and a SKU CSV. You get a stack and the unstable SKUs back.',
-    kicker: 'Contact',
-    h1: 'Send the SKU list.',
-    lead: 'Company, city, robot brand, the file, an optional cell layout. You get a stack and the unstable SKUs back — usually within two working days.',
-    received: 'Received. We answer with a stack and the unstable SKUs.',
-    error: 'Sending failed. Please email the file to',
-    where: 'Frankfurt am Main. Legal contact only:',
-  },
-  de: {
-    title: 'Kontakt — SKU-Liste senden',
-    description: 'Senden Sie Firma, Stadt, Robotermarke und eine SKU-CSV. Sie erhalten einen Stapel und die instabilen SKUs zurück.',
-    kicker: 'Kontakt',
-    h1: 'SKU-Liste senden.',
-    lead: 'Firma, Stadt, Robotermarke, die Datei, optional ein Zellenlayout. Sie erhalten einen Stapel und die instabilen SKUs zurück — in der Regel innerhalb von zwei Werktagen.',
-    received: 'Erhalten. Sie bekommen einen Stapel und die instabilen SKUs.',
-    error: 'Das Senden ist fehlgeschlagen. Bitte senden Sie die Datei per E-Mail an',
-    where: 'Frankfurt am Main. Nur für rechtliche Anfragen:',
-  },
-} as const;
-
-export function generateMetadata({ params }: PageProps): Metadata {
-  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  return { title: COPY[lang].title, description: COPY[lang].description, alternates: pageAlternates(lang, PATH) };
+import type { Metadata } from "next";
+import HubInquiryForm from "@/components/HubInquiryForm";
+import Plate from "@/components/Plate";
+import { isLang, pageAlternates, type Lang } from "@/lib/i18n";
+import { NB_URL, TTP_URL } from "@/lib/site";
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const lang: Lang = isLang(params.lang) ? params.lang : "en";
+  return { title: lang === "de" ? "Anfrage & Kontakt" : "Inquiry & Contact", description: "Pilot inquiries for Time to Power (Gridforge) and NeuralBridge.", alternates: pageAlternates(lang, "/contact") };
 }
-
-export default function ContactPage({ params }: PageProps) {
-  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  const t = getDict(lang);
-  const c = COPY[lang];
+export default function ContactPage({ params }: { params: { lang: string } }) {
+  const lang: Lang = isLang(params.lang) ? params.lang : "en";
+  const de = lang === "de";
   return (
-    <main>
-      <div className="section">
-        <Breadcrumbs lang={lang} crumbs={[{ name: 'Grimaldi Engineering', path: '/' }, { name: c.kicker, path: PATH }]} />
-        <span className="kicker kicker-signal">{c.kicker}</span>
-        <h1>{c.h1}</h1>
-        <p className="lead">{c.lead}</p>
-        {/* No-JS outcomes: the intake route redirects here with a fragment. */}
-        <p id="received" className="intake-ok" role="status">{c.received}</p>
-        <p id="error" className="intake-err" role="alert">{c.error} <code>{CONTACT_EMAIL}</code></p>
-        <IntakeForm labels={INTAKE_LABELS[lang]} lang={lang} />
-        <p className="book-bring">{c.where} {CONTACT_EMAIL}</p>
-        <p className="author-block">{t.authorLine}</p>
-      </div>
-    </main>
+    <main><section className="section">
+      <span className="kicker kicker-signal">{de ? "PILOT- & UNTERNEHMENSANFRAGEN" : "COMPANY & PILOT INQUIRIES"}</span>
+      <h1>{de ? "Direkte Anfragewege" : "Direct inquiry paths"}</h1>
+      <p className="lead">{de ? "Besuchen Sie direkt timetopower.ai oder neuralbridge.io — oder senden Sie hier eine zugeordnete Pilotanfrage." : "Visit timetopower.ai or neuralbridge.io directly, or submit a tagged pilot inquiry below."}</p>
+      <div className="cta-row"><a className="btn btn-signal" href={TTP_URL} rel="noopener noreferrer">timetopower.ai ↗</a><a className="btn btn-signal" href={NB_URL} rel="noopener noreferrer">neuralbridge.io ↗</a></div>
+      <HubInquiryForm lang={lang} />
+      <div style={{ marginTop: 32 }}><Plate src="/images/companies/10-companies-hub-status-surface.jpg" alt="Clean companies hub status surface showing Time to Power and NeuralBridge" code="HUB · ROUTING SURFACE" caption={de ? "Klare Zuordnung zwischen Dach-Hub und beiden Produktseiten." : "Clean routing surface connecting operators to Time to Power and NeuralBridge."} /></div>
+    </section></main>
   );
 }

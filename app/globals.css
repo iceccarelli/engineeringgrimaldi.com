@@ -497,3 +497,6 @@ td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .viz-notes dt { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 6px; }
 .viz-notes dt i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .viz-notes dd { margin: 0; color: var(--muted); }
+
+/* === HUB VISUAL PLATES === */
+.hub-plate{margin:16px 0 0;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}.hub-plate-frame{width:100%;aspect-ratio:1168/784;background:var(--coal);overflow:hidden}.hub-plate-img{display:block;width:100%;height:100%;object-fit:cover}.hub-plate-cap{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}.hub-plate-code{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--ink)}.hub-company-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px}.hub-company-card h3{font-size:22px;margin:0}.lang-switch a[aria-current="true"]{font-weight:600;text-decoration:underline}

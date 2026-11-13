@@ -1,0 +1,29 @@
+import type { Localized } from "./i18n";
+import { NB_URL, TTP_URL } from "./site";
+export type PlateSpec = { src: string; alt: string; code: string; caption: Localized };
+export const HOME_DATA = {
+  kicker: { en: "PILOT-STAGE · FOUNDER-LED · FRANKFURT / AACHEN / TORONTO", de: "PILOTPHASE · GRÜNDERGEFÜHRT · FRANKFURT / AACHEN / TORONTO" },
+  h1: { en: "Two companies. Power-capacity intelligence and industrial autonomous assurance.", de: "Zwei Unternehmen. Leistungskapazitäts-Intelligenz und autonome Industriesicherung." },
+  lead: { en: "Grimaldi Engineering is the umbrella surface for Time to Power (Gridforge) and NeuralBridge — built on physics-informed electrical modelling and deterministic verification.", de: "Grimaldi Engineering bündelt Time to Power (Gridforge) und NeuralBridge auf Basis physikinformierter Elektrotechnik und deterministischer Verifikation." },
+  heroPlate: { src: "/images/companies/07-grimaldi-engineering-two-companies.jpg", alt: "Grimaldi Engineering: Time to Power power-capacity intelligence and NeuralBridge industrial assurance", code: "HUB 01 · TWO COMPANIES", caption: { en: "Time to Power (Gridforge) and NeuralBridge — distinct product domains sharing rigorous engineering methods.", de: "Time to Power (Gridforge) und NeuralBridge — zwei Produktwelten auf gemeinsamer Ingenieurmethodik." } },
+  companies: [
+    { slug: "time-to-power", tag: "COMPANY 01 · GRIDFORGE", name: "Time to Power (Gridforge)", externalUrl: TTP_URL, externalLabel: "timetopower.ai ↗", internalPath: "/time-to-power",
+      valueProp: { en: "Power-capacity intelligence for existing AI data-centre halls: we identify the binding electrical or thermal constraint, what unlocks more useful compute, the cost, the lead time, and the evidence class behind every number.", de: "Leistungskapazitäts-Intelligenz für bestehende KI-Rechenzentren: Wir identifizieren den bindenden elektrischen oder thermischen Engpass, freisetzbare Rechenleistung, Kosten, Vorlaufzeit und die Evidenzklasse hinter jeder Zahl." },
+      plate: { src: "/images/cool/01-cinematic-ai-power-capacity.jpg", alt: "Cinematic AI data center power capacity intelligence", code: "TTP · CAPACITY INTELLIGENCE", caption: { en: "Electrical and thermal hall limits mapped into actionable megawatt headroom.", de: "Elektrische und thermische Hallengrenzen übersetzt in belastbare Megawatt-Reserven." } } },
+    { slug: "neuralbridge", tag: "COMPANY 02 · ASSURANCE", name: "NeuralBridge", externalUrl: NB_URL, externalLabel: "neuralbridge.io ↗", internalPath: "/neuralbridge",
+      valueProp: { en: "Industrial Autonomous Assurance: tamper-evident, hash-chained records that keep safety verifications matched to the actual software and configuration of machines — so compliance evidence stays current when firmware, advisories, or systems change.", de: "Industrial Autonomous Assurance: manipulationssichere, hash-verkettete Nachweise, die Sicherheitsprüfungen exakt an den realen Software- und Konfigurationsstand von Maschinen binden." },
+      plate: { src: "/images/cool/04-neuralbridge-verification-seals.jpg", alt: "NeuralBridge autonomous assurance with verification seals", code: "NB · AUTONOMOUS ASSURANCE", caption: { en: "Cryptographic binding between safety verification artifacts and live machine configurations.", de: "Kryptografische Bindung zwischen Sicherheitsnachweisen und realer Maschinenkonfiguration." } } },
+  ],
+  whyHeading: { en: "Why both companies share one foundation", de: "Warum beide Unternehmen dasselbe Fundament teilen" },
+  whyBody: { en: "AI expansion is gated by time-to-power and hall thermal-electrical envelopes, while industrial autonomy is gated by verifiable safety evidence when software changes.", de: "Der KI-Ausbau wird durch Netzanschlusszeiten und Hallengrenzen limitiert; industrielle Autonomie durch prüfbare Sicherheitsnachweise bei Softwareänderungen." },
+  whyPlates: [
+    { src: "/images/critical/07-ai-is-power-bound.jpg", alt: "AI infrastructure constrained by electrical capacity", code: "SIGNAL 01 · AI IS POWER-BOUND", caption: { en: "Compute deployment timelines governed by substation capacity and feeder constraints.", de: "KI-Ausbau begrenzt durch Umspannwerkskapazität und Abgangsreserven." } },
+    { src: "/images/critical/09-two-companies-technical-foundation.jpg", alt: "Two companies sharing a technical foundation in power and assurance", code: "SIGNAL 02 · SHARED CORE", caption: { en: "Physics-informed power envelopes paired with tamper-evident configuration assurance.", de: "Physikinformierte Leistungsgrenzen gepaart mit manipulationssicherer Konfigurationsprüfung." } },
+  ],
+  statusHeading: { en: "Honest stage & operating surface", de: "Ehrlicher Reifegrad & Betriebsstatus" },
+  statusBody: { en: "Both companies are pilot-stage and founder-led. No public customer counts or revenue figures are published here. Primary product specifications live on timetopower.ai and neuralbridge.io.", de: "Beide Unternehmen befinden sich in der gründergeführten Pilotphase. Keine unbelegten Kunden- oder Umsatzzahlen. Produktdetails liegen primär auf timetopower.ai und neuralbridge.io." },
+  statusPlates: [
+    { src: "/images/companies/10-companies-hub-status-surface.jpg", alt: "Clean companies hub status surface showing Time to Power and NeuralBridge", code: "STATUS 01 · HUB SURFACE", caption: { en: "Umbrella routing surface pointing directly to both primary product domains.", de: "Klare Routing-Oberfläche zu beiden primären Produktdomains." } },
+    { src: "/images/cool/10-power-capacity-critical-path.jpg", alt: "Power capacity as the critical path for AI expansion", code: "STATUS 02 · CRITICAL PATH", caption: { en: "Addressing binding electrical headroom and safety-relevant machine compliance.", de: "Fokus auf elektrische Kapazitätsgrenzen und Maschinenkonformität." } },
+  ],
+};

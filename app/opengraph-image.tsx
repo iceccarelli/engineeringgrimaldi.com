@@ -1,61 +1,11 @@
-import { ImageResponse } from 'next/og';
-
-/** 1200×630 OG image, generated at the edge — no binary asset to maintain. */
-
-export const runtime = 'edge';
-export const alt = 'Grimaldi Engineering — mixed-SKU palletizing software, Frankfurt';
+import { ImageResponse } from "next/og";
+export const runtime = "nodejs";
+export const alt = "Grimaldi Engineering — Time to Power & NeuralBridge";
 export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
-
-export default function OpenGraphImage() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: 72,
-          background: '#F6F7F4',
-          color: '#12151A',
-          fontFamily: 'sans-serif',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 28,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            color: '#5C6570',
-          }}
-        >
-          PALLETIZING SOFTWARE · FRANKFURT
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', fontSize: 64, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }}>
-            Mixed-SKU palletizing software for the robot you already have.
-          </div>
-          <div style={{ display: 'flex', fontSize: 30, color: '#5C6570', lineHeight: 1.3 }}>
-            software shipped · cell not commissioned
-          </div>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: 26,
-            color: '#5C6570',
-          }}
-        >
-          <div style={{ display: 'flex' }}>engineeringgrimaldi.com</div>
-          <div style={{ display: 'flex', color: '#FF8A00' }}>Grimaldi Engineering</div>
-        </div>
-      </div>
-    ),
-    size,
-  );
+export const contentType = "image/png";
+export default function Og() {
+  return new ImageResponse((<div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#0E1116", color: "#F6F7F4", padding: 72, borderTop: "12px solid #FF8A00", fontFamily: "sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column" }}><div style={{ fontSize: 22, color: "#FF8A00" }}>PILOT-STAGE · FOUNDER-LED</div><div style={{ fontSize: 64, fontWeight: 700, marginTop: 16 }}>Grimaldi Engineering</div><div style={{ fontSize: 30, color: "#B8C4D2", marginTop: 20 }}>Time to Power (Gridforge) · NeuralBridge</div></div>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: "#8FA0B3" }}><div>timetopower.ai · neuralbridge.io</div><div>engineeringgrimaldi.com</div></div>
+  </div>), { ...size });
 }

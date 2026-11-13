@@ -1,29 +1,7 @@
-import type { ReactNode } from 'react';
-import SiteFooter from './SiteFooter';
-import SiteHeader from './SiteHeader';
-import { getDict } from '@/lib/dict';
-import type { Lang } from '@/lib/i18n';
-
-/** Shared chrome: header (with mega-menu + mobile drawer), main, footer. */
+import type { ReactNode } from "react";
+import SiteFooter from "./SiteFooter";
+import SiteHeader from "./SiteHeader";
+import type { Lang } from "@/lib/i18n";
 export default function Chrome({ lang, children }: { lang: Lang; children: ReactNode }) {
-  const t = getDict(lang);
-  return (
-    <>
-      <SiteHeader
-        lang={lang}
-        labels={{
-          brandTag: t.brandTag,
-          book: t.navBook,
-          menu: t.navMenu,
-          close: t.navClose,
-          langLabel: t.langLabel,
-          about: t.navAbout,
-          skipToContent: t.skipToContent,
-          primaryNav: t.primaryNav,
-        }}
-      />
-      <div id="main">{children}</div>
-      <SiteFooter lang={lang} />
-    </>
-  );
+  return (<><SiteHeader lang={lang} /><div id="main">{children}</div><SiteFooter lang={lang} /></>);
 }

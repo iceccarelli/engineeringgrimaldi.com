@@ -1,22 +1,55 @@
-/**
- * Standard Vercel serverless output (was `output: 'export'`).
- * The static export had to go: the waitlist route handler (POST) and
- * middleware-based locale routing are impossible in a static export.
- * All marketing pages still prerender via generateStaticParams, so
- * crawlers get full HTML with zero JavaScript — nothing is lost.
- * Security headers and the redirects live in vercel.json:
- *   - www.engineeringgrimaldi.com → apex (308)
- *   - palletizer-app.vercel.app/* → https://engineeringgrimaldi.com/palletizer (308)
- *     Inert until that hostname is attached to this Vercel project; the
- *     upstream demo keeps running on its own project until then. The demo
- *     host is never advertised in a heading here.
- *   - /book → /contact, /forge/palletizer → /palletizer (308), mirrored
- *     by permanentRedirect() in the routes for the /de tree.
- * Fonts are self-hosted from /public/fonts (IBM Plex, OFL), so the CSP
- * font-src stays 'self'.
- * (Next 14 does not support next.config.ts — this stays .js.)
- */
+const securityHeaders = [
+  {
+    "key": "Strict-Transport-Security",
+    "value": "max-age=63072000; includeSubDomains; preload"
+  },
+  {
+    "key": "X-Content-Type-Options",
+    "value": "nosniff"
+  },
+  {
+    "key": "Referrer-Policy",
+    "value": "strict-origin-when-cross-origin"
+  },
+  {
+    "key": "X-Frame-Options",
+    "value": "DENY"
+  },
+  {
+    "key": "Permissions-Policy",
+    "value": "camera=(), microphone=(), geolocation=()"
+  },
+  {
+    "key": "Content-Security-Policy",
+    "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://vitals.vercel-insights.com https://va.vercel-scripts.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+  }
+];
+const legacyToRoot = ["palletizer", "forge", "integrators", "solutions", "tools", "pricing", "lab", "work"];
+const legacyToFoundation = ["disciplines", "docs", "reference", "resources"];
 module.exports = {
   reactStrictMode: true,
   poweredByHeader: false,
+  images: { formats: ["image/avif", "image/webp"] },
+  async headers() { return [{ source: "/:path*", headers: securityHeaders }]; },
+  async redirects() {
+    const r = [
+      { source: "/book", destination: "/contact", permanent: true },
+      { source: "/de/book", destination: "/de/contact", permanent: true },
+      { source: "/energy", destination: "/time-to-power", permanent: true },
+      { source: "/energy/:path*", destination: "/time-to-power", permanent: true },
+      { source: "/de/energy", destination: "/de/time-to-power", permanent: true },
+      { source: "/de/energy/:path*", destination: "/de/time-to-power", permanent: true },
+      { source: "/api/energy", destination: "/api/hub", permanent: true },
+      { source: "/api/energy/:path*", destination: "/api/hub", permanent: true },
+    ];
+    for (const p of legacyToRoot) {
+      r.push({ source: "/" + p, destination: "/", permanent: true }, { source: "/" + p + "/:path*", destination: "/", permanent: true });
+      r.push({ source: "/de/" + p, destination: "/de", permanent: true }, { source: "/de/" + p + "/:path*", destination: "/de", permanent: true });
+    }
+    for (const p of legacyToFoundation) {
+      r.push({ source: "/" + p, destination: "/foundation", permanent: true }, { source: "/" + p + "/:path*", destination: "/foundation", permanent: true });
+      r.push({ source: "/de/" + p, destination: "/de/foundation", permanent: true }, { source: "/de/" + p + "/:path*", destination: "/de/foundation", permanent: true });
+    }
+    return r;
+  },
 };

@@ -1,231 +1,47 @@
-import type { Metadata } from 'next';
-import { Status } from '@/components/EnergyShell';
-import KpiTiles from '@/components/viz/KpiTiles';
-import ProgressionRail from '@/components/viz/ProgressionRail';
-import { StatusBar } from '@/components/viz/RegistryCharts';
-import EnergyIntakeForm from '@/components/EnergyIntakeForm';
-import IntakeForm from '@/components/IntakeForm';
-import JsonLd from '@/components/JsonLd';
-import { CLUSTERS, NOT_REWARDED_FOR, REWARDED_FOR } from '@/lib/clusters';
-import { getDict } from '@/lib/dict';
-import { DECISIONS } from '@/lib/energy/decisions';
-import { KPIS, KPI_AS_OF } from '@/lib/energy/kpis';
-import { ENERGY_PAGES } from '@/lib/energy/pages';
-import { REGISTRY, statusCounts } from '@/lib/energy/registry';
-import { WEDGES } from '@/lib/energy/wedge';
-import { ENERGY_INTAKE_LABELS, INTAKE_LABELS } from '@/lib/labels';
-import { isLang, langHref, pageAlternates, type Lang } from '@/lib/i18n';
-import { ogImages } from '@/lib/meta';
-import { professionalServiceSchema } from '@/lib/schema';
-import { PRODUCT_REPO, SITE_URL } from '@/lib/site';
-
-/**
- * Home = the control engine's front door. Top to bottom: kicker · H1 ·
- * the three clusters in resource order with cluster 1 (Energy) leading
- * and carrying its live numbers · what agents are and are not rewarded
- * for · intake. The Palletizer planner still lives at /palletizer,
- * untouched; it is one door here, not the whole house.
- */
-
-type PageProps = { params: { lang: string } };
-
-const COPY = {
-  en: {
-    lead: 'engineeringgrimaldi.com is the control engine for the Grimaldi Engineering ventures: three strategic clusters, each judged by evidence, competing for the next euro and the next engineer. Cluster 1 is controlled here in full — registry, architecture, safety boundary, agent tools, KPIs, decisions — and published machine-readable.',
-    honestyA: 'registry live',
-    honestyB: 'zero paid customers',
-    honestyC: (n: number) => `${n} repositories under review`,
-    clustersH2: 'Three clusters, in resource order',
-    control: 'Control →',
-    controlledHere: 'controlled here',
-    referenced: 'referenced, runs on its own domain',
-    kpiAsOf: `Cluster 1 numbers as of ${KPI_AS_OF}`,
-    notMeasured: 'not measured',
-    wedge: 'Wedge',
-    lastDecision: 'Last decision',
-    rewardH2: 'What counts',
-    rewarded: 'Rewarded for',
-    notRewarded: 'Not rewarded for',
-    machineH2: 'For agents, evaluators and procurement',
-    machineP: 'Every control page has a JSON twin. Read the index, then the resource you need. No sign-up, no key, read-only.',
-    intakeH2: 'Contact — energy',
-    intakeLead: 'Five questions. Tell us what your dispatch or your Mieterstrom project costs you today; you get a written answer with numbers, not a demo.',
-    skuH2: 'Contact — palletizing',
-    skuLead: 'Send the SKU list. You get a stack and the unstable SKUs back.',
-    palletizerNote: 'Cluster 2 product surface — planner, docs, integrators, tools — is unchanged.',
-    source: 'Source',
-  },
-  de: {
-    lead: 'engineeringgrimaldi.com ist die Steuerungszentrale der Grimaldi-Engineering-Unternehmungen: drei strategische Cluster, jedes nach Evidenz bewertet, im Wettbewerb um den nächsten Euro und den nächsten Ingenieur. Cluster 1 wird hier vollständig gesteuert — Register, Architektur, Sicherheitsgrenze, Agent-Tools, KPIs, Entscheidungen — und maschinenlesbar veröffentlicht.',
-    honestyA: 'Register live',
-    honestyB: 'null zahlende Kunden',
-    honestyC: (n: number) => `${n} Repositories in Prüfung`,
-    clustersH2: 'Drei Cluster, in Ressourcen-Reihenfolge',
-    control: 'Steuerung →',
-    controlledHere: 'hier gesteuert',
-    referenced: 'referenziert, läuft auf eigener Domain',
-    kpiAsOf: `Zahlen Cluster 1, Stand ${KPI_AS_OF}`,
-    notMeasured: 'nicht gemessen',
-    wedge: 'Wedge',
-    lastDecision: 'Letzte Entscheidung',
-    rewardH2: 'Was zählt',
-    rewarded: 'Belohnt für',
-    notRewarded: 'Nicht belohnt für',
-    machineH2: 'Für Agenten, Prüfer und Einkauf',
-    machineP: 'Jede Steuerungsseite hat einen JSON-Zwilling. Erst den Index lesen, dann die benötigte Ressource. Keine Anmeldung, kein Schlüssel, nur lesend.',
-    intakeH2: 'Kontakt — Energie',
-    intakeLead: 'Fünf Fragen. Sagen Sie uns, was Ihr Dispatch oder Ihr Mieterstrom-Projekt Sie heute kostet; Sie bekommen eine schriftliche Antwort mit Zahlen, keine Demo.',
-    skuH2: 'Kontakt — Palettieren',
-    skuLead: 'SKU-Liste senden. Sie erhalten einen Stapel und die instabilen SKUs zurück.',
-    palletizerNote: 'Produktoberfläche Cluster 2 — Planer, Doku, Integratoren, Werkzeuge — ist unverändert.',
-    source: 'Quellcode',
-  },
-} as const;
-
-export function generateMetadata({ params }: PageProps): Metadata {
-  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  const t = getDict(lang);
-  const description = lang === 'de'
-    ? 'Steuerungszentrale der drei Grimaldi-Engineering-Cluster aus Frankfurt. Cluster 1 Energy Intelligence: GridOS, DER-Integration, Energie Teilen, Sicherheitsgrenze, Agent-Tools, KPIs, Entscheidungen — maschinenlesbar unter /api/energy.'
-    : 'Control engine for the three Grimaldi Engineering clusters, Frankfurt. Cluster 1 Energy Intelligence: GridOS, DER integration, Energie Teilen, safety boundary, agent tools, KPIs, decisions — machine-readable at /api/energy.';
-  return {
-    title: { absolute: `${t.homeH1} | Grimaldi Engineering` },
-    description,
-    alternates: pageAlternates(lang, '/'),
-    openGraph: { title: t.homeH1, description, images: ogImages('Grimaldi Engineering — cluster control', 'Energy Intelligence · Physical AI · Operations') },
-    twitter: { card: 'summary_large_image', title: t.homeH1, description, images: ogImages('Grimaldi Engineering — cluster control', 'Energy Intelligence · Physical AI · Operations') },
-  };
-}
-
-export default function Home({ params }: PageProps) {
-  const lang: Lang = isLang(params.lang) ? params.lang : 'en';
-  const t = getDict(lang);
-  const copy = COPY[lang];
-  const href = (path: string) => langHref(lang, path);
-  const counts = statusCounts();
-  const headline = KPIS.filter((k) => ['revenue', 'qualified', 'pilots'].includes(k.id));
-  const last = DECISIONS[DECISIONS.length - 1];
-  const wedge = WEDGES[0];
-
+import Link from "next/link";
+import Plate from "@/components/Plate";
+import { HOME_DATA } from "@/lib/hub-home";
+import { isLang, langHref, pick, type Lang } from "@/lib/i18n";
+import { NB_URL, TTP_URL } from "@/lib/site";
+export default function HomePage({ params }: { params: { lang: string } }) {
+  const lang: Lang = isLang(params.lang) ? params.lang : "en";
+  const de = lang === "de";
   return (
     <main>
-      <section className="hero">
-        <div className="hero-in">
-          <div className="hero-card">
-            <span className="kicker kicker-signal">{t.homeKicker}</span>
-            <h1>{t.homeH1}</h1>
-            <p className="lead">{copy.lead}</p>
-          </div>
-          <p className="honesty" role="note">
-            <span className="chip chip-live">{copy.honestyA}</span>
-            <span className="sep">|</span>
-            <span className="chip chip-hold">{copy.honestyB}</span>
-            <span className="sep">|</span>
-            <span>{copy.honestyC(REGISTRY.length)}</span>
-            <span className="sep">|</span>
-            <a href="/api/energy/index">/api/energy/index</a>
-          </p>
+      <section className="hero"><div className="hero-in">
+        <span className="kicker kicker-signal">{pick(lang, HOME_DATA.kicker)}</span>
+        <h1>{pick(lang, HOME_DATA.h1)}</h1><p className="lead">{pick(lang, HOME_DATA.lead)}</p>
+        <div className="cta-row">
+          <a className="btn btn-signal" href={TTP_URL} rel="noopener noreferrer">timetopower.ai ↗</a>
+          <a className="btn btn-signal" href={NB_URL} rel="noopener noreferrer">neuralbridge.io ↗</a>
+          <Link className="btn" href={langHref(lang, "/contact")}>{de ? "Pilot-Anfrage →" : "Pilot inquiry →"}</Link>
+        </div>
+        <Plate src={HOME_DATA.heroPlate.src} alt={HOME_DATA.heroPlate.alt} code={HOME_DATA.heroPlate.code} caption={pick(lang, HOME_DATA.heroPlate.caption)} priority />
+      </div></section>
+      <section className="section">
+        <span className="kicker">{de ? "DIE BEIDEN UNTERNEHMEN" : "THE TWO COMPANIES"}</span>
+        <h2>Time to Power (Gridforge) &amp; NeuralBridge</h2>
+        <div className="grid grid-2" style={{ marginTop: 16 }}>
+          {HOME_DATA.companies.map((c) => (
+            <article key={c.slug} className="hub-company-card">
+              <span className="kicker kicker-signal">{c.tag}</span><h3>{c.name}</h3><p>{pick(lang, c.valueProp)}</p>
+              <Plate src={c.plate.src} alt={c.plate.alt} code={c.plate.code} caption={pick(lang, c.plate.caption)} sizes="(max-width: 980px) 100vw, 540px" />
+              <div className="cta-row" style={{ marginBottom: 0 }}>
+                <a className="btn btn-signal" href={c.externalUrl} rel="noopener noreferrer">{c.externalLabel}</a>
+                <Link className="btn" href={langHref(lang, c.internalPath)}>{de ? "Überblick →" : "Hub overview →"}</Link>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
-
-      <div className="section" id="clusters">
-        <h2>{copy.clustersH2}</h2>
-        <div className="clusters">
-          {CLUSTERS.map((c) => {
-            const isEnergy = c.id === 'energy';
-            return (
-              <article className={isEnergy ? 'cluster cluster-primary' : 'cluster'} key={c.id}>
-                <span className="kicker">Cluster {c.order} · {c.external ? copy.referenced : copy.controlledHere}</span>
-                <h3>{c.name[lang]}</h3>
-                <p>{c.mission[lang]}</p>
-                {isEnergy ? (
-                  <ProgressionRail lang={lang} compact />
-                ) : (
-                  <p className="energy-progression">
-                    {c.progression.map((s, i) => <span key={s}>{i > 0 && <i aria-hidden="true">→</i>}<b>{s}</b></span>)}
-                  </p>
-                )}
-                {isEnergy && (
-                  <div className="cluster-live">
-                    <p className="kicker">{copy.kpiAsOf}</p>
-                    <KpiTiles lang={lang} ids={headline.map((k) => k.id)} />
-                    <StatusBar lang={lang} compact />
-                    <div className="energy-counts">
-                      {Object.entries(counts).map(([s, n]) => (
-                        <a key={s} href={`${href('/energy/registry')}#${s.toLowerCase()}`} className="energy-count"><Status value={s} /><strong>{n}</strong></a>
-                      ))}
-                    </div>
-                    <p><b>{copy.wedge} {wedge.id}</b> <Status value={wedge.status} /> — <a href={href('/energy/wedge')}>{wedge.name}</a></p>
-                    <p><b>{copy.lastDecision}</b> <code>{last.id}</code> — <a href={`${href('/energy/decisions')}#${last.id}`}>{last.title}</a></p>
-                    <ul className="cluster-pages">
-                      {ENERGY_PAGES.map((p) => <li key={p.path}><a href={href(p.path)}>{p.label[lang]}</a></li>)}
-                    </ul>
-                  </div>
-                )}
-                {c.id === 'physical-ai' && <p className="honesty" role="note"><span className="chip chip-live">{lang === 'de' ? 'Software ausgeliefert' : 'software shipped'}</span> <span className="chip chip-hold">{lang === 'de' ? 'Zelle nicht in Betrieb' : 'cell not commissioned'}</span> <a href={PRODUCT_REPO} rel="noopener noreferrer">{copy.source}: github.com/iceccarelli/palletizer</a></p>}
-                <p className="honesty" role="note">{c.status[lang]}</p>
-                <a className="cta" href={c.external ? c.controlPath : href(c.controlPath)} rel={c.external ? 'noopener noreferrer' : undefined}>{copy.control}</a>
-              </article>
-            );
-          })}
-        </div>
-        <p className="intro">{copy.palletizerNote}</p>
-      </div>
-
-      <div className="section" id="rewards">
-        <h2>{copy.rewardH2}</h2>
-        <div className="grid grid-2">
-          <div className="card">
-            <h3>{copy.rewarded}</h3>
-            <p className="energy-chips">{REWARDED_FOR.map((r) => <span className="chip chip-live" key={r}>{r}</span>)}</p>
-          </div>
-          <div className="card">
-            <h3>{copy.notRewarded}</h3>
-            <p className="energy-chips">{NOT_REWARDED_FOR.map((r) => <span className="chip chip-fault" key={r}>{r}</span>)}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="section" id="machine">
-        <h2>{copy.machineH2}</h2>
-        <p className="intro">{copy.machineP}</p>
-        <pre className="energy-tree">{`GET ${SITE_URL}/api/energy/index
-GET ${SITE_URL}/api/energy/registry
-GET ${SITE_URL}/api/energy/architecture
-GET ${SITE_URL}/api/energy/tools
-GET ${SITE_URL}/api/energy/kpis
-GET ${SITE_URL}/api/energy/decisions`}</pre>
-      </div>
-
-      <div className="section" id="intake">
-        <h2>{copy.intakeH2}</h2>
-        <p className="intro">{copy.intakeLead}</p>
-        <EnergyIntakeForm labels={ENERGY_INTAKE_LABELS[lang]} lang={lang} />
-      </div>
-
-      <div className="section" id="sku-intake">
-        <h2>{copy.skuH2}</h2>
-        <p className="intro">{copy.skuLead}</p>
-        <IntakeForm labels={INTAKE_LABELS[lang]} lang={lang} />
-      </div>
-
-      <JsonLd data={professionalServiceSchema()} />
-      <JsonLd
-        data={{
-          '@context': 'https://schema.org',
-          '@type': 'ItemList',
-          '@id': `${SITE_URL}/#clusters`,
-          name: 'Grimaldi Engineering — strategic clusters',
-          itemListOrder: 'https://schema.org/ItemListOrderAscending',
-          itemListElement: CLUSTERS.map((c) => ({
-            '@type': 'ListItem',
-            position: c.order,
-            name: c.name.en,
-            description: c.mission.en,
-            url: c.external ? c.controlPath : `${SITE_URL}${href(c.controlPath)}`,
-          })),
-        }}
-      />
+      <section className="section">
+        <h2>{pick(lang, HOME_DATA.whyHeading)}</h2><p className="lead">{pick(lang, HOME_DATA.whyBody)}</p>
+        <div className="grid grid-2">{HOME_DATA.whyPlates.map((pl) => (<Plate key={pl.src} src={pl.src} alt={pl.alt} code={pl.code} caption={pick(lang, pl.caption)} sizes="(max-width: 980px) 100vw, 568px" />))}</div>
+      </section>
+      <section className="section">
+        <h2>{pick(lang, HOME_DATA.statusHeading)}</h2><p className="lead">{pick(lang, HOME_DATA.statusBody)}</p>
+        <div className="grid grid-2">{HOME_DATA.statusPlates.map((pl) => (<Plate key={pl.src} src={pl.src} alt={pl.alt} code={pl.code} caption={pick(lang, pl.caption)} sizes="(max-width: 980px) 100vw, 568px" />))}</div>
+      </section>
     </main>
   );
 }
